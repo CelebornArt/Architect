@@ -1,32 +1,37 @@
-# Architect to-do list
+# Architect open work
 
-Keep this file current as work starts and finishes. Add concrete acceptance criteria to active tasks.
+Keep only unfinished work here. When a task is completed, document the change in `Completed/NotionStructure.md` and the release's `CHANGELOG.md`, then remove the task from this file.
 
-## Completed
+## Next steps
 
-- [x] Add a versioned local workspace/page/block model and persistence migration.
-- [x] Support child pages, page links, page/person mentions, slash commands, Markdown, and an editable trailing block.
-- [x] Add typed per-page properties and persistent simple tables/code language.
-- [x] Group Favorites, Shared, and workspace pages; expand child pages from disclosure arrows.
-- [x] Reorganize product documents and record the first `0.1.0` release.
-- [x] Compare basic page editing and UX against the live Notion target through REA.
+### P0 — Editor correctness
 
-## Next
+- [ ] **Preserve rich text and caret during edits.** Replace adjacent-block `@`/`[[` references with inline reference nodes while keeping text before and after the reference. Add paste parsing for Markdown and links. Verify typing, paste, selection, undo/redo, reload, and reference navigation.
+- [ ] **Finish keyboard block editing.** Handle Enter/Backspace at block boundaries, list continuation, multi-block selection, indent/outdent, block move/reorder, and deletion without losing the editable empty insertion point. Verify keyboard-only paths and persisted order.
+- [ ] **Restore TypeScript checks.** Remove `// @ts-nocheck` from `workspace.ts`, add explicit model types, fix compiler errors, and ensure build catches invalid block/property mutations.
+- [ ] **Resolve duplicate editor sources.** Determine whether `app.ts` and `editor-features.ts` are still used; document and remove or consolidate obsolete code only after confirming the active renderer path.
 
-- [ ] Replace per-page property fields with shared database schemas and row relationships; add table/list views.
-- [ ] Add database sort, filter, grouping, property visibility, and row-to-page navigation.
-- [ ] Complete Markdown parity: pasted Markdown, links, nested lists, code fences, undo/redo, and selection-safe formatting.
-- [ ] Preserve inline text while selecting `@` and `[[` references; render mentions inline rather than as separate blocks.
-- [ ] Improve block editing: caret-safe Backspace/Enter, multi-block selection, drag/reorder, indent/outdent, and block menus.
-- [ ] Replace prompt-based property, icon, cover, and media flows with searchable pickers; add asset reuse and cover crop preview.
-- [ ] Implement the workspace switcher for multiple memberships; keep favorites and shared pages scoped correctly.
-- [ ] Audit every slash command against its documented behavior; remove or label commands that are still stubs.
-- [ ] Test Web, Windows desktop, macOS packaging, reload persistence, and narrow/mobile layouts.
+### P1 — Databases and commands
 
-## Known bugs / risks
+- [ ] **Create shared database schemas and rows.** Define database IDs, shared property schemas, row/page relationships, and migrations from current per-page properties. Verify edits to a property schema appear consistently on every row.
+- [ ] **Add database views.** Implement table and list views first, then filters, sorting, grouping, property visibility, and row-to-page navigation. Verify each view reads the same persisted row values.
+- [ ] **Complete slash commands.** Compare each menu entry to `Completed/NotionStructure.md`; implement command-specific output and persistence, or remove/label entries that remain placeholders. Verify keyboard selection and insertion at the caret.
 
-- Bulk-pasted Markdown markers do not auto-convert like character-by-character typing.
-- Page references selected from `@`/`[[` are stored as adjacent blocks; they do not preserve true inline caret formatting.
-- Current workspace access UI represents one workspace; membership switching is not modeled.
-- Per-page properties are not shared database schemas, and database views are not implemented.
-- Media storage is browser local storage and does not yet provide a reusable asset library.
+### P1 — Media and page controls
+
+- [ ] **Build an asset library.** Support upload, filtering/reuse, image previews, cover crop controls, and persistent asset references rather than large data URLs in local storage.
+- [ ] **Replace prompt-based pickers.** Add searchable icon, property, cover, and media dialogs with cancellation and validation states.
+
+### P2 — Workspace and delivery
+
+- [ ] **Model multiple workspaces.** Add memberships and a functional switcher; scope favorites, shared pages, and navigation to the selected workspace.
+- [ ] **Verify responsive and desktop behavior.** Cover mobile-width web, Windows packaging, macOS packaging on macOS, local persistence, import/export, and recovery after malformed stored data.
+
+## Known problems
+
+- Bulk-pasted Markdown syntax stays literal; shortcut conversion currently works while typing character by character.
+- Page references selected from `@`/`[[` are adjacent blocks, so they can break true inline text flow and caret position.
+- Properties are stored per page, not in shared database schemas; formulas, relations, and views are absent.
+- Workspace access currently shows one workspace, with no membership switching.
+- Media storage uses browser local storage; there is no reusable asset library or robust cover crop workflow.
+- Several slash-command entries are placeholders or use prompt dialogs rather than complete Notion-like flows.

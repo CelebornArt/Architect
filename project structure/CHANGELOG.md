@@ -16,6 +16,7 @@ Initial tracked release of Architect.
 ### Changed
 
 - Moved the Notion comparison to `Completed/NotionComparison.md`; reserved `Targets/ArchitectStructure.md` for future Architect decisions.
+- Reorganized `AGENTS.md` into Git Commits and Global stuff; changed TODO to list only open tasks, next steps, and known problems.
 
 ### Known gaps
 

@@ -1,8 +1,13 @@
-# Project instructions
+# Git Commits
 
-- Keep the Notion reference plan and REA comparison in `Completed/`. Keep future Architect-specific targets in `Targets/ArchitectStructure.md`.
-- Update `WorkInProgress/TODO.md` when work starts or finishes. Record the next concrete tasks and remaining bugs.
-- Document every product or architecture change in `Completed/NotionStructure.md` when it changes reference scope, and in `CHANGELOG.md` for each release.
-- Use Conventional Commits (`feat`, `fix`, `docs`, `refactor`, `test`, `build`, `chore`) with clear imperative descriptions. Keep releases SemVer, starting at `0.1.0`; update `package.json`, the lockfile, and `CHANGELOG.md` for every version.
+- Use Conventional Commits with a clear scope and imperative summary: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, or `chore`.
+- Keep releases SemVer, starting at `0.1.0`. For every release, update `package.json`, `package-lock.json`, and `CHANGELOG.md`; tag releases as `vX.Y.Z`.
+- Keep commits focused. Do not commit dependencies or generated output (`node_modules/`, `dist/`, `dist-electron/`, `release/`).
+
+# Global stuff
+
+- Keep the Notion reference plan and comparison in `Completed/`; keep Architect-specific future targets in `Targets/ArchitectStructure.md`.
+- Keep `WorkInProgress/TODO.md` limited to open tasks, next steps, and known problems. Remove completed tasks instead of retaining checked items.
+- Document reference-scope changes in `Completed/NotionStructure.md`; document product changes in `CHANGELOG.md` for their release.
 - Preserve the signed-in Notion browser session used by REA. Prefer passive inspection; do not change its login, profile, or page data.
-- Build with `npm.cmd run build`. Use `npm.cmd` in PowerShell to avoid the restricted `npm.ps1` script shim.
+- Build with `npm.cmd run build`. In PowerShell, use `npm.cmd` to avoid the restricted `npm.ps1` shim.
