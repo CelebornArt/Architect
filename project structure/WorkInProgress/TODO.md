@@ -9,6 +9,7 @@ Keep this file current as work starts and finishes. Add concrete acceptance crit
 - [x] Add typed per-page properties and persistent simple tables/code language.
 - [x] Group Favorites, Shared, and workspace pages; expand child pages from disclosure arrows.
 - [x] Reorganize product documents and record the first `0.1.0` release.
+- [x] Compare basic page editing and UX against the live Notion target through REA.
 
 ## Next
 

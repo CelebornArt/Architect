@@ -1,6 +1,6 @@
 # Project instructions
 
-- Keep the Notion reference plan in `Completed/NotionStructure.md` and product-specific changes in `WorkInProgress/ArchitectStructure.md`.
+- Keep the Notion reference plan and REA comparison in `Completed/`. Keep future Architect-specific targets in `Targets/ArchitectStructure.md`.
 - Update `WorkInProgress/TODO.md` when work starts or finishes. Record the next concrete tasks and remaining bugs.
 - Document every product or architecture change in `Completed/NotionStructure.md` when it changes reference scope, and in `CHANGELOG.md` for each release.
 - Use Conventional Commits (`feat`, `fix`, `docs`, `refactor`, `test`, `build`, `chore`) with clear imperative descriptions. Keep releases SemVer, starting at `0.1.0`; update `package.json`, the lockfile, and `CHANGELOG.md` for every version.

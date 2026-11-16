@@ -13,6 +13,10 @@ Initial tracked release of Architect.
 - Typed page properties and editable table/code blocks with local persistence.
 - Notion product analysis, Architect-specific product plan, task list, and project guidance.
 
+### Changed
+
+- Moved the Notion comparison to `Completed/NotionComparison.md`; reserved `Targets/ArchitectStructure.md` for future Architect decisions.
+
 ### Known gaps
 
 - Shared database schemas and views, robust asset management/cropping, collaboration, and complete Notion command parity remain planned.

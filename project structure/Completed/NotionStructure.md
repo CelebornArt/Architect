@@ -410,5 +410,5 @@ The clone now uses a versioned workspace/page/block model with migration from it
 - Independent browser testing verified table edits and row insertion persist after reload, and code language selection persists after the debounced save.
 - The page property editor was exercised by adding a Status field, changing it to “In progress,” and reloading; the value remained selected.
 - Independent testing confirmed Status, Person, Date, Number, and URL fields all persist their values after reload.
-- REA rechecked the existing signed-in Notion renderer without navigating or changing it. Its page-level editing and database-row context are compared with Architect in [NotionComparison](../Targets/NotionComparison.md); this capture remained policy-filtered.
-- In version 0.1.0, project maintenance documents moved under `project structure/`; the Notion reference is `NotionStructure.md`, while custom product decisions are in `ArchitectStructure.md`.
+- REA rechecked the existing signed-in Notion renderer without navigating or changing it. Its page-level editing and database-row context are compared with Architect in [NotionComparison](NotionComparison.md); this capture remained policy-filtered.
+- In version 0.1.0, project maintenance documents moved under `project structure/`; the Notion reference is `NotionStructure.md`, while future custom product targets are reserved in `../Targets/ArchitectStructure.md`.
