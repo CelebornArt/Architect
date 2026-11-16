@@ -1,0 +1,49 @@
+{
+  "name": "architect",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.electron.json",
+    "dev": "npm run build && serve .",
+    "desktop": "npm run build && electron-builder --win --dir && .\\release\\win-unpacked\\Architect.exe",
+    "desktop:win": "npm run build && electron-builder --win",
+    "desktop:mac": "npm run build && electron-builder --mac"
+  },
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.workspace.architect",
+    "productName": "Architect",
+    "files": [
+      "index.html",
+      "styles.css",
+      "editor-enhancements.css",
+      "dist/**",
+      "dist-electron/**"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.3",
+    "electron": "^39.8.10",
+    "electron-builder": "^26.0.12",
+    "serve": "^14.2.4",
+    "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "electron@39.8.10": true
+  }
+}
