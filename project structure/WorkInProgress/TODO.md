@@ -1,6 +1,6 @@
 # Architect open work
 
-Keep only unfinished work here. When a task is completed, document the change in `Completed/NotionStructure.md` and the release's `CHANGELOG.md`, then remove the task from this file.
+Keep only unfinished work here. When a task is completed, document the change in `Targets/NotionStructure.md` and the release's `CHANGELOG.md`, update `Completed/ImplementedFeatures.md`, then remove the task from this file.
 
 ## Next steps
 
@@ -15,7 +15,7 @@ Keep only unfinished work here. When a task is completed, document the change in
 
 - [ ] **Create shared database schemas and rows.** Define database IDs, shared property schemas, row/page relationships, and migrations from current per-page properties. Verify edits to a property schema appear consistently on every row.
 - [ ] **Add database views.** Implement table and list views first, then filters, sorting, grouping, property visibility, and row-to-page navigation. Verify each view reads the same persisted row values.
-- [ ] **Complete slash commands.** Compare each menu entry to `Completed/NotionStructure.md`; implement command-specific output and persistence, or remove/label entries that remain placeholders. Verify keyboard selection and insertion at the caret.
+- [ ] **Complete slash commands.** Compare each menu entry to `Targets/NotionStructure.md`; implement command-specific output and persistence, or remove/label entries that remain placeholders. Verify keyboard selection and insertion at the caret.
 
 ### P1 — Media and page controls
 

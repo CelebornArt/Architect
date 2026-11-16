@@ -1,6 +1,6 @@
 # Architect
 
-Architect is a local Notion-inspired workspace prototype. It combines a web editor with an Electron desktop shell for Windows and macOS. The project is being built from the product plan and REA observations in [NotionStructure](Completed/NotionStructure.md), with future Architect-specific targets reserved in [ArchitectStructure](Targets/ArchitectStructure.md).
+Architect is a local Notion-inspired workspace prototype. It combines a web editor with an Electron desktop shell for Windows and macOS. The project is being built from the product plan and REA observations in [NotionStructure](Targets/NotionStructure.md), with future Architect-specific targets reserved in [ArchitectStructure](Targets/ArchitectStructure.md). The granular implementation inventory is in [ImplementedFeatures](Completed/ImplementedFeatures.md).
 
 ## Run it
 

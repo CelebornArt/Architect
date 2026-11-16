@@ -17,6 +17,8 @@ Initial tracked release of Architect.
 
 - Moved the Notion comparison to `Completed/NotionComparison.md`; reserved `Targets/ArchitectStructure.md` for future Architect decisions.
 - Reorganized `AGENTS.md` into Git Commits and Global stuff; changed TODO to list only open tasks, next steps, and known problems.
+- Moved `NotionStructure.md` and `NotionComparison.md` into `Targets/`, added a granular implemented-features inventory, and made TODO the required starting point for continuation prompts.
+- Moved the Notion plan and comparison into `Targets/` and added `Completed/ImplementedFeatures.md` with implementation status and verification notes.
 
 ### Known gaps
 
