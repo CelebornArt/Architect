@@ -15,13 +15,16 @@ This document describes the intended product, not a claim that these capabilitie
 
 ## Hosting, data, and deployment
 
-The user or team chooses between two workspace modes, with asset storage selected separately:
+The user or team chooses between workspace coordination modes, with asset storage selected separately (defaulting to **Local only** coordination with **Local storage**):
 
-- **Local only:** run Architect on a computer, keeping workspace data on that device. This standalone mode does not provide live multi-user editing.
-- **Team collaboration:** connect to a collaboration server. The first-class route is the team's own server, including one hosted on its website/domain. A future Architect-hosted server could be optional, but must not be the only way to collaborate.
-- **Asset storage:** choose local files, a connected drive, or the collaboration server's configured asset store. A drive connection does not imply that Architect owns or copies all drive content.
+- **Local only (default):** run Architect on a computer, keeping workspace data on that device (app-owned desktop data directory or browser profile). Works offline without an account or server.
+- **Cloud-drive file sync (solo cross-device + view-only mirrors, NOT co-op):** an optional file-sync mode for **local solo usage across multiple devices** (like Joplin or Obsidian sync)—not a multi-user co-op editing mode. Also supports **view-only sharing** where viewers' clients auto-sync *from* the shared cloud source (one-way pull only, **never** writing back to the source, with the editor strictly read-only) configurable either **on startup only** or every **`X` minutes**.
+- **Team collaboration server (required for live co-working):** connect to a self-hosted or team-hosted collaboration server (including one hosted on the team's own domain). The server authenticates accounts/profiles, enforces Discord-style role permissions, routes/persists live edits via WebSockets, runs databases/search/chat/notifications, and optionally publishes sites. A future Architect-hosted server could be optional, but must not be the only way to collaborate.
+- **Asset storage:**
+  - **In local mode:** choose between a **local folder/storage** (default) or a connected **cloud drive**.
+  - **In team collaboration mode:** the workspace **Admin** chooses whether assets are managed on an **external online drive** or **on the server** itself. A drive connection does not imply that Architect owns or copies all drive content.
 
-Live collaboration requires a shared coordination point to authenticate members, persist revisions, broadcast presence/edits, and resolve concurrent changes. Architect should provide a self-hostable server component so teams can collaborate without an Architect-operated cloud. Standalone local use remains available for one user or one device at a time.
+True real-time co-working requires a shared coordination server to authenticate members, enforce access rules, persist revisions, broadcast presence/edits, and resolve concurrent changes. Architect provides a local-first desktop/web experience by default and adds a self-hostable backend server component when teams enable live collaboration.
 
 ```mermaid
 flowchart LR
@@ -50,10 +53,11 @@ Deployment requirements:
 - **Portable format:** versioned JSON workspace backup with workspace metadata, stable content IDs, user records, page/block data, and references to locally uploaded assets. Import must validate the version and preserve the existing workspace if validation or storage fails.
 - **Desktop target:** move the source of truth behind a storage adapter and into an app-owned local data directory. Keep export format independent of the internal database so local storage can evolve without breaking backups.
 - **Collaboration server:** a workspace connects directly to its administrator-configured server URL. The server owns the authoritative workspace database, revisions, member sessions, and file metadata. The first API proposal is versioned JSON over HTTPS for reads/writes plus WebSocket events for live edits and presence; no requests route through an Architect-operated service.
-- **Identity:** local-only mode may use a local profile. Team identity is administered by that server, with local accounts as the baseline and optional self-hosted identity-provider support. No Architect account is required.
-- **Offline and conflicts:** local-only mode works offline by definition. In team mode, the server coordinates live edits and stores revisions. Queue offline edits with their base revision, then reconcile on reconnect. A conflicting edit must be shown for resolution; do not silently overwrite the server or local version.
-- **Files:** references keep provider ID, provider, canonical URL, metadata, and access state. Uploads are stored in a user-selected drive or in the team's configured server storage. Large file bytes should not be embedded in workspace JSON once a durable asset store exists.
-- **Recovery:** export a portable backup before destructive migration/restore. Server owners control scheduled backups and restore; desktop local data must remain exportable and recoverable without an Architect account.
+- **Accounts vs. per-workspace profiles:** local-only mode uses a local profile without sign-in. In team mode, users create/own one core **Account**; workspace Admins provision **Workspace Profiles** inside a workspace (often tied to **company email**) and link them to users' Accounts. One Account can belong to **multiple workspaces at once**, with a distinct **Profile** per workspace (separate display name, profile picture, company email, custom roles, and permissions). No global Architect SaaS account is required.
+- **Discord-style custom roles & server-enforced permissions:** admins can **create custom roles, edit role permissions/display colors/order, and remove roles** on the Admin Dashboard. **Pages (as well as databases, boards, channels, and asset collections)** can be assigned **per-role overrides** (like Discord channels) controlling who has access, who can edit, write comments, or manage files—enforced on the backend for every read, write, search query, asset stream, and WebSocket event.
+- **Offline, solo cloud sync, and conflicts:** local-only mode works offline by definition. Optional solo cloud-drive sync tracks revisions and lets view-only clients pull from a shared source every `X` minutes or on startup without write access. In team server mode, the server coordinates live CRDT/OT edits and stores revisions; offline edits queue with their base revision and reconcile on reconnect, surfacing non-trivial conflicts instead of silently overwriting.
+- **Files & asset registry:** the backend maintains an asset metadata registry (`id`, `workspaceId`, `provider`, `externalFileId`, `canonicalUrl`, `mimeType`, `sizeBytes`, `dimensions`, `tags`, `checksum`, `accessState`), token vault for connected drives, and upload/proxy endpoints. Large binary bytes live in the connected drive or configured server object/file store—never embedded inside workspace JSON.
+- **Recovery & trash:** export a portable backup before destructive migration/restore. Soft-deleted pages, rows, blocks, and channels enter a restorable Trash with configurable retention, alongside page version snapshots and scheduled server backups.
 
 ## Page and workspace content types
 
@@ -105,35 +109,40 @@ Non-database pages should have a modern toolbar inspired by Obsidian. It should 
 - Insertion: image/file reference, board/database/task reference, date, and comment anchor.
 - Editing: undo/redo, keyboard shortcuts, Markdown typing shortcuts, selection-aware actions, paste conversion, and accessible toolbar navigation.
 - Presentation: compact and readable controls, visible active formatting, contextual selection toolbar, and configurable toolbar placement/visibility.
+- Slide presentation mode (backlog): "Present from here" entry (`Ctrl+Alt+P`) from block handle actions to present page sections cleanly as slides with keyboard navigation and exit controls.
 - Markdown: common Markdown input shortcuts and copy/export behavior should be predictable. Store semantic document nodes so formatting survives edits and export.
 
 The toolbar is for text pages. Database and board pages should show controls that fit their own content type rather than forcing the text toolbar everywhere.
 
 ## Dashboards, tasks, calendar, and time
 
-Each user has a customizable dashboard, with optional team dashboards. Widgets should be permission-aware and link back to their source records.
+Separate **User Dashboard** and **Admin Dashboard** views keep personal workflow focused while restricting administrative settings to authorized roles:
 
+- **User Dashboard:** personalized workspace home for every member with configurable permission-aware widgets (my tasks, recent chats, calendar agenda, personal time tracker) saved independently per user.
+- **Admin Dashboard:** essentially workspace settings accessible **only to users holding roles with admin/manage permissions**. Houses workspace coordination/storage mode, **Account-linked Workspace Profile provisioning** (tied to company mail), **Discord-style custom role creation/editing/deletion**, drive/server storage selection, custom-domain publishing verification, module toggles, retention, backups, and audit logs.
 - **Task overview:** assigned to me, due soon, overdue, status, priority, and project filters; quick status and due-date edits.
 - **Chats:** recent direct chats, topic channels, groups, unread counts, and mentions.
 - **Calendar:** upcoming events and tasks, with configurable calendar sources and permissions.
 - **Time tracker:** start/stop timer, manual entry, task/project association, and a reviewable time history. Define privacy and who can view team time before implementation.
-- **Customization:** add, remove, resize, reorder, and configure widgets; save personal layout separately from shared team layouts.
 
 Permissions should follow the underlying records. A dashboard must not expose a task, chat, or calendar item to a user who cannot access its source.
 
 ## Asset management and drive references
 
-Provide a central asset manager for files users can access. It should work with connected drives and local uploads without turning into an opaque duplicate file store.
+Provide a central Asset Management System for files users can access. Defaults to **local folder/storage** in local mode, while letting local users connect a cloud drive and letting **co-working Admins choose** between an **external online drive** or **server-managed asset storage**.
 
-- Search files by name, type, owner, location, tags, and relevant provider metadata.
-- Browse and filter by provider, folder, file type, and tag; show thumbnails/previews where supported.
-- Attach a reference to a page, database row, board object, task, or chat. Preserve provider identity and open the original file.
-- Upload a file when it does not already exist in a connected drive; make the destination and resulting reference explicit.
-- Tag and rename files when the connected provider grants permission. Clearly report when a provider does not allow the operation.
-- Support reusable references, rename conflict handling, deleted/moved file states, and refresh of provider metadata.
+- **Rich asset catalog & metadata:** track structured `metadata` (dimensions, duration, custom fields), `fileType` (MIME/extension), **`category`** (e.g., `music`, `sfx`, `3d model`, `concept`, `illustration`, `video`, `document`, `image`, `other`), **`creator`** (distinct from uploader—**Admins can reassign the creator**), and **`tags`**, alongside provider identity and `storageMode` (`local` | `server` | `drive-reference`).
+- **Searchable, interactive Asset Library:** search and filter by name, `fileType`, `category`, `creator`, `tags`, provider, folder, and metadata, returning a browsable library where assets can be **inspected and played directly inside the search/library UI**:
+  - **Audio (`music` / `sfx`):** inline waveform/bar player with play/pause and a **clickable, scrubbable timeline**.
+  - **Images (`concept` / `illustration` / photos):** crisp gallery preview + **fullscreen high-quality lightbox** (opened on double-click or context menu).
+  - **Video:** inline video player with timeline scrubbing and fullscreen option.
+  - **3D models, PDFs & other files:** metadata preview cards and original file downloads.
+- **Attach cloud/server references:** attach a reference to a page, database row, board object, task, or chat, preserving provider identity and opening the original file.
+- **Tiered previews vs. full-file downloads:** inline file and image attachments store and render lightweight/resized previews while referencing the canonical file on the connected cloud drive, server store, or local folder. Explicit downloads (`Download` / original file open) stream the full-sized original file, rather than loading full binaries on every page view.
+- **Upload, tag & creator management:** upload files explicitly to local storage, server storage, or a connected drive; edit tags/categories, reassign `creator` (admin), rename when allowed, handle deleted/moved file states, and refresh metadata without copying entire drives unnecessarily.
 - Keep drive credentials secure and request only scopes needed for selected operations.
 
-The asset manager must distinguish a **reference** from an **Architect-managed upload**. The UI should state where an upload is stored and who can access it.
+The asset manager must distinguish a **drive reference** from a **local/server-managed upload**. The UI should state where an upload is stored and who can access it.
 
 ## Image annotations and comments
 
@@ -157,18 +166,35 @@ Replace a basic notification list with a configurable inbox that helps users tri
 - Group related activity into threads and link directly to the relevant page, block, image region, database row, task, or chat message.
 - Keep global administrator announcements distinct and clearly labeled; users should be able to tell who sent them and whether action is required.
 
-## Chat, groups, administration, and permissions
+## Chat, groups, notifications, administration, and permissions
 
 Provide team communication inspired by Discord while keeping conversation attached to workspace work.
 
-- Direct messages, topic-based channels, and private groups.
-- Threads/replies, mentions, reactions, attachments, search, unread state, and notification controls.
+- Direct messages, topic-based channels, and private groups persisted on the backend and delivered in real time over WebSockets.
+- Threads/replies, mentions, reactions, attachments, message search, unread read-cursors, and notification controls.
 - Link chat messages to pages, tasks, database records, boards, calendar events, and files.
+- Backend notification & Inbox service aggregating `@mentions`, page/image comments, task assignments, automation alerts, chat replies, and admin announcements, with configurable delivery (in-app Inbox, desktop/Web Push, optional email/webhook dispatch).
 - Administrators can send important global announcements to the whole workspace; support acknowledgment or required-action state where appropriate.
-- Admin dashboard for members, roles, invitations, workspace settings, connected drives, server health, retention, and audit history.
-- Permissions for workspace, content type, page/record, channel/group, file reference, and administrative actions.
-- Use explicit roles and access inheritance with clear exceptions, visible sharing state, and an audit trail for sensitive permission changes.
+- **Admin Dashboard (role-gated per workspace):** workspace settings accessible only to users with administrative roles. Provision/invite workspace profiles (tied to company mail, linked to user Accounts), **create/edit/delete Discord-style custom roles**, set **per-page/per-channel role permission overrides** (access, edit, comment, manage assets), choose asset storage backend (**external online drive vs. server storage**), configure solo cloud-sync / read-only mirror policies, verify custom publishing domains, view server health/queues/backups, set retention policies, and inspect audit history.
+- Role & permission inheritance: roles grant baseline workspace capabilities and inherit down **Workspace → Page / Database / Board / Channel / Category**, with explicit Discord-style **per-page role overrides** (view, edit, comment, upload) enforced on the server with visible sharing state and an audit log for sensitive changes.
 - Separate administrator-wide announcements from ordinary global chat. Define moderation, retention, search visibility, and who may create channels/groups.
+
+## Site publishing (domain-gated)
+
+Workspaces can publish selected pages or page trees to the public web **only when the workspace has a connected and verified custom domain**.
+
+- Domain verification on the Admin Dashboard (DNS CNAME/TXT check and HTTPS/TLS termination) before enabling public publishing controls.
+- Explicit per-page publish/unpublish toggle, custom URL slug, snapshot publishing (`draft` vs live published snapshot so in-progress edits are not leaked), SEO/OpenGraph metadata, and search-engine indexing toggle.
+- Serve published pages read-only with strict isolation: never expose private workspace pages, draft blocks, internal member lists, chat, or unauthorized drive/server assets on public routes.
+
+## Supporting backend infrastructure
+
+To keep all workspace surfaces consistent, fast, and safe, the backend also needs:
+
+- **Permission-aware full-text search index:** indexes pages, blocks, database rows, asset metadata, and chat messages while strictly filtering results by the caller's backend permissions.
+- **Background job queue & scheduler:** handles Drive metadata/sync refreshes, notification dispatch, scheduled backups, thumbnail generation, static/published site builds, and automation executions with retry and dead-letter tracking.
+- **Trash, version history, and audit trail:** recoverable soft-delete (`Trash`) with retention windows, historical page/block revision snapshots, and immutable audit logs for security/admin events.
+- **API security & observability:** session/token management, CSRF/XSS sanitization, upload size/type enforcement, rate limiting, and `/health` + storage/queue telemetry in the Admin Dashboard.
 
 ## Databases, buttons, and automations
 
