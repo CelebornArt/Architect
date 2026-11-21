@@ -159,7 +159,38 @@ function createWindow(): void {
 function registerStorageIpc(): void {
   ipcMain.handle('architect:info', async () => {
     await ensureStorageDirs();
-    return { dataDir: dataRoot(), platform: process.platform };
+    return { dataDir: dataRoot(), platform: process.platform, version: app.getVersion() };
+  });
+
+  ipcMain.handle('architect:check-update', async (_event, feedUrl?: string) => {
+    const currentVersion = app.getVersion();
+    const cleanUrl = String(feedUrl || '').trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      return { currentVersion, updateAvailable: false };
+    }
+    try {
+      const resp = await net.fetch(cleanUrl, { headers: { Accept: 'application/json' } });
+      if (!resp.ok) return { currentVersion, updateAvailable: false, error: `HTTP ${resp.status}` };
+      const data: any = await resp.json();
+      const latestVersion = String(data?.tag_name || data?.version || '').replace(/^v/i, '').trim();
+      const downloadUrl = String(data?.html_url || data?.downloadUrl || data?.url || '');
+      const notes = String(data?.body || data?.notes || '');
+      return {
+        currentVersion,
+        latestVersion,
+        downloadUrl,
+        notes,
+        updateAvailable: Boolean(latestVersion && latestVersion !== currentVersion)
+      };
+    } catch (error) {
+      return { currentVersion, updateAvailable: false, error: error instanceof Error ? error.message : 'Update check failed' };
+    }
+  });
+
+  ipcMain.handle('architect:relaunch', async () => {
+    app.relaunch();
+    app.exit(0);
+    return { ok: true };
   });
 
   ipcMain.handle('architect:read-workspace', async () => {

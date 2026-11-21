@@ -31,7 +31,7 @@ type BlockButtonStep = {
 };
 type BlockButtonConfig = { label?:string; icon?:string; confirm?:boolean; confirmText?:string; steps:BlockButtonStep[] };
 type SimpleTableData = { headers:string[]; headerHtml?:string[]; rows:string[][]; rowHtml?:string[][]; hasHeaderRow?:boolean; hasHeaderColumn?:boolean; fullWidth?:boolean; colColors?:string[]; rowColors?:string[]; cellColors?:Record<string, string> };
-type Block = { id:string; type:BlockType; text:string; html?:string; indent?:number; align?:'left'|'center'|'right'|'justify'; font?:string; calloutType?:string; calloutTitle?:string; icon?:string; color?:string; bgColor?:string; assetId?:string; mimeType?:string; category?:AssetCategory; creator?:string; tags?:string[]; toggle?:boolean; open?:boolean; checked?:boolean; targetId?:string; viewId?:string; boardHeight?:number; boardWidthPct?:number; url?:string; linkDisplayMode?:'url'|'mention'|'bookmark'|'embed'; embedHeight?:number; mermaidMode?:'code'|'split'|'preview'; buttonConfig?:BlockButtonConfig; language?:string; children?:Block[]; columnWidths?:number[]; tableData?:SimpleTableData; remindDate?:string; remindTime?:string; remindOffset?:string; remindAt?:number; remindFired?:boolean; mentions?:{kind:'page'|'person'|'reminder';id:string;label:string}[] };
+type Block = { id:string; type:BlockType; text:string; html?:string; indent?:number; align?:'left'|'center'|'right'|'justify'; font?:string; calloutType?:string; calloutTitle?:string; icon?:string; color?:string; bgColor?:string; assetId?:string; mimeType?:string; category?:AssetCategory; creator?:string; tags?:string[]; toggle?:boolean; open?:boolean; checked?:boolean; targetId?:string; viewId?:string; boardHeight?:number; boardWidthPct?:number; url?:string; linkUrl?:string; linkDisplayMode?:'url'|'mention'|'bookmark'|'embed'; embedHeight?:number; mermaidMode?:'code'|'split'|'preview'; buttonConfig?:BlockButtonConfig; language?:string; children?:Block[]; columnWidths?:number[]; tableData?:SimpleTableData; widthPx?:number; caption?:string; altText?:string; cropRect?:{ x:number; y:number; w:number; h:number }; roundedCorners?:boolean; editedBy?:string; editedAt?:number; remindDate?:string; remindTime?:string; remindOffset?:string; remindAt?:number; remindFired?:boolean; mentions?:{kind:'page'|'person'|'reminder';id:string;label:string}[] };
 type CommentMessage = { id:string; authorId:string; authorName:string; text:string; createdAt:number; updatedAt?:number; edited?:boolean };
 type CommentThread = { id:string; scope:'page'|'block'|'text'; blockId?:string; quote?:string; resolved?:boolean; resolvedAt?:number; resolvedBy?:string; createdAt:number; updatedAt:number; comments:CommentMessage[] };
 type NotificationButtonAction = 'confirm_read'|'read_later'|'custom';
@@ -39,7 +39,7 @@ type NotificationButtonDef = { id:string; label:string; action:NotificationButto
 type NotificationButtonClick = { buttonId:string; buttonLabel:string; userId:string; userName:string; clickedAt:number };
 type NotificationReadReceipt = { userId:string; userName:string; readAt:number };
 type InboxNotification = { id:string; kind:'comment'|'reply'|'resolve'|'reopen'|'page'|'board'|'database'|'system'; title:string; body:string; markdown?:string; displayMode?:'inbox'|'popup'|'both'; pageId?:string; blockId?:string; commentThreadId?:string; actor?:string; targetAccount?:string; read?:boolean; createdAt:number; status?:'sent'|'scheduled'; scheduledFor?:number; scheduledTz?:string; sentAt?:number; buttons?:NotificationButtonDef[]; readBy?:NotificationReadReceipt[]; confirmedBy?:NotificationReadReceipt[]; buttonClicks?:NotificationButtonClick[] };
-type DashboardSubMode = 'notifications'|'chat'|'user'|'admin'|'time-tracking'|'calendar'|'taskboard'|'scratchpad';
+type DashboardSubMode = 'notifications'|'chat'|'user'|'team'|'admin'|'time-tracking'|'calendar'|'taskboard'|'scratchpad';
 type ChatMessage = { id:string; senderName:string; senderAccount?:string; text:string; createdAt:number; fromAutomation?:string };
 type ChatChannel = { id:string; kind:'dm'|'group'; name:string; topic?:string; icon?:string; memberAccounts:string[]; messages:ChatMessage[]; updatedAt:number; unreadCount?:number };
 type PageVersionSnapshot = { id:string; savedAt:number; authorName:string; title:string; icon:string; wordCount:number; blocks:Block[]; note?:string };
@@ -48,16 +48,16 @@ type DashboardTask = { id:string; text:string; done:boolean; completedAt?:number
 type DashboardMeeting = { id:string; title:string; dateTime:string; durationMins:number; attendeeIds:string[]; guestIds?:string[]; linkedPageId?:string; loggedAt?:number };
 type DashboardTimeLog = { id:string; personId:string; personName:string; label:string; role:'working'|'guest'|'solo'; minutes:number; linkedPageId?:string; meetingId?:string; date?:string; createdAt:number };
 type DashboardData = { scratchpadText:string; scratchpadUpdatedAt:number; tasks:DashboardTask[]; meetings:DashboardMeeting[]; timeLogs:DashboardTimeLog[] };
-type RolePermissions = { manageMembers:boolean; manageRoles:boolean; manageAssets:boolean; createPages:boolean; editPages:boolean; writePages:boolean; comment:boolean; managePagePermissions:boolean; sendNotifications:boolean };
+type RolePermissions = { manageMembers:boolean; manageRoles:boolean; manageAssets:boolean; accessAdminDashboard:boolean; createPages:boolean; editPages:boolean; writePages:boolean; comment:boolean; managePagePermissions:boolean; sendNotifications:boolean };
 type RoleDef = { id:string; name:string; builtIn?:boolean; rank:number; color?:string; permissions:RolePermissions };
 type TriOverride = 'allow'|'inherit'|'deny';
 type PermissionSetOverride = { view?:TriOverride; edit?:TriOverride; comment?:TriOverride };
 type PagePermissionConfig = { inheritParent?:boolean; noOneAccess?:boolean; roleOverrides?:Record<string,PermissionSetOverride>; userOverrides?:Record<string,PermissionSetOverride> };
-type WorkspaceUser = { id:string; name:string; email?:string; roleId?:string; roleIds?:string[]; linkedAccount?:string; blocked?:boolean; inviteCode?:string };
+type WorkspaceUser = { id:string; name:string; email?:string; roleId?:string; roleIds?:string[]; linkedAccount?:string; accountUnlinked?:boolean; blocked?:boolean; inviteCode?:string };
 type WorkspaceInvite = { code:string; userId:string; roleIds:string[]; createdAt:number; createdBy?:string; redeemedBy?:string; redeemedAt?:number };
 type Page = { id:string; title:string; icon:string; parentId?:string; pageKind?:'page'|'database'|'board'; databaseId?:string; database?:any; board?:any; propertyValues?:Record<string,any>; createdBy?:string; lastEditedBy?:string; favorite?:boolean; cover?:string; coverX?:number; coverY?:number; coverZoom?:number; fullWidth?:boolean; showWordCount?:boolean; description?:string; properties?:DatabaseProperty[]; propertiesOpen?:boolean; comments?:CommentThread[]; permissions?:PagePermissionConfig; published?:boolean; publishedAt?:number; history?:PageVersionSnapshot[]; analytics?:PageAnalytics; blocks:Block[]; createdAt:number; updatedAt:number };
 type WorkspaceTab = { id:string; pageId:string; history:string[]; historyIndex:number; pinned?:boolean };
-type Workspace = { version:2; workspaceName:string; activePageId:string; activeTabId?:string; tabs?:WorkspaceTab[]; pages:Page[]; users:WorkspaceUser[]; roles?:RoleDef[]; invites?:WorkspaceInvite[]; loggedInAccount?:string; coordinationMode?:CoordinationMode; assetStorageMode?:AssetStorageMode; syncConfig?:SyncConfig; actingAsAdmin?:boolean; userPreferences?:any; notifications?:InboxNotification[]; chats?:ChatChannel[]; dashboardData?:DashboardData };
+type Workspace = { version:2; workspaceName:string; activePageId:string; activeTabId?:string; tabs?:WorkspaceTab[]; pages:Page[]; users:WorkspaceUser[]; roles?:RoleDef[]; invites?:WorkspaceInvite[]; loggedInAccount?:string; coordinationMode?:CoordinationMode; assetStorageMode?:AssetStorageMode; syncConfig?:SyncConfig; actingAsAdmin?:boolean; roundedImageCorners?:boolean; userPreferences?:any; notifications?:InboxNotification[]; chats?:ChatChannel[]; dashboardData?:DashboardData; updateFeedUrl?:string };
 type PropertyType = 'text'|'status'|'select'|'date'|'number'|'person'|'url'|'email'|'phone'|'checkbox'|'files';
 type DatabaseProperty = { id:string; name:string; type:PropertyType; value:string|number|boolean; options?:string[] };
 const STORE = 'notion-clone-workspace-v2';
@@ -129,6 +129,7 @@ const ROLE_PERMISSION_DEFS: Array<{ key: keyof RolePermissions; label: string }>
     { key: 'manageMembers', label: 'Manage members' },
     { key: 'manageRoles', label: 'Manage roles' },
     { key: 'manageAssets', label: 'Manage assets' },
+    { key: 'accessAdminDashboard', label: 'Access admin dashboard' },
     { key: 'createPages', label: 'Create pages' },
     { key: 'editPages', label: 'Edit pages' },
     { key: 'writePages', label: 'Write blocks' },
@@ -139,7 +140,7 @@ const ROLE_PERMISSION_DEFS: Array<{ key: keyof RolePermissions; label: string }>
 function normalizeRolePermissions(raw: any, isAdminRole = false): RolePermissions {
     if (isAdminRole) {
         return {
-            manageMembers: true, manageRoles: true, manageAssets: true,
+            manageMembers: true, manageRoles: true, manageAssets: true, accessAdminDashboard: true,
             createPages: true, editPages: true, writePages: true,
             comment: true, managePagePermissions: true, sendNotifications: true
         };
@@ -148,10 +149,12 @@ function normalizeRolePermissions(raw: any, isAdminRole = false): RolePermission
     const legacyEdit = typeof r.edit === 'boolean' ? r.edit : undefined;
     const editPages = typeof r.editPages === 'boolean' ? r.editPages : (legacyEdit ?? false);
     const writePages = typeof r.writePages === 'boolean' ? r.writePages : (legacyEdit ?? editPages);
+    const adminCompat = !!(r.manageMembers || r.manageRoles || r.manageAssets || r.sendNotifications);
     return {
         manageMembers: !!r.manageMembers,
         manageRoles: !!r.manageRoles,
         manageAssets: !!r.manageAssets,
+        accessAdminDashboard: typeof r.accessAdminDashboard === 'boolean' ? r.accessAdminDashboard : adminCompat,
         createPages: typeof r.createPages === 'boolean' ? r.createPages : editPages,
         editPages,
         writePages,
@@ -164,12 +167,13 @@ function ensureWorkspaceDefaults(w) {
     w.coordinationMode = w.coordinationMode || 'local';
     w.assetStorageMode = w.assetStorageMode || 'local';
     w.actingAsAdmin = w.actingAsAdmin !== false;
+    w.roundedImageCorners = !!w.roundedImageCorners;
     w.notifications = Array.isArray(w.notifications) ? w.notifications : [];
     w.invites = Array.isArray(w.invites) ? w.invites : [];
     const defaultRoles: RoleDef[] = [
         { id: 'role-admin', name: 'Admin', builtIn: true, rank: 0, color: '#e5534b', permissions: normalizeRolePermissions(null, true) },
-        { id: 'role-editor', name: 'Editor', builtIn: true, rank: 1, color: '#2383e2', permissions: { manageMembers: false, manageRoles: false, manageAssets: false, createPages: true, editPages: true, writePages: true, comment: true, managePagePermissions: false, sendNotifications: false } },
-        { id: 'role-viewer', name: 'Viewer', builtIn: true, rank: 2, color: '#787774', permissions: { manageMembers: false, manageRoles: false, manageAssets: false, createPages: false, editPages: false, writePages: false, comment: true, managePagePermissions: false, sendNotifications: false } }
+        { id: 'role-editor', name: 'Editor', builtIn: true, rank: 1, color: '#2383e2', permissions: { manageMembers: false, manageRoles: false, manageAssets: false, accessAdminDashboard: false, createPages: true, editPages: true, writePages: true, comment: true, managePagePermissions: false, sendNotifications: false } },
+        { id: 'role-viewer', name: 'Viewer', builtIn: true, rank: 2, color: '#787774', permissions: { manageMembers: false, manageRoles: false, manageAssets: false, accessAdminDashboard: false, createPages: false, editPages: false, writePages: false, comment: true, managePagePermissions: false, sendNotifications: false } }
     ];
     if (!Array.isArray(w.roles) || !w.roles.length) w.roles = defaultRoles;
     if (!w.roles.some(r => r.id === 'role-admin')) w.roles.unshift(defaultRoles[0]);
@@ -198,8 +202,8 @@ function ensureWorkspaceDefaults(w) {
             if (idx === 0 && w.actingAsAdmin !== false && !cleaned.includes('role-admin')) cleaned.unshift('role-admin');
             u.roleIds = cleaned;
             u.roleId = cleaned[0] || undefined;
-            if (idx === 0 && u.linkedAccount === undefined) u.linkedAccount = u.name;
-            u.blocked = !!u.blocked;
+            if (idx === 0 && u.linkedAccount === undefined && !u.accountUnlinked) u.linkedAccount = u.name;
+            delete u.blocked;
         });
     }
     w.syncConfig = {
@@ -277,13 +281,13 @@ function getCurrentActorUser(ws = state): WorkspaceUser | undefined {
     const owner = users[0];
     const acct = getLoggedInAccountName(ws).toLowerCase();
     const matched = users.find(u => u.linkedAccount && u.linkedAccount.trim().toLowerCase() === acct)
-        || users.find(u => u.name.trim().toLowerCase() === acct);
-    const picked = matched || owner;
-    if (picked.id === owner?.id && ws?.actingAsAdmin === false) {
-        const nonAdmin = (picked.roleIds || []).filter(rid => rid !== 'role-admin');
-        return { ...picked, roleIds: nonAdmin.length ? nonAdmin : ['role-editor'], roleId: nonAdmin[0] || 'role-editor' };
+        || users.find(u => !u.linkedAccount && !u.accountUnlinked && u.name.trim().toLowerCase() === acct);
+    if (!matched) return undefined;
+    if (matched.id === owner?.id && ws?.actingAsAdmin === false) {
+        const nonAdmin = (matched.roleIds || []).filter(rid => rid !== 'role-admin');
+        return { ...matched, roleIds: nonAdmin.length ? nonAdmin : ['role-editor'], roleId: nonAdmin[0] || 'role-editor' };
     }
-    return picked;
+    return matched;
 }
 function getUserRoles(user: WorkspaceUser | undefined, ws = state): RoleDef[] {
     if (!user) return [];
@@ -301,13 +305,13 @@ function getUserHighestRank(user: WorkspaceUser | undefined, ws = state): number
     return Math.min(...roles.map(r => Number.isFinite(r.rank) ? r.rank : 99));
 }
 function userHasGlobalPerm(permKey: keyof RolePermissions, user = getCurrentActorUser(), ws = state): boolean {
-    if (!user || user.blocked) return false;
+    if (!user) return false;
     const roles = getUserRoles(user, ws);
     if (roles.some(r => r.id === 'role-admin')) return true;
     return roles.some(r => !!r.permissions?.[permKey]);
 }
 function canManageRole(actor: WorkspaceUser | undefined, targetRole: RoleDef, ws = state): boolean {
-    if (!actor || actor.blocked || !targetRole) return false;
+    if (!actor || !targetRole) return false;
     if (targetRole.id === 'role-admin') return false;
     if (!userHasGlobalPerm('manageRoles', actor, ws) && !userHasGlobalPerm('manageMembers', actor, ws)) return false;
     const actorRank = getUserHighestRank(actor, ws);
@@ -336,15 +340,15 @@ function resolvePagePermissions(page: Page | undefined, actor = getCurrentActorU
     reason: string;
 } {
     const inheritParent = page?.permissions?.inheritParent !== false;
-    if (actor?.blocked) {
-        return { view: false, edit: false, comment: false, blocked: true, noOneAccess: !!page?.permissions?.noOneAccess, inheritParent, inheritedFromPage: null, reason: 'Your account is blocked in this workspace.' };
+    if (!actor) {
+        return { view: false, edit: false, comment: false, blocked: true, noOneAccess: !!page?.permissions?.noOneAccess, inheritParent, inheritedFromPage: null, reason: 'Access revoked: this account is unlinked or has been removed from the workspace.' };
     }
     if (!page) {
         const canEdit = userHasGlobalPerm('editPages', actor, ws) || userHasGlobalPerm('writePages', actor, ws);
         return { view: true, edit: canEdit, comment: userHasGlobalPerm('comment', actor, ws), blocked: false, noOneAccess: false, inheritParent: true, inheritedFromPage: null, reason: '' };
     }
     const owner = ws?.users?.[0];
-    const isOwnerActor = !!owner && !!actor && actor.id === owner.id && !actor.blocked && ws?.actingAsAdmin !== false;
+    const isOwnerActor = !!owner && !!actor && actor.id === owner.id && ws?.actingAsAdmin !== false;
     const chain = getPageAncestorChain(page, ws);
     const lockOwner = chain.find(node => !!node.permissions?.noOneAccess);
     if (lockOwner) {
@@ -407,31 +411,297 @@ function applyImportedDefaultPermissions<T extends Pick<Page, 'permissions'>>(pa
     });
     return pages;
 }
-function importExternalPages(incomingPages: Partial<Page>[], parentId?: string): Page[] {
+function importExternalPages(incomingPages: Partial<Page>[], parentId?: string, opts: { replaceExisting?: boolean } = {}): Page[] {
     const now = Date.now();
+    const incomingIds = new Set(incomingPages.map(p => p.id).filter(Boolean) as string[]);
+    const knownIds = new Set([...state.pages.map(p => p.id), ...incomingIds]);
+    const cloneBlocksDeep = (blocks: any[]): Block[] => (Array.isArray(blocks) ? blocks : []).map(b => ({
+        ...b,
+        id: b.id || id(),
+        type: b.type || 'text',
+        text: typeof b.text === 'string' ? b.text : '',
+        ...(Array.isArray(b.children) ? { children: cloneBlocksDeep(b.children) } : {})
+    }));
+
     const created: Page[] = incomingPages.map(raw => {
+        const rawParent = raw.parentId !== undefined ? raw.parentId : parentId;
+        const safeParent = rawParent && knownIds.has(rawParent) ? rawParent : undefined;
         const pg: Page = {
             id: raw.id || id(),
             title: (raw.title || 'Imported page').trim() || 'Imported page',
             icon: raw.icon || '📄',
-            parentId: raw.parentId !== undefined ? raw.parentId : parentId,
-            blocks: Array.isArray(raw.blocks) && raw.blocks.length ? raw.blocks : [block('text', '')],
+            ...(safeParent ? { parentId: safeParent } : {}),
+            blocks: Array.isArray(raw.blocks) && raw.blocks.length ? cloneBlocksDeep(raw.blocks) : [block('text', '')],
             createdAt: raw.createdAt || now,
             updatedAt: raw.updatedAt || now,
             ...(raw.pageKind ? { pageKind: raw.pageKind } : {}),
-            ...(raw.database ? { database: raw.database } : {}),
-            ...(raw.board ? { board: raw.board } : {}),
+            ...(raw.database ? { database: JSON.parse(JSON.stringify(raw.database)) } : {}),
+            ...(raw.board ? { board: JSON.parse(JSON.stringify(raw.board)) } : {}),
             ...(raw.databaseId ? { databaseId: raw.databaseId } : {}),
-            ...(raw.dbValues ? { dbValues: raw.dbValues } : {}),
-            ...(raw.cover ? { cover: raw.cover } : {})
+            ...(raw.propertyValues ? { propertyValues: JSON.parse(JSON.stringify(raw.propertyValues)) } : {}),
+            ...((raw as any).dbValues ? { dbValues: JSON.parse(JSON.stringify((raw as any).dbValues)) } : {}),
+            ...(raw.createdBy ? { createdBy: raw.createdBy } : {}),
+            ...(raw.lastEditedBy ? { lastEditedBy: raw.lastEditedBy } : {}),
+            ...(raw.cover ? { cover: raw.cover } : {}),
+            ...(raw.coverAssetId ? { coverAssetId: raw.coverAssetId } : {}),
+            ...(typeof raw.coverX === 'number' ? { coverX: raw.coverX } : {}),
+            ...(typeof raw.coverY === 'number' ? { coverY: raw.coverY } : {}),
+            ...(typeof raw.coverZoom === 'number' ? { coverZoom: raw.coverZoom } : {}),
+            ...(raw.fullWidth ? { fullWidth: true } : {}),
+            ...(typeof raw.showWordCount === 'boolean' ? { showWordCount: raw.showWordCount } : {}),
+            ...(raw.description ? { description: raw.description } : {}),
+            ...(Array.isArray(raw.properties) ? { properties: JSON.parse(JSON.stringify(raw.properties)) } : {}),
+            ...(Array.isArray(raw.comments) ? { comments: JSON.parse(JSON.stringify(raw.comments)) } : {}),
+            ...(Array.isArray(raw.history) ? { history: JSON.parse(JSON.stringify(raw.history)) } : {}),
+            ...(raw.analytics ? { analytics: JSON.parse(JSON.stringify(raw.analytics)) } : {})
         };
         return pg;
     });
+
     applyImportedDefaultPermissions(created, state);
-    state.pages.push(...created);
+    for (const pg of created) {
+        const existingIdx = state.pages.findIndex(p => p.id === pg.id);
+        if (existingIdx >= 0) {
+            if (opts.replaceExisting) state.pages[existingIdx] = pg;
+            else continue;
+        } else {
+            state.pages.push(pg);
+        }
+    }
+
+    // Auto-expand imported container pages that have visible subpages in sidebar
+    state.expandedPageIds = state.expandedPageIds || [];
+    for (const pg of created) {
+        if (!pg.databaseId && created.some(child => child.parentId === pg.id && !child.databaseId) && !state.expandedPageIds.includes(pg.id)) {
+            state.expandedPageIds.push(pg.id);
+        }
+    }
+
     save(true);
     renderNav();
     return created;
+}
+
+async function importNotionBundle(
+    bundle: any,
+    filesByRelPath?: Map<string, File>,
+    opts: { parentId?: string; replaceExisting?: boolean } = {}
+): Promise<{
+    importedPages: number;
+    newUsers: number;
+    commentMessages: number;
+    ingestedAssets: number;
+    reusedDuplicates: number;
+    openedPageId?: string;
+}> {
+    if (!bundle || !Array.isArray(bundle.pages)) {
+        throw new Error('Invalid Notion bundle: missing pages array.');
+    }
+
+    // 1. Merge unlinked collaborator profiles without creating global accounts
+    state.users = state.users || [];
+    const memberRole =
+        state.roles?.find(r => /editor|member/i.test(r.name) && r.rank > 0)?.id ||
+        state.roles?.find(r => r.rank > 0)?.id ||
+        state.roles?.[0]?.id ||
+        'role-editor';
+    const userIdMap = new Map<string, { id: string; name: string }>();
+    let newUsers = 0;
+
+    for (const rawUser of Array.isArray(bundle.users) ? bundle.users : []) {
+        if (!rawUser || !rawUser.name) continue;
+        const rawEmail = typeof rawUser.email === 'string' ? rawUser.email.trim().toLowerCase() : '';
+        const rawName = String(rawUser.name).trim();
+        const existing = state.users.find(u =>
+            u.id === rawUser.id ||
+            (rawEmail && (u.email || '').trim().toLowerCase() === rawEmail)
+        );
+        if (existing) {
+            userIdMap.set(rawUser.id, { id: existing.id, name: existing.name });
+        } else {
+            const profile: WorkspaceUser = {
+                id: rawUser.id || id(),
+                name: rawName,
+                ...(rawEmail ? { email: String(rawUser.email).trim() } : {}),
+                roleId: memberRole,
+                roleIds: [memberRole],
+                linkedAccount: undefined
+            };
+            state.users.push(profile);
+            userIdMap.set(profile.id, { id: profile.id, name: profile.name });
+            newUsers++;
+        }
+    }
+
+    // 2. Helper to resolve local binary files inside an imported Notion bundle folder
+    const normMap = new Map<string, File>();
+    if (filesByRelPath) {
+        filesByRelPath.forEach((f, rawKey) => {
+            const clean = rawKey.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+            normMap.set(clean, f);
+            const slash = clean.indexOf('/');
+            if (slash > 0) normMap.set(clean.slice(slash + 1), f);
+            const rawAssetsIdx = clean.indexOf('raw/assets/');
+            if (rawAssetsIdx >= 0) normMap.set(clean.slice(rawAssetsIdx), f);
+            const base = clean.split('/').pop();
+            if (base && !normMap.has(base)) normMap.set(base, f);
+        });
+    }
+
+    const resolveBundleFile = (relPath?: string): File | null => {
+        if (!relPath || !normMap.size) return null;
+        const clean = relPath.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+        const direct = normMap.get(clean);
+        if (direct) return direct;
+        const base = clean.split('/').pop();
+        return base ? (normMap.get(base) || null) : null;
+    };
+
+    // 3. Ingest local files into Asset Library with strict deduplication
+    const assetIdMap = new Map<string, string>();
+    const assetRelToId = new Map<string, string>();
+    const iconDataUrls = new Map<string, string>();
+    let ingestedAssets = 0;
+    let reusedDuplicates = 0;
+
+    const readAsDataUrl = (f: File): Promise<string> => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('File read error'));
+        reader.readAsDataURL(f);
+    });
+
+    for (const rawAsset of Array.isArray(bundle.assets) ? bundle.assets : []) {
+        if (!rawAsset || rawAsset.error || rawAsset.deduplicatedFrom) continue;
+        const fileObj = resolveBundleFile(rawAsset.localRelPath);
+        if (!fileObj) continue;
+
+        const cleanName = (rawAsset.fileName || fileObj.name).trim() || fileObj.name;
+        const cleanFile = fileObj.name === cleanName && (!rawAsset.mimeType || fileObj.type === rawAsset.mimeType)
+            ? fileObj
+            : new File([fileObj], cleanName, { type: rawAsset.mimeType || fileObj.type || 'application/octet-stream' });
+
+        if (rawAsset.sourceKind === 'icon' && cleanFile.size < 180_000) {
+            try {
+                const dataUrl = await readAsDataUrl(cleanFile);
+                if (dataUrl && rawAsset.localRelPath) iconDataUrls.set(rawAsset.localRelPath, dataUrl);
+            } catch {}
+        }
+
+        const existingBefore = ArchitectBackend.findDuplicateAsset({
+            name: cleanName,
+            sizeBytes: cleanFile.size,
+            width: rawAsset.width,
+            height: rawAsset.height,
+            sha256: rawAsset.sha256
+        });
+
+        let canonicalRecord: AssetRecord;
+        if (existingBefore) {
+            canonicalRecord = existingBefore;
+            reusedDuplicates++;
+        } else {
+            canonicalRecord = await ArchitectBackend.ingestLocalFile(cleanFile, {
+                dedupe: true,
+                sha256: rawAsset.sha256,
+                creator: getActorDisplayName(),
+                storageMode: 'local',
+                previewPolicy: state.assetPreviewPolicy,
+                metadata: {
+                    ...(rawAsset.rawUrl ? { notionRawUrl: String(rawAsset.rawUrl) } : {}),
+                    ...(rawAsset.sha256 ? { sha256: String(rawAsset.sha256) } : {})
+                }
+            });
+            ingestedAssets++;
+        }
+
+        if (rawAsset.id) assetIdMap.set(rawAsset.id, canonicalRecord.id);
+        if (rawAsset.localRelPath) assetRelToId.set(rawAsset.localRelPath, canonicalRecord.id);
+    }
+
+    // 4. Bind canonical assetIds, clean icon URLs, and collaborator mappings on pages & blocks
+    const rebindBlockTree = (blocks: any[]): any[] => (Array.isArray(blocks) ? blocks : []).map(rawB => {
+        const b = { ...rawB };
+        const mappedId =
+            (b.assetId && assetIdMap.get(b.assetId)) ||
+            (typeof b.url === 'string' && assetRelToId.get(b.url)) ||
+            undefined;
+        if (mappedId) {
+            b.assetId = mappedId;
+            if (typeof b.url === 'string' && !/^https?:\/\/|^data:/i.test(b.url)) {
+                b.url = undefined;
+            }
+        }
+        if (typeof b.icon === 'string' && iconDataUrls.has(b.icon)) {
+            b.icon = iconDataUrls.get(b.icon);
+        }
+        if (Array.isArray(b.children)) {
+            b.children = rebindBlockTree(b.children);
+        }
+        return b;
+    });
+
+    let commentMessages = 0;
+    const preparedPages: Partial<Page>[] = bundle.pages.map((rawPg: any) => {
+        const pg = JSON.parse(JSON.stringify(rawPg));
+        pg.blocks = rebindBlockTree(pg.blocks || []);
+
+        const mappedCoverAsset =
+            (pg.coverAssetId && assetIdMap.get(pg.coverAssetId)) ||
+            (typeof pg.cover === 'string' && assetRelToId.get(pg.cover)) ||
+            undefined;
+        if (mappedCoverAsset) {
+            pg.coverAssetId = mappedCoverAsset;
+            if (typeof pg.cover === 'string' && !/^https?:\/\/|^data:/i.test(pg.cover)) {
+                pg.cover = undefined;
+            }
+        }
+        if (typeof pg.icon === 'string') {
+            if (iconDataUrls.has(pg.icon)) pg.icon = iconDataUrls.get(pg.icon);
+            else if (pg.icon.startsWith('raw/assets/')) pg.icon = '📄';
+        }
+        if (Array.isArray(pg.comments)) {
+            pg.comments = pg.comments.map((thr: any) => ({
+                ...thr,
+                comments: (Array.isArray(thr.comments) ? thr.comments : []).map((msg: any) => {
+                    commentMessages++;
+                    const mappedUser = msg.authorId ? userIdMap.get(msg.authorId) : undefined;
+                    return {
+                        ...msg,
+                        ...(mappedUser ? { authorId: mappedUser.id, authorName: mappedUser.name } : {})
+                    };
+                })
+            }));
+        }
+        if (pg.propertyValues && typeof pg.propertyValues === 'object') {
+            for (const [k, v] of Object.entries(pg.propertyValues)) {
+                if (Array.isArray(v)) {
+                    pg.propertyValues[k] = v.map(item =>
+                        (item && typeof item === 'object' && 'assetId' in item && assetIdMap.get((item as any).assetId))
+                            ? { ...(item as any), assetId: assetIdMap.get((item as any).assetId) }
+                            : item
+                    );
+                }
+            }
+        }
+        return pg;
+    });
+
+    const created = importExternalPages(preparedPages, opts.parentId, { replaceExisting: !!opts.replaceExisting });
+    const firstRoot = created.find(p => !p.databaseId && !p.parentId) || created.find(p => !p.databaseId) || created[0];
+    if (firstRoot) {
+        navigateToPage(firstRoot.id);
+    } else {
+        render();
+    }
+    return {
+        importedPages: created.length,
+        newUsers,
+        commentMessages,
+        ingestedAssets,
+        reusedDuplicates: reusedDuplicates + (Number(bundle.diagnostics?.duplicatesSkipped) || 0),
+        openedPageId: firstRoot?.id
+    };
 }
 function isReadOnlyMirror() { return state?.coordinationMode === 'cloud-sync' && !!state?.syncConfig?.readOnlyMirror; }
 function getActorDisplayName(ws = state): string {
@@ -449,9 +719,9 @@ function canCommentOnPage(page = current()): boolean {
     return perms.view && perms.comment;
 }
 function isAdminAuthorized(actor = getCurrentActorUser()): boolean {
-    if (!actor || actor.blocked) return false;
+    if (!actor) return false;
     if (state.actingAsAdmin !== false && getUserHighestRank(actor) === 0) return true;
-    return userHasGlobalPerm('manageMembers', actor) || userHasGlobalPerm('manageRoles', actor) || userHasGlobalPerm('manageAssets', actor) || userHasGlobalPerm('sendNotifications', actor);
+    return userHasGlobalPerm('accessAdminDashboard', actor);
 }
 function generateWorkspaceInvite(userId: string, roleIds?: string[]): WorkspaceInvite | null {
     const user = (state.users || []).find(u => u.id === userId);
@@ -481,6 +751,7 @@ function redeemWorkspaceInvite(codeRaw: string, accountNameRaw: string): { ok: b
     const targetUser = (state.users || []).find(u => (inv && u.id === inv.userId) || (u.inviteCode || '').toUpperCase() === code);
     if (!targetUser) return { ok: false, error: `Invite code “${code}” was not found.` };
     targetUser.linkedAccount = accountName;
+    targetUser.accountUnlinked = false;
     if (inv) {
         const merged = [...new Set([...(targetUser.roleIds || []), ...(inv.roleIds || [])])];
         if (merged.length) { targetUser.roleIds = merged; targetUser.roleId = merged[0]; }
@@ -755,22 +1026,86 @@ function togglePinTab(tabId) {
     renderTabs();
 }
 let currentAppMode: 'notion' | 'dashboard' = 'notion';
+let isDocsGraphMode = false;
 let currentDashboardSubMode: DashboardSubMode = 'user';
+let inspectedDashboardUserId: string | null = null;
 let inboxFilter: 'unread' | 'all' | 'comments' | 'activity' = 'unread';
 let taskFilter: 'open' | 'completed' | 'all' = 'open';
+function findWorkspaceUser(ref: string | { id?: string; name?: string } | null | undefined): WorkspaceUser | undefined {
+    if (!ref) return undefined;
+    if (typeof ref === 'object') {
+        if (ref.id) return findWorkspaceUser(ref.id);
+        if (ref.name) return findWorkspaceUser(ref.name);
+        return undefined;
+    }
+    const clean = String(ref).trim().replace(/^@/, '').toLowerCase();
+    if (!clean || clean === 'everyone') return undefined;
+    return (state.users || []).find(u =>
+        u.id.toLowerCase() === clean ||
+        u.name.trim().toLowerCase() === clean ||
+        (u.linkedAccount && u.linkedAccount.trim().toLowerCase() === clean)
+    );
+}
+function openUserDashboard(ref: string) {
+    const u = findWorkspaceUser(ref);
+    inspectedDashboardUserId = u ? u.id : null;
+    closeMenu();
+    closeDocsNotificationsPopover();
+    closeBacklinksPopover();
+    if (typeof ArchitectDatabase !== 'undefined') {
+        ArchitectDatabase.closeDatabasePeek?.();
+        ArchitectDatabase.closeDbPopover?.();
+    }
+    setDashboardSubMode('user');
+}
+function openUserDirectMessage(ref: string) {
+    const u = findWorkspaceUser(ref);
+    const key = u?.linkedAccount || u?.name || String(ref || '').trim().replace(/^@/, '');
+    if (!key || key.toLowerCase() === 'everyone') return;
+    closeMenu();
+    closeDocsNotificationsPopover();
+    if (typeof ArchitectDatabase !== 'undefined') {
+        ArchitectDatabase.closeDatabasePeek?.();
+        ArchitectDatabase.closeDbPopover?.();
+    }
+    const dm = ensureDirectChatChannel(key);
+    activeChatChannelId = dm.id;
+    save();
+    setDashboardSubMode('chat');
+}
+function openUserContextMenu(event: any, ref: string) {
+    const u = findWorkspaceUser(ref);
+    const displayName = u?.name || String(ref || '').trim().replace(/^@/, '');
+    if (!displayName || displayName.toLowerCase() === 'everyone') return;
+    const resolvedRef = u?.id || displayName;
+    showCustomContextMenu(event, [{
+        items: [
+            { label: 'Open dashboard', run: () => openUserDashboard(resolvedRef) },
+            { label: 'Send message', run: () => openUserDirectMessage(resolvedRef) },
+            { label: 'Copy user name', run: async () => {
+                internalClipboardText = displayName;
+                try { await navigator.clipboard?.writeText(displayName); } catch {}
+                toast(`Copied “${displayName}”`);
+            } }
+        ]
+    }], { title: displayName });
+}
 function setAppMode(mode: 'notion' | 'dashboard' | 'inbox', opts: { skipRender?: boolean; subMode?: DashboardSubMode } = {}) {
     if (mode === 'inbox') {
         currentAppMode = 'dashboard';
         currentDashboardSubMode = 'notifications';
+        isDocsGraphMode = false;
     } else if (mode === 'dashboard') {
         currentAppMode = 'dashboard';
         if (opts.subMode) currentDashboardSubMode = opts.subMode;
+        isDocsGraphMode = false;
     } else {
         currentAppMode = 'notion';
     }
     if (currentAppMode !== 'notion') {
         stopAllAudioPlayers();
         closeDocsNotificationsPopover();
+        closeBacklinksPopover();
         if (typeof ArchitectDatabase !== 'undefined') {
             ArchitectDatabase.closeDatabasePeek?.();
             ArchitectDatabase.closeDbPopover?.();
@@ -779,6 +1114,27 @@ function setAppMode(mode: 'notion' | 'dashboard' | 'inbox', opts: { skipRender?:
     document.body.dataset.appMode = currentAppMode;
     document.body.dataset.dashboardSubmode = currentAppMode === 'dashboard' ? currentDashboardSubMode : '';
     if (!opts.skipRender) syncAppModeUi();
+}
+function setDocsGraphMode(enabled: boolean) {
+    const next = !!enabled;
+    const wasGraph = isDocsGraphMode;
+    isDocsGraphMode = next;
+    currentAppMode = 'notion';
+    closeDocsNotificationsPopover();
+    closeBacklinksPopover();
+    closeMenu();
+    hideCommentPopover();
+    closeSelectionToolbar();
+    if (typeof ArchitectDatabase !== 'undefined') {
+        ArchitectDatabase.closeDatabasePeek?.();
+        ArchitectDatabase.closeDbPopover?.();
+    }
+    if (wasGraph && !isDocsGraphMode) {
+        syncAppModeUi();
+        render();
+        return;
+    }
+    syncAppModeUi();
 }
 function setDashboardSubMode(subMode: DashboardSubMode) {
     const raw = String(subMode || '');
@@ -1180,14 +1536,17 @@ function initFeatureRailIcons() {
     setBtn('#feature-rail [data-action="sync-now"]', r.sync);
     setBtn('#feature-rail [data-action="trash"]', r.trash);
     setBtn('#feature-rail [data-action="user-settings"]', r.userSettings);
+    setBtn('.topbar [data-action="toggle-assets-sidebar"]', (r as any).assetSidebar || r.assets);
 
     setBtn('.obsidian-explorer-tabs [data-app-mode="notion"]', r.assets);
     setBtn('.obsidian-explorer-tabs [data-action="search"]', r.search);
+    setBtn('.obsidian-explorer-tabs [data-action="graph-view"]', (r as any).graph || r.assets);
     setBtn('.obsidian-explorer-tabs [data-action="updates"]', r.inbox);
 
     setBtn('#dashboard-subnav [data-dashboard-submode="notifications"]', r.inbox);
     setBtn('#dashboard-subnav [data-dashboard-submode="chat"]', (r as any).chat || r.inbox);
     setBtn('#dashboard-subnav [data-dashboard-submode="user"]', r.userDash);
+    setBtn('#dashboard-subnav [data-dashboard-submode="team"]', (r as any).teamOverview || r.userDash);
     setBtn('#dashboard-subnav [data-dashboard-submode="admin"]', r.adminDash);
     setBtn('#dashboard-subnav [data-dashboard-submode="time-tracking"]', (r as any).timeTracking || r.calendarTime);
     setBtn('#dashboard-subnav [data-dashboard-submode="calendar"]', (r as any).calendar || r.calendarTime);
@@ -1215,6 +1574,9 @@ function renderDashboardView() {
             break;
         case 'admin':
             renderAdminDashboardView(view);
+            break;
+        case 'team':
+            renderTeamOverviewDashboardView(view);
             break;
         case 'time-tracking':
             renderTimeTrackingDashboardView(view);
@@ -1328,8 +1690,11 @@ function renderUserDashboardView(view: HTMLElement) {
     const dd = state.dashboardData;
     if (dd && purgeExpiredCompletedTasks(dd) > 0) save();
     const openTasks = (dd?.tasks || []).filter(t => !t.done).length;
-    const recent = pages.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 6);
-    const me = getActorDisplayName();
+    const actor = getCurrentActorUser();
+    const targetUser = inspectedDashboardUserId ? findWorkspaceUser(inspectedDashboardUserId) : actor;
+    const isSelf = !targetUser || (actor && targetUser.id === actor.id);
+    const displayUser = targetUser || actor;
+    const me = displayUser?.name || getActorDisplayName();
 
     const shell = document.createElement('div');
     shell.className = 'mode-page-shell';
@@ -1337,64 +1702,225 @@ function renderUserDashboardView(view: HTMLElement) {
     const hero = document.createElement('div');
     hero.className = 'mode-hero';
     const heroCopy = document.createElement('div');
-    heroCopy.innerHTML = `<span class="mode-kicker">USER DASHBOARD</span><h1>Welcome back, ${esc(me)}</h1><p>${esc(state.workspaceName || 'Architect Studio')} · ${pages.length} docs · ${boards.length} boards · ${dbs.length} databases · ${assets.length} assets</p>`;
 
-    const clockEl = document.createElement('div');
-    clockEl.id = 'user-dashboard-clock';
-    clockEl.className = 'user-dash-clock';
-    clockEl.setAttribute('aria-label', 'Current local time');
-    const updateClock = () => {
-        if (!clockEl.isConnected && view.contains(clockEl) === false && document.body.contains(clockEl) === false) {
-            clearInterval(userDashClockTimer);
-            return;
-        }
-        const now = new Date();
-        const tz = getEffectiveUserTimeZone();
-        const timeStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(now);
-        const dateStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(now);
-        const offset = formatTimeZoneOffsetLabel(now, tz);
-        clockEl.innerHTML = `<strong class="user-dash-clock-time">${esc(timeStr)}</strong><span class="user-dash-clock-meta">${esc(dateStr)} · ${esc(tz.replace(/_/g, ' '))} (${esc(offset)})</span>`;
-    };
-    hero.append(heroCopy, clockEl);
-    userDashClockTimer = setInterval(() => {
-        if (!clockEl.isConnected) { clearInterval(userDashClockTimer); return; }
+    if (isSelf) {
+        heroCopy.innerHTML = `<span class="mode-kicker">MY DASHBOARD</span><h1>Welcome back, ${esc(me)}</h1><p>${esc(state.workspaceName || 'Architect Studio')} · ${pages.length} docs · ${boards.length} boards · ${dbs.length} databases · ${assets.length} assets</p>`;
+
+        const clockEl = document.createElement('div');
+        clockEl.id = 'user-dashboard-clock';
+        clockEl.className = 'user-dash-clock';
+        clockEl.setAttribute('aria-label', 'Current local time');
+        const updateClock = () => {
+            if (!clockEl.isConnected && view.contains(clockEl) === false && document.body.contains(clockEl) === false) {
+                clearInterval(userDashClockTimer);
+                return;
+            }
+            const now = new Date();
+            const tz = getEffectiveUserTimeZone();
+            const timeStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(now);
+            const dateStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(now);
+            const offset = formatTimeZoneOffsetLabel(now, tz);
+            clockEl.innerHTML = `<strong class="user-dash-clock-time">${esc(timeStr)}</strong><span class="user-dash-clock-meta">${esc(dateStr)} · ${esc(tz.replace(/_/g, ' '))} (${esc(offset)})</span>`;
+        };
+        hero.append(heroCopy, clockEl);
+        userDashClockTimer = setInterval(() => {
+            if (!clockEl.isConnected) { clearInterval(userDashClockTimer); return; }
+            updateClock();
+        }, 1000);
+
+        const stats = document.createElement('div');
+        stats.className = 'dashboard-stats-grid';
+        [
+            { label: 'Docs & Hubs', val: String(pages.length), hint: 'Switch to Docs explorer', action: () => setAppMode('notion') },
+            { label: 'Open tasks', val: String(openTasks), hint: 'Manage quick action items', action: () => setDashboardSubMode('tasks') },
+            { label: 'Unread notifications', val: String(unread), hint: 'Review comments & updates', action: () => setDashboardSubMode('notifications') },
+            { label: 'Scratchpad notes', val: (state.dashboardData?.scratchpadText || '').trim() ? 'Active' : 'Empty', hint: 'Open brainstorming pad', action: () => setDashboardSubMode('scratchpad') }
+        ].forEach(card => {
+            const box = document.createElement('button');
+            box.type = 'button';
+            box.className = 'dashboard-stat-card';
+            box.innerHTML = `<span class="stat-label">${esc(card.label)}</span><strong class="stat-val">${esc(card.val)}</strong><small>${esc(card.hint)}</small>`;
+            box.onclick = card.action;
+            stats.append(box);
+        });
+
+        const recent = pages.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 6);
+        const recentSection = document.createElement('section');
+        recentSection.className = 'dashboard-recent-section';
+        recentSection.innerHTML = '<h2>Recent pages &amp; boards</h2>';
+        const recentGrid = document.createElement('div');
+        recentGrid.className = 'dashboard-recent-grid';
+        recent.forEach(pg => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'dashboard-page-card';
+            card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'board' ? 'Board' : pg.pageKind === 'database' ? 'Database' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
+            card.onclick = e => { if (e.ctrlKey || e.metaKey) openPageInNewTab(pg.id); else navigateToPage(pg.id); };
+            recentGrid.append(card);
+        });
+        recentSection.append(recentGrid);
+
+        shell.append(hero, stats, recentSection);
+        view.append(shell);
         updateClock();
-    }, 1000);
+        return;
+    }
+
+    const uRoles = getUserRoles(targetUser);
+    const nameLower = me.toLowerCase();
+    const contributed = pages.filter(pg =>
+        (pg.createdBy || '').toLowerCase() === nameLower || (pg.lastEditedBy || '').toLowerCase() === nameLower
+    ).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const userLogs = (dd?.timeLogs || []).filter(l => l.personId === targetUser!.id || l.personName.toLowerCase() === nameLower);
+    const totalHours = (userLogs.reduce((acc, l) => acc + (Number(l.minutes) || 0), 0) / 60).toFixed(1);
+
+    heroCopy.innerHTML = `<span class="mode-kicker">MEMBER DASHBOARD</span><h1>${esc(me)}</h1><p>${uRoles.map(r => esc(r.name)).join(' · ') || 'Member'} · ${targetUser!.linkedAccount ? `Linked: ${esc(targetUser!.linkedAccount)}` : 'Unlinked profile'}</p>`;
+    const heroActions = document.createElement('div');
+    heroActions.className = 'mode-hero-actions';
+    const msgBtn = document.createElement('button');
+    msgBtn.type = 'button';
+    msgBtn.className = 'share-button';
+    msgBtn.textContent = '💬 Message';
+    msgBtn.onclick = () => openUserDirectMessage(targetUser!.id);
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'secondary-button';
+    backBtn.textContent = '← My Dashboard';
+    backBtn.onclick = () => { inspectedDashboardUserId = null; renderUserDashboardView(view); };
+    heroActions.append(msgBtn, backBtn);
+    hero.append(heroCopy, heroActions);
 
     const stats = document.createElement('div');
     stats.className = 'dashboard-stats-grid';
     [
-        { label: 'Docs & Hubs', val: String(pages.length), hint: 'Switch to Docs explorer', action: () => setAppMode('notion') },
-        { label: 'Open tasks', val: String(openTasks), hint: 'Manage quick action items', action: () => setDashboardSubMode('tasks') },
-        { label: 'Unread notifications', val: String(unread), hint: 'Review comments & updates', action: () => setDashboardSubMode('notifications') },
-        { label: 'Scratchpad notes', val: (state.dashboardData?.scratchpadText || '').trim() ? 'Active' : 'Empty', hint: 'Open brainstorming pad', action: () => setDashboardSubMode('scratchpad') }
-    ].forEach(card => {
-        const box = document.createElement('button');
-        box.type = 'button';
+        { label: 'Contributed pages', val: String(contributed.length), hint: 'Created or recently edited' },
+        { label: 'Logged hours', val: `${totalHours}h`, hint: `${userLogs.length} time entries` },
+        { label: 'Roles', val: String(uRoles.length || 1), hint: uRoles.map(r => r.name).join(', ') || 'Member' }
+    ].forEach(c => {
+        const box = document.createElement('div');
         box.className = 'dashboard-stat-card';
-        box.innerHTML = `<span class="stat-label">${esc(card.label)}</span><strong class="stat-val">${esc(card.val)}</strong><small>${esc(card.hint)}</small>`;
-        box.onclick = card.action;
+        box.innerHTML = `<span class="stat-label">${esc(c.label)}</span><strong class="stat-val">${esc(c.val)}</strong><small>${esc(c.hint)}</small>`;
         stats.append(box);
     });
 
-    const recentSection = document.createElement('section');
-    recentSection.className = 'dashboard-recent-section';
-    recentSection.innerHTML = '<h2>Recent pages &amp; boards</h2>';
-    const recentGrid = document.createElement('div');
-    recentGrid.className = 'dashboard-recent-grid';
-    recent.forEach(pg => {
+    const contribSec = document.createElement('section');
+    contribSec.className = 'dashboard-recent-section';
+    contribSec.innerHTML = `<h2>Recent pages by ${esc(me)}</h2>`;
+    const contribGrid = document.createElement('div');
+    contribGrid.className = 'dashboard-recent-grid';
+    if (!contributed.length) {
+        const empty = document.createElement('p');
+        empty.className = 'dash-muted';
+        empty.textContent = 'No recent authored or edited pages yet.';
+        contribSec.append(empty);
+    } else {
+        contributed.slice(0, 8).forEach(pg => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'dashboard-page-card';
+            card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'board' ? 'Board' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
+            card.onclick = e => { if (e.ctrlKey || e.metaKey) openPageInNewTab(pg.id); else navigateToPage(pg.id); };
+            contribGrid.append(card);
+        });
+        contribSec.append(contribGrid);
+    }
+
+    shell.append(hero, stats, contribSec);
+    view.append(shell);
+}
+
+function renderTeamOverviewDashboardView(view: HTMLElement) {
+    clearInterval(userDashClockTimer);
+    const pages = state.pages.filter(pg => !pg.databaseId && resolvePagePermissions(pg).view);
+    const boards = pages.filter(pg => pg.pageKind === 'board');
+    const dbs = pages.filter(pg => pg.pageKind === 'database');
+    const users = state.users || [];
+    const logs = state.dashboardData?.timeLogs || [];
+    const actor = getCurrentActorUser();
+
+    const shell = document.createElement('div');
+    shell.className = 'mode-page-shell';
+    const hero = document.createElement('div');
+    hero.className = 'mode-hero';
+    hero.innerHTML = `<div><span class="mode-kicker">TEAM OVERVIEW</span><h1>${esc(state.workspaceName || 'Architect Studio')} Team</h1><p>General workspace overview accessible to everyone · ${users.length} members · ${pages.length} shared docs · ${boards.length} boards · ${dbs.length} databases</p></div>`;
+    shell.append(hero);
+
+    const stats = document.createElement('div');
+    stats.className = 'dashboard-stats-grid';
+    const totalHours = (logs.reduce((acc, l) => acc + (Number(l.minutes) || 0), 0) / 60).toFixed(1);
+    [
+        { label: 'Team members', val: String(users.length), hint: `${users.filter(u => !!u.linkedAccount).length} linked accounts` },
+        { label: 'Shared pages', val: String(pages.length), hint: 'Accessible in your workspace' },
+        { label: 'Team hours logged', val: `${totalHours}h`, hint: `${logs.length} time entries` },
+        { label: 'Databases & Boards', val: String(dbs.length + boards.length), hint: `${dbs.length} DBs · ${boards.length} boards` }
+    ].forEach(c => {
+        const box = document.createElement('div');
+        box.className = 'dashboard-stat-card';
+        box.innerHTML = `<span class="stat-label">${esc(c.label)}</span><strong class="stat-val">${esc(c.val)}</strong><small>${esc(c.hint)}</small>`;
+        stats.append(box);
+    });
+    shell.append(stats);
+
+    const teamSec = document.createElement('section');
+    teamSec.className = 'dashboard-recent-section';
+    teamSec.innerHTML = '<h2>Team members</h2>';
+    const grid = document.createElement('div');
+    grid.className = 'team-members-grid';
+
+    users.forEach(u => {
+        const roles = getUserRoles(u);
+        const nameLower = u.name.toLowerCase();
+        const authored = pages.filter(pg => (pg.createdBy || '').toLowerCase() === nameLower || (pg.lastEditedBy || '').toLowerCase() === nameLower).length;
+        const hrs = (logs.filter(l => l.personId === u.id || l.personName.toLowerCase() === nameLower).reduce((a, l) => a + (Number(l.minutes) || 0), 0) / 60).toFixed(1);
+
         const card = document.createElement('button');
         card.type = 'button';
+        card.className = 'team-member-card';
+        card.dataset.userRef = u.id;
+        card.innerHTML = `
+          <div class="team-member-head">
+            <span class="team-member-avatar">${esc(commentUserInitials(u.name))}</span>
+            <div>
+              <strong>${esc(u.name)}</strong>${actor?.id === u.id ? ' <span class="dash-linked-pill">You</span>' : ''}
+              <div class="team-member-meta">${roles.map(r => `<span class="dash-role-pill" style="background:${esc(r.color || '#eef0f4')}22;color:${esc(r.color || '#4a4d55')}">${esc(r.name)}</span>`).join('') || '<span class="dash-role-pill">Member</span>'}</div>
+            </div>
+          </div>
+          <div class="team-member-meta">
+            <span>${authored} pages</span>
+            <span>·</span>
+            <span>${hrs}h logged</span>
+            <span>·</span>
+            <span>${u.linkedAccount ? 'Linked' : 'Profile'}</span>
+          </div>`;
+        card.onclick = () => openUserDashboard(u.id);
+        card.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); openUserContextMenu(ev, u.id); };
+        grid.append(card);
+    });
+    teamSec.append(grid);
+    shell.append(teamSec);
+
+    const recentSec = document.createElement('section');
+    recentSec.className = 'dashboard-recent-section';
+    recentSec.innerHTML = '<h2>Recent team updates</h2>';
+    const recentGrid = document.createElement('div');
+    recentGrid.className = 'dashboard-recent-grid';
+    pages.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 6).forEach(pg => {
+        const card = document.createElement('div');
         card.className = 'dashboard-page-card';
-        card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'board' ? 'Board' : pg.pageKind === 'database' ? 'Database' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
-        card.onclick = e => { if (e.ctrlKey || e.metaKey) openPageInNewTab(pg.id); else navigateToPage(pg.id); };
+        card.style.cursor = 'pointer';
+        const editorName = pg.lastEditedBy || pg.createdBy || 'Team';
+        card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'board' ? 'Board' : 'Page'} · Edited by <span class="user-ref-trigger" data-user-ref="${esc(editorName)}">${esc(editorName)}</span> · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
+        card.onclick = e => {
+            const uTrig = (e.target as Element | null)?.closest?.('[data-user-ref]') as HTMLElement | null;
+            if (uTrig) { e.stopPropagation(); openUserDashboard(uTrig.dataset.userRef || editorName); return; }
+            if (e.ctrlKey || e.metaKey) openPageInNewTab(pg.id); else navigateToPage(pg.id);
+        };
         recentGrid.append(card);
     });
-    recentSection.append(recentGrid);
+    recentSec.append(recentGrid);
+    shell.append(recentSec);
 
-    shell.append(hero, stats, recentSection);
     view.append(shell);
-    updateClock();
 }
 function renderRichInlineInto(container: HTMLElement, rawText: string, afterNavigate?: () => void) {
     const tokenRe = /(!\[[^\]]*\]\([^)]+\)|\[\[[^\]]+\]\]|<t:\d{6,13}(?::[tTdDfFR])?>)/g;
@@ -1710,7 +2236,7 @@ function openFullMemberManagerDialog() {
             const baseSlug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || id().slice(0, 8);
             const slug = state.users.some(x => x.id === baseSlug) ? `${baseSlug}.${id().slice(0, 4)}` : baseSlug;
             const rid = rSel.value || 'role-editor';
-            state.users.push({ id: slug, name: rawName, roleId: rid, roleIds: [rid], blocked: false });
+            state.users.push({ id: slug, name: rawName, roleId: rid, roleIds: [rid] });
             save(true);
             toast(`Added member “${rawName}”`);
             renderModalBody();
@@ -1739,10 +2265,42 @@ function openFullMemberManagerDialog() {
                 const isOwner = !!owner && u.id === owner.id;
                 const isActive = actor?.id === u.id;
                 const tr = document.createElement('tr');
-                if (u.blocked) tr.className = 'is-blocked';
 
                 const tdName = document.createElement('td');
-                tdName.innerHTML = `<strong>${esc(u.name)}</strong>${isOwner ? ' <span class="dash-role-pill">Owner</span>' : ''}${isActive ? ' <span class="dash-linked-pill">Logged in</span>' : ''}${u.blocked ? ' <span class="dash-status-blocked">Blocked</span>' : ''}`;
+                const nameWrap = document.createElement('div');
+                nameWrap.className = 'member-actions-cell';
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.className = 'mm-name-input';
+                nameInput.value = u.name;
+                nameInput.disabled = !canManage;
+                nameInput.setAttribute('aria-label', `Name for ${u.name}`);
+                nameInput.onchange = () => {
+                    const nextName = nameInput.value.trim();
+                    if (!nextName) { nameInput.value = u.name; return; }
+                    if (nextName === u.name) return;
+                    const wasSelfUnlinked = isActive && !u.linkedAccount;
+                    u.name = nextName;
+                    if (wasSelfUnlinked) setLoggedInAccountName(nextName);
+                    save(true);
+                    toast(`Renamed member to “${nextName}”`);
+                    if (currentAppMode === 'dashboard') renderDashboardView();
+                    render();
+                };
+                nameWrap.append(nameInput);
+                if (isOwner) {
+                    const ownerPill = document.createElement('span');
+                    ownerPill.className = 'dash-role-pill';
+                    ownerPill.textContent = 'Owner';
+                    nameWrap.append(ownerPill);
+                }
+                if (isActive) {
+                    const activePill = document.createElement('span');
+                    activePill.className = 'dash-linked-pill';
+                    activePill.textContent = 'Logged in';
+                    nameWrap.append(activePill);
+                }
+                tdName.append(nameWrap);
 
                 const tdRoles = document.createElement('td');
                 const rolesHost = document.createElement('div');
@@ -1764,22 +2322,27 @@ function openFullMemberManagerDialog() {
                     linkBtn.onclick = () => {
                         const nextAcc = prompt(`App account username for ${u.name}:`, u.linkedAccount || u.name);
                         if (nextAcc === null) return;
-                        u.linkedAccount = nextAcc.trim() || undefined;
+                        const cleaned = nextAcc.trim();
+                        u.linkedAccount = cleaned || undefined;
+                        u.accountUnlinked = !cleaned;
                         save(true);
                         renderModalBody();
                         if (currentAppMode === 'dashboard') renderDashboardView();
                     };
                     linkWrap.append(linkBtn);
-                    if (u.linkedAccount && !isOwner) {
+                    if (u.linkedAccount && !(isOwner && isActive)) {
                         const unlinkBtn = document.createElement('button');
                         unlinkBtn.type = 'button';
                         unlinkBtn.className = 'secondary-button';
                         unlinkBtn.textContent = 'Unlink';
                         unlinkBtn.onclick = () => {
                             u.linkedAccount = undefined;
+                            u.accountUnlinked = true;
                             save(true);
+                            toast(`Unlinked account from ${u.name}`);
                             renderModalBody();
                             if (currentAppMode === 'dashboard') renderDashboardView();
+                            render();
                         };
                         linkWrap.append(unlinkBtn);
                     }
@@ -1821,32 +2384,47 @@ function openFullMemberManagerDialog() {
 
                 const tdActs = document.createElement('td');
                 tdActs.className = 'member-actions-cell';
-                if (canManage && !isOwner) {
-                    const blkBtn = document.createElement('button');
-                    blkBtn.type = 'button';
-                    blkBtn.className = 'secondary-button';
-                    blkBtn.textContent = u.blocked ? 'Unblock' : 'Block';
-                    blkBtn.onclick = () => {
-                        u.blocked = !u.blocked;
+                if (canManage) {
+                    const dupBtn = document.createElement('button');
+                    dupBtn.type = 'button';
+                    dupBtn.className = 'secondary-button';
+                    dupBtn.textContent = 'Duplicate';
+                    dupBtn.onclick = () => {
+                        const copyName = `${u.name} copy`;
+                        const baseSlug = copyName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || id().slice(0, 8);
+                        const copyId = state.users.some(x => x.id === baseSlug) ? `${baseSlug}.${id().slice(0, 4)}` : baseSlug;
+                        const clonedRoles = (u.roleIds || []).filter(rid => rid !== 'role-admin' || isOwner);
+                        const safeRoles = clonedRoles.length ? clonedRoles : ['role-editor'];
+                        state.users.push({
+                            id: copyId,
+                            name: copyName,
+                            roleId: safeRoles[0],
+                            roleIds: safeRoles,
+                            accountUnlinked: true
+                        });
                         save(true);
-                        toast(u.blocked ? `Blocked ${u.name}` : `Unblocked ${u.name}`);
+                        toast(`Duplicated “${u.name}” as “${copyName}”`);
                         renderModalBody();
                         if (currentAppMode === 'dashboard') renderDashboardView();
-                        render();
                     };
+                    tdActs.append(dupBtn);
+                }
+                if (canManage && !isOwner) {
                     const delBtn = document.createElement('button');
                     delBtn.type = 'button';
                     delBtn.className = 'secondary-button';
                     delBtn.textContent = 'Delete';
                     delBtn.onclick = () => {
                         state.users = state.users.filter(x => x.id !== u.id);
+                        state.invites = (state.invites || []).filter(inv => inv.userId !== u.id);
                         save(true);
+                        toast(`Removed member “${u.name}”`);
                         renderModalBody();
                         if (currentAppMode === 'dashboard') renderDashboardView();
                         render();
                     };
-                    tdActs.append(blkBtn, delBtn);
-                } else {
+                    tdActs.append(delBtn);
+                } else if (!canManage) {
                     const note = document.createElement('span');
                     note.className = 'dash-muted';
                     note.textContent = isOwner ? 'Workspace owner' : '—';
@@ -1862,7 +2440,7 @@ function openFullMemberManagerDialog() {
 
         const inviteBox = document.createElement('div');
         inviteBox.className = 'invite-panel-box';
-        inviteBox.innerHTML = '<strong>Accept invite &amp; link app account</strong><p class="dash-muted">Redeeming an invite binds your app account to that member entry so future role or block updates apply automatically.</p>';
+        inviteBox.innerHTML = '<strong>Accept invite &amp; link app account</strong><p class="dash-muted">Redeeming an invite binds your app account to that member entry so role updates apply automatically.</p>';
         const redeemForm = document.createElement('form');
         redeemForm.className = 'dash-inline-form';
         redeemForm.innerHTML = '<input id="mm-redeem-code" placeholder="Invite code (e.g. INV-ABC123)" autocomplete="off" required><input id="mm-redeem-account" placeholder="Your app username (e.g. maya.studio)" autocomplete="off" required><button type="submit" id="mm-redeem-btn" class="share-button">Redeem invite</button>';
@@ -2318,7 +2896,7 @@ function renderAdminDashboardView(view: HTMLElement) {
     if (!isAdmin) {
         const locked = document.createElement('div');
         locked.className = 'mode-empty-state admin-locked-card';
-        locked.innerHTML = `<strong>Admin permission required</strong><p>${actor?.blocked ? 'Your tied account is blocked in this workspace.' : 'Your tied account does not currently have Admin or delegated management permissions.'}</p>`;
+        locked.innerHTML = `<strong>Admin permission required</strong><p>${!actor ? 'Your account has been unlinked or removed from this workspace.' : 'Your role does not currently have the “Access admin dashboard” permission.'}</p>`;
         shell.append(hero, locked);
         view.append(shell);
         return;
@@ -2347,7 +2925,7 @@ function renderAdminDashboardView(view: HTMLElement) {
     memberHead.innerHTML = '<div><h3>Team &amp; Member manager</h3><p class="dash-muted">Manage workspace members, invites, linked accounts, and roles.</p></div>';
     memberCard.append(memberHead);
 
-    const onlineCount = users.filter(u => !u.blocked && ((actor && u.id === actor.id) || (u as any).online)).length;
+    const onlineCount = users.filter(u => (actor && u.id === actor.id) || (u as any).online).length;
     const pendingInvitesCount = (state.invites || []).filter(i => !i.redeemedAt).length;
     const teamStrip = document.createElement('div');
     teamStrip.className = 'admin-stat-strip';
@@ -2633,7 +3211,7 @@ function openRoleManagerDialog() {
                 name: rName,
                 rank: Math.max(actorRank + 1, maxRank + 1),
                 color: '#9065b0',
-                permissions: { manageMembers: false, manageRoles: false, manageAssets: false, createPages: true, editPages: true, writePages: true, comment: true, managePagePermissions: false, sendNotifications: false }
+                permissions: { manageMembers: false, manageRoles: false, manageAssets: false, accessAdminDashboard: false, createPages: true, editPages: true, writePages: true, comment: true, managePagePermissions: false, sendNotifications: false }
             });
             save(true);
             toast(`Created role “${rName}”`);
@@ -3491,12 +4069,13 @@ function renderDashboardChatView(view: HTMLElement) {
 
     const dmList = document.createElement('div');
     dmList.className = 'ws-chat-list';
-    (state.users || []).filter(u => !u.blocked).forEach(u => {
+    (state.users || []).forEach(u => {
         const acctKey = u.linkedAccount || u.name;
         const existingDm = state.chats!.find(c => c.kind === 'dm' && (c.memberAccounts.includes(acctKey) || c.name === u.name));
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'ws-chat-item' + (existingDm?.id === activeChatChannelId ? ' is-active' : '');
+        btn.dataset.userRef = u.id;
         const initials = commentUserInitials(u.name);
         btn.innerHTML = `<span class="ws-chat-avatar">${esc(initials)}</span><span class="ws-chat-item-name">${esc(u.name)}</span>${existingDm?.unreadCount ? `<span class="ws-chat-unread-pill">${existingDm.unreadCount}</span>` : ''}`;
         btn.onclick = () => {
@@ -3505,6 +4084,7 @@ function renderDashboardChatView(view: HTMLElement) {
             save();
             renderDashboardView();
         };
+        btn.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); openUserContextMenu(ev, u.id); };
         dmList.append(btn);
     });
     sidebar.append(dmList);
@@ -3529,7 +4109,11 @@ function renderDashboardChatView(view: HTMLElement) {
             activeCh.messages.forEach(m => {
                 const item = document.createElement('article');
                 item.className = 'ws-chat-msg';
-                item.innerHTML = `<span class="ws-chat-msg-avatar">${esc(commentUserInitials(m.senderName))}</span><div class="ws-chat-msg-body"><div class="ws-chat-msg-meta"><strong>${esc(m.senderName)}</strong>${m.fromAutomation ? `<span class="ws-chat-auto-tag">⚡ ${esc(m.fromAutomation)}</span>` : ''}<span>${esc(formatInboxRelative(m.createdAt))}</span></div><div class="ws-chat-msg-text">${esc(m.text)}</div></div>`;
+                item.innerHTML = `<span class="ws-chat-msg-avatar user-ref-trigger" data-user-ref="${esc(m.senderName)}">${esc(commentUserInitials(m.senderName))}</span><div class="ws-chat-msg-body"><div class="ws-chat-msg-meta"><strong class="user-ref-trigger" data-user-ref="${esc(m.senderName)}">${esc(m.senderName)}</strong>${m.fromAutomation ? `<span class="ws-chat-auto-tag">⚡ ${esc(m.fromAutomation)}</span>` : ''}<span>${esc(formatInboxRelative(m.createdAt))}</span></div><div class="ws-chat-msg-text">${esc(m.text)}</div></div>`;
+                item.querySelectorAll<HTMLElement>('.user-ref-trigger').forEach(trig => {
+                    trig.onclick = e => { e.stopPropagation(); openUserDashboard(m.senderName); };
+                    trig.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, m.senderName); };
+                });
                 stream.append(item);
             });
         }
@@ -3866,7 +4450,7 @@ function openSharePublishPopover(p: Page, anchorEl: HTMLElement | null) {
     const draw = () => {
         pop.replaceChildren();
         const actor = getCurrentActorUser();
-        const canManagePerms = !actor?.blocked && (userHasGlobalPerm('managePagePermissions', actor) || getUserHighestRank(actor) === 0);
+        const canManagePerms = !!actor && (userHasGlobalPerm('managePagePermissions', actor) || getUserHighestRank(actor) === 0);
         const ro = effectivePageReadOnly(p);
 
         const head = document.createElement('div');
@@ -4499,15 +5083,784 @@ function renderScratchpadDashboardView(view: HTMLElement) {
     shell.append(hero, splitWrap);
     view.append(shell);
 }
+let activeBacklinksPopoverEl: HTMLElement | null = null;
+let activeBacklinksAnchorEl: HTMLElement | null = null;
+
+function closeBacklinksPopover() {
+    if (activeBacklinksPopoverEl) {
+        activeBacklinksPopoverEl.remove();
+        activeBacklinksPopoverEl = null;
+    }
+    activeBacklinksAnchorEl = null;
+}
+
+function getPageBreadcrumbSummary(page: Page): string {
+    const ancestors: Page[] = [];
+    const seen = new Set<string>([page.id]);
+    let cur: Page | null | undefined = page;
+    while (cur?.parentId && !seen.has(cur.parentId)) {
+        const parent = state.pages.find(pg => pg.id === cur!.parentId);
+        if (!parent) break;
+        seen.add(parent.id);
+        ancestors.unshift(parent);
+        cur = parent;
+    }
+    if (!ancestors.length) return '';
+    if (ancestors.length <= 2) return ancestors.map(a => a.title || 'Untitled').join(' / ');
+    return `${ancestors[0].title || 'Untitled'} / ... / ${ancestors[ancestors.length - 1].title || 'Untitled'}`;
+}
+
+function collectPageReferenceIds(page: Page): { links: Set<string>; relations: Set<string> } {
+    const links = new Set<string>();
+    const relations = new Set<string>();
+
+    const scanButtonSteps = (steps: BlockButtonStep[] | undefined) => {
+        if (!Array.isArray(steps)) return;
+        for (const s of steps) {
+            if (s.kind === 'open_page' && s.pageId) links.add(s.pageId);
+            if (Array.isArray(s.branches)) {
+                for (const br of s.branches) scanButtonSteps(br.actions);
+            }
+        }
+    };
+
+    const scanBlocks = (list: Block[] | undefined) => {
+        if (!Array.isArray(list)) return;
+        for (const b of list) {
+            if (b.type === 'page_link' && b.targetId) links.add(b.targetId);
+            if (Array.isArray(b.mentions)) {
+                for (const m of b.mentions) {
+                    if (m?.kind === 'page' && m.id) links.add(m.id);
+                }
+            }
+            if (b.html) {
+                const mentionRe = /data-mention-kind="page"[^>]*data-mention-id="([^"]+)"|data-mention-id="([^"]+)"[^>]*data-mention-kind="page"/g;
+                let m: RegExpExecArray | null;
+                while ((m = mentionRe.exec(b.html)) !== null) {
+                    const pid = m[1] || m[2];
+                    if (pid) links.add(pid);
+                }
+                const hrefRe = /href="#page=([^"&'#]+)/g;
+                while ((m = hrefRe.exec(b.html)) !== null) {
+                    try {
+                        const pid = decodeURIComponent(m[1]);
+                        if (pid) links.add(pid);
+                    } catch {
+                        if (m[1]) links.add(m[1]);
+                    }
+                }
+            }
+            if (b.url) {
+                const um = b.url.match(/#page=([^"&'#]+)/);
+                if (um?.[1]) {
+                    try { links.add(decodeURIComponent(um[1])); } catch { links.add(um[1]); }
+                }
+            }
+            if (b.type === 'button' && b.buttonConfig?.steps) scanButtonSteps(b.buttonConfig.steps);
+            if (Array.isArray(b.children) && b.children.length) scanBlocks(b.children);
+        }
+    };
+
+    scanBlocks(page.blocks);
+
+    if (page.propertyValues && page.parentId) {
+        const parentDb = state.pages.find(pg => pg.id === page.parentId);
+        const relProps = Array.isArray(parentDb?.database?.schema)
+            ? parentDb!.database.schema.filter((s: any) => s?.type === 'relation')
+            : [];
+        for (const rp of relProps) {
+            const rawVal = page.propertyValues[rp.id];
+            if (Array.isArray(rawVal)) {
+                rawVal.forEach(v => { if (typeof v === 'string' && v) relations.add(v); });
+            } else if (typeof rawVal === 'string' && rawVal) {
+                relations.add(rawVal);
+            }
+        }
+    }
+
+    links.delete(page.id);
+    relations.delete(page.id);
+    return { links, relations };
+}
+
+function findPageBacklinks(targetPageId: string): Page[] {
+    const out: Page[] = [];
+    for (const pg of state.pages) {
+        if (pg.id === targetPageId) continue;
+        if (!resolvePagePermissions(pg).view) continue;
+        const { links, relations } = collectPageReferenceIds(pg);
+        if (links.has(targetPageId) || relations.has(targetPageId)) out.push(pg);
+    }
+    return out;
+}
+
+function openBacklinksPopover(page: Page, anchorBtn: HTMLElement, backlinks: Page[]) {
+    if (activeBacklinksPopoverEl && activeBacklinksAnchorEl === anchorBtn) {
+        closeBacklinksPopover();
+        return;
+    }
+    closeBacklinksPopover();
+    closeDocsNotificationsPopover();
+    closeMenu();
+
+    const pop = document.createElement('div');
+    pop.id = 'backlinks-popover';
+    pop.className = 'backlinks-popover';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Linked to this page');
+
+    const head = document.createElement('div');
+    head.className = 'backlinks-pop-header';
+    head.textContent = 'Linked to this page';
+    pop.append(head);
+
+    const list = document.createElement('div');
+    list.className = 'backlinks-pop-list';
+
+    if (!backlinks.length) {
+        const empty = document.createElement('div');
+        empty.className = 'backlinks-empty';
+        empty.textContent = 'No pages link to this page yet.';
+        list.append(empty);
+    } else {
+        backlinks.forEach(src => {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'backlinks-row';
+            row.dataset.pageId = src.id;
+            const pathText = getPageBreadcrumbSummary(src);
+            row.innerHTML = `<span class="backlinks-arrow" aria-hidden="true">↙</span><span class="backlinks-ico">${pageIconMarkup(src.icon)}</span><span class="backlinks-title">${esc(src.title || 'Untitled')}</span>${pathText ? `<span class="backlinks-path">${esc(pathText)}</span>` : ''}`;
+            row.onclick = e => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeBacklinksPopover();
+                if (e.ctrlKey || e.metaKey) openPageInNewTab(src.id);
+                else navigateToPage(src.id);
+            };
+            row.onmousedown = e => { if (e.button === 1) e.preventDefault(); };
+            row.onauxclick = e => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeBacklinksPopover();
+                    openPageInNewTab(src.id);
+                }
+            };
+            list.append(row);
+        });
+    }
+    pop.append(list);
+    document.body.append(pop);
+
+    const rect = anchorBtn.getBoundingClientRect();
+    const popRect = pop.getBoundingClientRect();
+    const left = Math.max(10, Math.min(rect.left, window.innerWidth - popRect.width - 12));
+    const top = Math.min(window.innerHeight - popRect.height - 12, rect.bottom + 6);
+    pop.style.left = `${left}px`;
+    pop.style.top = `${Math.max(10, top)}px`;
+
+    activeBacklinksPopoverEl = pop;
+    activeBacklinksAnchorEl = anchorBtn;
+}
+
+let graphAnimFrame = 0;
+let graphResizeObs: ResizeObserver | null = null;
+const graphNodePosCache = new Map<string, { x: number; y: number; vx: number; vy: number }>();
+
+function stopGraphAnimation() {
+    if (graphAnimFrame) {
+        cancelAnimationFrame(graphAnimFrame);
+        graphAnimFrame = 0;
+    }
+    if (graphResizeObs) {
+        graphResizeObs.disconnect();
+        graphResizeObs = null;
+    }
+}
+
+function collectWorkspaceGraphData(opts: { includeHierarchy: boolean; includeLinks: boolean; includeRelations: boolean; includeOrphans: boolean }) {
+    const visiblePages = state.pages.filter(pg => resolvePagePermissions(pg).view);
+    const visibleSet = new Set(visiblePages.map(pg => pg.id));
+    type GEdge = { source: string; target: string; kind: 'hierarchy' | 'link' | 'relation' };
+    const edgeMap = new Map<string, GEdge>();
+    const addEdge = (source: string, target: string, kind: GEdge['kind']) => {
+        if (!source || !target || source === target) return;
+        if (!visibleSet.has(source) || !visibleSet.has(target)) return;
+        const key = `${source}->${target}:${kind}`;
+        if (!edgeMap.has(key)) edgeMap.set(key, { source, target, kind });
+    };
+
+    for (const pg of visiblePages) {
+        if (opts.includeHierarchy && pg.parentId) {
+            addEdge(pg.parentId, pg.id, 'hierarchy');
+        }
+        if (opts.includeLinks || opts.includeRelations) {
+            const refs = collectPageReferenceIds(pg);
+            if (opts.includeLinks) refs.links.forEach(id => addEdge(pg.id, id, 'link'));
+            if (opts.includeRelations) refs.relations.forEach(id => addEdge(pg.id, id, 'relation'));
+        }
+    }
+
+    const edges = [...edgeMap.values()];
+    const degreeMap = new Map<string, number>();
+    for (const e of edges) {
+        degreeMap.set(e.source, (degreeMap.get(e.source) || 0) + 1);
+        degreeMap.set(e.target, (degreeMap.get(e.target) || 0) + 1);
+    }
+
+    const filteredPages = opts.includeOrphans
+        ? visiblePages
+        : visiblePages.filter(pg => (degreeMap.get(pg.id) || 0) > 0);
+
+    const nodes = filteredPages.map((pg, idx) => {
+        const cached = graphNodePosCache.get(pg.id);
+        const angle = (idx / Math.max(1, filteredPages.length)) * Math.PI * 2;
+        const ring = 90 + (idx % 5) * 38;
+        return {
+            id: pg.id,
+            title: pg.title || 'Untitled',
+            icon: pg.icon || '📄',
+            kind: (pg.pageKind || 'page') as 'page' | 'database' | 'board',
+            isActive: pg.id === state.activePageId,
+            degree: degreeMap.get(pg.id) || 0,
+            x: cached ? cached.x : Math.cos(angle) * ring,
+            y: cached ? cached.y : Math.sin(angle) * ring,
+            vx: cached ? cached.vx : 0,
+            vy: cached ? cached.vy : 0,
+            pinned: false
+        };
+    });
+
+    const nodeSet = new Set(nodes.map(n => n.id));
+    return {
+        nodes,
+        edges: edges.filter(e => nodeSet.has(e.source) && nodeSet.has(e.target))
+    };
+}
+
+let graphFilterState = {
+    query: '',
+    includeHierarchy: true,
+    includeLinks: true,
+    includeRelations: true,
+    includeOrphans: true
+};
+
+function renderWorkspaceGraphView(host: HTMLElement) {
+    stopGraphAnimation();
+    host.replaceChildren();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'docs-graph-canvas-wrap';
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'docs-graph-canvas';
+    canvas.setAttribute('aria-label', 'Interactive workspace knowledge graph');
+    wrap.append(canvas);
+
+    const hud = document.createElement('div');
+    hud.className = 'docs-graph-hud';
+    hud.innerHTML = `
+        <div class="graph-hud-top">
+            <div class="graph-hud-title">
+                <strong>Graph View</strong>
+                <span class="graph-stats-pill" id="graph-stats-pill">0 nodes · 0 links</span>
+            </div>
+            <div class="graph-hud-actions">
+                <button type="button" class="secondary-button graph-btn" data-graph-fit>Fit view</button>
+                <button type="button" class="secondary-button graph-btn" data-graph-exit>← Back to doc</button>
+            </div>
+        </div>
+        <div class="graph-hud-controls">
+            <input type="search" class="graph-search-input" id="graph-search-input" placeholder="Search nodes…" autocomplete="off">
+            <label class="graph-filter-chk"><input type="checkbox" data-graph-filter="includeHierarchy"> Hierarchy</label>
+            <label class="graph-filter-chk"><input type="checkbox" data-graph-filter="includeLinks"> Links &amp; @mentions</label>
+            <label class="graph-filter-chk"><input type="checkbox" data-graph-filter="includeRelations"> DB relations</label>
+            <label class="graph-filter-chk"><input type="checkbox" data-graph-filter="includeOrphans"> Orphans</label>
+        </div>
+        <div class="graph-legend">
+            <span><i class="g-dot is-page"></i>Page</span>
+            <span><i class="g-dot is-db"></i>Database</span>
+            <span><i class="g-dot is-board"></i>Board</span>
+            <span><i class="g-dot is-active"></i>Current</span>
+            <span class="graph-legend-hint">Drag nodes · Scroll to zoom · Click to open</span>
+        </div>
+    `;
+    wrap.append(hud);
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'graph-node-tooltip';
+    tooltip.hidden = true;
+    wrap.append(tooltip);
+
+    host.append(wrap);
+
+    const searchInput = hud.querySelector('#graph-search-input') as HTMLInputElement;
+    searchInput.value = graphFilterState.query;
+    hud.querySelectorAll<HTMLInputElement>('[data-graph-filter]').forEach(chk => {
+        const key = chk.dataset.graphFilter as keyof typeof graphFilterState;
+        chk.checked = !!graphFilterState[key];
+        chk.onchange = () => {
+            (graphFilterState as any)[key] = chk.checked;
+            rebuildGraphData();
+        };
+    });
+
+    let graphData = collectWorkspaceGraphData(graphFilterState);
+    let nodeById = new Map(graphData.nodes.map(n => [n.id, n]));
+    let neighborMap = new Map<string, Set<string>>();
+
+    const updateStatsAndNeighbors = () => {
+        nodeById = new Map(graphData.nodes.map(n => [n.id, n]));
+        neighborMap = new Map();
+        for (const n of graphData.nodes) neighborMap.set(n.id, new Set([n.id]));
+        for (const e of graphData.edges) {
+            neighborMap.get(e.source)?.add(e.target);
+            neighborMap.get(e.target)?.add(e.source);
+        }
+        const pill = hud.querySelector('#graph-stats-pill');
+        if (pill) pill.textContent = `${graphData.nodes.length} nodes · ${graphData.edges.length} links`;
+    };
+    const rebuildGraphData = () => {
+        graphData = collectWorkspaceGraphData(graphFilterState);
+        updateStatsAndNeighbors();
+    };
+    updateStatsAndNeighbors();
+
+    searchInput.oninput = () => {
+        graphFilterState.query = searchInput.value.trim().toLowerCase();
+    };
+
+    let panX = 0;
+    let panY = 0;
+    let zoom = 1;
+    let hoveredId: string | null = null;
+    let dragNodeId: string | null = null;
+    let isPanning = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragMoved = 0;
+    let width = Math.max(480, wrap.clientWidth || 860);
+    let height = Math.max(400, wrap.clientHeight || 600);
+
+    const fitView = () => {
+        panX = 0;
+        panY = 0;
+        zoom = 1;
+        if (graphData.nodes.length > 0) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const n of graphData.nodes) {
+                minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+                minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+            }
+            const spanW = Math.max(160, maxX - minX + 140);
+            const spanH = Math.max(160, maxY - minY + 140);
+            zoom = Math.max(0.45, Math.min(1.4, Math.min((width - 80) / spanW, (height - 160) / spanH)));
+            panX = -(minX + maxX) / 2;
+            panY = -(minY + maxY) / 2;
+        }
+    };
+
+    hud.querySelector('[data-graph-fit]')?.addEventListener('click', fitView);
+    hud.querySelector('[data-graph-exit]')?.addEventListener('click', () => setDocsGraphMode(false));
+
+    const worldToScreen = (wx: number, wy: number) => ({
+        sx: width / 2 + (wx + panX) * zoom,
+        sy: height / 2 + (wy + panY) * zoom
+    });
+    const screenToWorld = (sx: number, sy: number) => ({
+        wx: (sx - width / 2) / zoom - panX,
+        wy: (sy - height / 2) / zoom - panY
+    });
+    const nodeRadius = (n: { degree: number; isActive: boolean }) => 7 + Math.min(9, n.degree * 1.6) + (n.isActive ? 2 : 0);
+
+    const findNodeAt = (sx: number, sy: number) => {
+        const { wx, wy } = screenToWorld(sx, sy);
+        for (let i = graphData.nodes.length - 1; i >= 0; i--) {
+            const n = graphData.nodes[i];
+            const r = (nodeRadius(n) + 5) / zoom;
+            const dx = wx - n.x;
+            const dy = wy - n.y;
+            if (dx * dx + dy * dy <= r * r) return n;
+        }
+        return null;
+    };
+
+    const syncCanvasSize = () => {
+        const rect = wrap.getBoundingClientRect();
+        width = Math.max(320, rect.width || wrap.clientWidth || 860);
+        height = Math.max(280, rect.height || wrap.clientHeight || 600);
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+    };
+    syncCanvasSize();
+    fitView();
+    if (typeof ResizeObserver !== 'undefined') {
+        graphResizeObs = new ResizeObserver(syncCanvasSize);
+        graphResizeObs.observe(wrap);
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragMoved = 0;
+        const hit = findNodeAt(sx, sy);
+        if (hit) {
+            dragNodeId = hit.id;
+            hit.pinned = true;
+            canvas.setPointerCapture(e.pointerId);
+            canvas.style.cursor = 'grabbing';
+        } else {
+            isPanning = true;
+            canvas.setPointerCapture(e.pointerId);
+            canvas.style.cursor = 'grabbing';
+        }
+    });
+
+    canvas.addEventListener('pointermove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        dragMoved = Math.max(dragMoved, Math.hypot(dx, dy));
+
+        if (dragNodeId) {
+            const n = nodeById.get(dragNodeId);
+            if (n) {
+                const { wx, wy } = screenToWorld(sx, sy);
+                n.x = wx;
+                n.y = wy;
+                n.vx = 0;
+                n.vy = 0;
+                graphNodePosCache.set(n.id, { x: n.x, y: n.y, vx: 0, vy: 0 });
+            }
+            return;
+        }
+        if (isPanning) {
+            panX += (sx - (dragStartX - rect.left)) / zoom;
+            panY += (sy - (dragStartY - rect.top)) / zoom;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            return;
+        }
+        const hit = findNodeAt(sx, sy);
+        hoveredId = hit?.id || null;
+        canvas.style.cursor = hit ? 'pointer' : 'grab';
+        if (hit) {
+            const kindLbl = hit.kind === 'database' ? 'Database' : hit.kind === 'board' ? 'Board' : 'Page';
+            tooltip.innerHTML = `<strong>${esc(hit.title)}</strong><span>${kindLbl} · ${hit.degree} ${hit.degree === 1 ? 'link' : 'links'}</span>`;
+            tooltip.style.left = `${Math.min(width - 180, sx + 14)}px`;
+            tooltip.style.top = `${Math.max(8, sy - 10)}px`;
+            tooltip.hidden = false;
+        } else {
+            tooltip.hidden = true;
+        }
+    });
+
+    const releasePointer = (e: PointerEvent) => {
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        if (dragNodeId) {
+            const n = nodeById.get(dragNodeId);
+            if (n) n.pinned = false;
+            if (dragMoved <= 4) {
+                const hit = findNodeAt(sx, sy);
+                if (hit) {
+                    if (e.ctrlKey || e.metaKey) openPageInNewTab(hit.id);
+                    else navigateToPage(hit.id);
+                }
+            }
+            dragNodeId = null;
+        }
+        isPanning = false;
+        canvas.style.cursor = hoveredId ? 'pointer' : 'grab';
+    };
+    canvas.addEventListener('pointerup', releasePointer);
+    canvas.addEventListener('pointercancel', releasePointer);
+
+    canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const before = screenToWorld(sx, sy);
+        const factor = e.deltaY < 0 ? 1.12 : 0.89;
+        zoom = Math.max(0.25, Math.min(3.4, zoom * factor));
+        panX = (sx - width / 2) / zoom - before.wx;
+        panY = (sy - height / 2) / zoom - before.wy;
+    }, { passive: false });
+
+    const stepAndDraw = () => {
+        if (!host.isConnected || host.hidden || !isDocsGraphMode) {
+            stopGraphAnimation();
+            return;
+        }
+        const nodes = graphData.nodes;
+        const edges = graphData.edges;
+        const q = graphFilterState.query;
+        const dark = document.body.classList.contains('dark-theme') || getComputedStyle(document.body).backgroundColor === 'rgb(25, 25, 25)';
+
+        // Gentle force-directed simulation step
+        const count = nodes.length;
+        for (let i = 0; i < count; i++) {
+            const a = nodes[i];
+            if (a.pinned) continue;
+            // Weak center gravity
+            a.vx += -a.x * 0.0022;
+            a.vy += -a.y * 0.0022;
+            for (let j = i + 1; j < count; j++) {
+                const b = nodes[j];
+                let dx = b.x - a.x;
+                let dy = b.y - a.y;
+                let d2 = dx * dx + dy * dy;
+                if (d2 < 1) { dx = 0.7; dy = 0.7; d2 = 1; }
+                const force = Math.min(24, 3400 / d2);
+                const invD = 1 / Math.sqrt(d2);
+                const fx = dx * invD * force;
+                const fy = dy * invD * force;
+                a.vx -= fx * 0.09;
+                a.vy -= fy * 0.09;
+                if (!b.pinned) {
+                    b.vx += fx * 0.09;
+                    b.vy += fy * 0.09;
+                }
+            }
+        }
+        for (const e of edges) {
+            const s = nodeById.get(e.source);
+            const t = nodeById.get(e.target);
+            if (!s || !t) continue;
+            const dx = t.x - s.x;
+            const dy = t.y - s.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            const ideal = e.kind === 'hierarchy' ? 125 : 155;
+            const spring = (dist - ideal) * 0.018;
+            const fx = (dx / dist) * spring;
+            const fy = (dy / dist) * spring;
+            if (!s.pinned) { s.vx += fx; s.vy += fy; }
+            if (!t.pinned) { t.vx -= fx; t.vy -= fy; }
+        }
+        for (const n of nodes) {
+            if (n.pinned) continue;
+            n.vx *= 0.84;
+            n.vy *= 0.84;
+            n.x += Math.max(-14, Math.min(14, n.vx));
+            n.y += Math.max(-14, Math.min(14, n.vy));
+            graphNodePosCache.set(n.id, { x: n.x, y: n.y, vx: n.vx, vy: n.vy });
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            const dpr = canvas.width / Math.max(1, width);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, width, height);
+
+            const focusSet = hoveredId ? neighborMap.get(hoveredId) : null;
+            const queryMatches = q ? new Set(nodes.filter(n => n.title.toLowerCase().includes(q)).map(n => n.id)) : null;
+
+            // Edges
+            for (const e of edges) {
+                const s = nodeById.get(e.source);
+                const t = nodeById.get(e.target);
+                if (!s || !t) continue;
+                const a = worldToScreen(s.x, s.y);
+                const b = worldToScreen(t.x, t.y);
+                const isLit = hoveredId
+                    ? (e.source === hoveredId || e.target === hoveredId)
+                    : (queryMatches ? (queryMatches.has(e.source) && queryMatches.has(e.target)) : false);
+                ctx.beginPath();
+                ctx.moveTo(a.sx, a.sy);
+                ctx.lineTo(b.sx, b.sy);
+                if (e.kind === 'link') {
+                    ctx.strokeStyle = isLit ? '#2383e2' : (hoveredId || queryMatches ? 'rgba(130,130,125,0.16)' : 'rgba(35,131,226,0.45)');
+                } else if (e.kind === 'relation') {
+                    ctx.strokeStyle = isLit ? '#8b5cf6' : (hoveredId || queryMatches ? 'rgba(130,130,125,0.16)' : 'rgba(139,92,246,0.45)');
+                } else {
+                    ctx.strokeStyle = isLit ? '#787774' : (hoveredId || queryMatches ? 'rgba(130,130,125,0.12)' : 'rgba(120,119,116,0.32)');
+                }
+                ctx.lineWidth = isLit ? 1.8 : 1;
+                ctx.stroke();
+
+                // Directional arrow on links & relations
+                if (e.kind !== 'hierarchy') {
+                    const ang = Math.atan2(b.sy - a.sy, b.sx - a.sx);
+                    const rT = nodeRadius(t) * Math.max(0.75, Math.min(1.25, zoom)) + 3;
+                    const ax = b.sx - Math.cos(ang) * rT;
+                    const ay = b.sy - Math.sin(ang) * rT;
+                    ctx.beginPath();
+                    ctx.moveTo(ax, ay);
+                    ctx.lineTo(ax - Math.cos(ang - 0.42) * 6, ay - Math.sin(ang - 0.42) * 6);
+                    ctx.lineTo(ax - Math.cos(ang + 0.42) * 6, ay - Math.sin(ang + 0.42) * 6);
+                    ctx.closePath();
+                    ctx.fillStyle = ctx.strokeStyle as string;
+                    ctx.fill();
+                }
+            }
+
+            // Nodes + Labels
+            for (const n of nodes) {
+                const { sx, sy } = worldToScreen(n.x, n.y);
+                const r = nodeRadius(n) * Math.max(0.72, Math.min(1.25, zoom));
+                const dimmed = (focusSet && !focusSet.has(n.id)) || (queryMatches && !queryMatches.has(n.id));
+                ctx.globalAlpha = dimmed ? 0.22 : 1;
+
+                const fill = n.kind === 'database' ? '#8b5cf6' : n.kind === 'board' ? '#10b981' : '#3b82f6';
+                ctx.beginPath();
+                ctx.arc(sx, sy, r, 0, Math.PI * 2);
+                ctx.fillStyle = fill;
+                ctx.fill();
+
+                if (n.isActive || n.id === hoveredId) {
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = n.isActive ? '#f59e0b' : '#1f2328';
+                    ctx.stroke();
+                }
+
+                if (zoom >= 0.65 || n.id === hoveredId || n.isActive || (queryMatches && queryMatches.has(n.id))) {
+                    const label = n.title.length > 26 ? `${n.title.slice(0, 24)}…` : n.title;
+                    ctx.font = n.id === hoveredId || n.isActive ? '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' : '500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillStyle = dark ? '#e5e5e5' : '#37352f';
+                    ctx.fillText(label, sx, sy + r + 5);
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+        graphAnimFrame = requestAnimationFrame(stepAndDraw);
+    };
+    graphAnimFrame = requestAnimationFrame(stepAndDraw);
+}
+
+const APP_VERSION = '0.1.0';
+const UPDATE_DISMISSED_SESSION_KEY = 'architect-update-dismissed-v1';
+let currentRuntimeVersion = APP_VERSION;
+let pendingUpdateInfo: { currentVersion: string; availableVersion: string; notes?: string; downloadUrl?: string } | null = null;
+
+function compareSemver(a: string, b: string): number {
+    const pa = String(a || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+    const pb = String(b || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < 3; i++) {
+        if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0) ? 1 : -1;
+    }
+    return 0;
+}
+
+function dismissAppUpdateForSession(version: string) {
+    try { sessionStorage.setItem(UPDATE_DISMISSED_SESSION_KEY, version); } catch { }
+    const banner = $('#app-update-banner');
+    if (banner) banner.hidden = true;
+}
+
+function renderAppUpdateBanner(info = pendingUpdateInfo) {
+    const banner = $('#app-update-banner');
+    if (!banner) return;
+    if (!info || compareSemver(info.availableVersion, info.currentVersion) <= 0) {
+        banner.hidden = true;
+        return;
+    }
+    let dismissedVer = '';
+    try { dismissedVer = sessionStorage.getItem(UPDATE_DISMISSED_SESSION_KEY) || ''; } catch { }
+    if (dismissedVer === info.availableVersion) {
+        banner.hidden = true;
+        return;
+    }
+    banner.hidden = false;
+    banner.innerHTML = `
+        <button type="button" class="app-update-close" data-update-dismiss aria-label="Dismiss update notification" title="Dismiss until next startup">×</button>
+        <div class="app-update-copy">
+            <strong>A new version of Architect is available! (${esc(info.currentVersion)} → ${esc(info.availableVersion)})</strong>
+            <div>Would you like to install it now?</div>
+            <div>We'll reopen your pages and tabs for you.</div>
+        </div>
+        <div class="app-update-actions">
+            <button type="button" class="app-update-later" data-update-dismiss>Remind me later</button>
+            <button type="button" class="app-update-install" data-update-install>Install now</button>
+        </div>
+    `;
+    banner.querySelectorAll('[data-update-dismiss]').forEach(btn => {
+        btn.addEventListener('click', () => dismissAppUpdateForSession(info.availableVersion));
+    });
+    banner.querySelector('[data-update-install]')?.addEventListener('click', () => {
+        save(true);
+        if (info.downloadUrl && /^https?:\/\//i.test(info.downloadUrl)) {
+            window.open(info.downloadUrl, '_blank', 'noopener,noreferrer');
+        }
+        const host = ArchitectBackend.host?.();
+        if (host?.relaunch) {
+            toast(`Installing Architect ${info.availableVersion} and reopening workspace…`);
+            setTimeout(() => host.relaunch(), 350);
+        } else {
+            toast(`Architect ${info.availableVersion} ready — restarting session…`);
+            dismissAppUpdateForSession(info.availableVersion);
+        }
+    });
+}
+
+async function checkForAppUpdates(feedUrlOverride?: string, manual = false) {
+    const host = ArchitectBackend.host?.();
+    try {
+        const hostInfo = host?.getInfo ? await host.getInfo() : null;
+        if (hostInfo?.version) currentRuntimeVersion = String(hostInfo.version);
+    } catch { }
+    const feedUrl = String(feedUrlOverride || state?.updateFeedUrl || '').trim();
+    if (!feedUrl) {
+        if (pendingUpdateInfo) renderAppUpdateBanner(pendingUpdateInfo);
+        else if (manual) toast(`Architect v${currentRuntimeVersion} is up to date`);
+        return pendingUpdateInfo;
+    }
+    try {
+        let payload: any = null;
+        if (host?.checkUpdate) {
+            payload = await host.checkUpdate(feedUrl);
+        } else {
+            const resp = await fetch(feedUrl, { cache: 'no-store' });
+            if (resp.ok) payload = await resp.json();
+        }
+        const available = String(payload?.version || payload?.tag_name || '').replace(/^v/i, '').trim();
+        if (available && compareSemver(available, currentRuntimeVersion) > 0) {
+            pendingUpdateInfo = {
+                currentVersion: currentRuntimeVersion,
+                availableVersion: available,
+                notes: payload?.notes || payload?.body || '',
+                downloadUrl: payload?.downloadUrl || payload?.html_url || ''
+            };
+            renderAppUpdateBanner(pendingUpdateInfo);
+            return pendingUpdateInfo;
+        }
+        if (manual) toast(`Architect v${currentRuntimeVersion} is up to date`);
+    } catch {
+        if (manual) toast('Could not reach update feed');
+    }
+    return null;
+}
 function syncAppModeUi() {
+    const inNotion = currentAppMode === 'notion';
+    const inGraph = inNotion && isDocsGraphMode;
     document.body.dataset.appMode = currentAppMode;
+    document.body.dataset.docsGraphMode = inGraph ? 'true' : 'false';
     document.body.dataset.dashboardSubmode = currentAppMode === 'dashboard' ? currentDashboardSubMode : '';
     document.querySelectorAll('button[data-app-mode]').forEach(btn => {
-        btn.classList.toggle('is-active', (btn as HTMLElement).dataset.appMode === currentAppMode);
+        const el = btn as HTMLElement;
+        const isExplorerFilesTab = !!el.closest('.obsidian-explorer-tabs') && el.dataset.appMode === 'notion';
+        el.classList.toggle('is-active', isExplorerFilesTab ? (inNotion && !inGraph) : el.dataset.appMode === currentAppMode);
     });
+    const graphBtn = document.querySelector('.obsidian-explorer-tabs [data-action="graph-view"]') as HTMLElement | null;
+    if (graphBtn) {
+        graphBtn.classList.toggle('is-active', inGraph);
+        graphBtn.setAttribute('aria-pressed', inGraph ? 'true' : 'false');
+    }
     const docsSidebar = $('#sidebar-docs-panel');
     const dashSidebar = $('#sidebar-dashboard-panel');
-    if (docsSidebar) docsSidebar.hidden = currentAppMode !== 'notion';
+    if (docsSidebar) docsSidebar.hidden = !inNotion;
     if (dashSidebar) dashSidebar.hidden = currentAppMode !== 'dashboard';
 
     document.querySelectorAll('#dashboard-subnav [data-dashboard-submode]').forEach(btn => {
@@ -4524,30 +5877,42 @@ function syncAppModeUi() {
     const topbar = document.querySelector('.topbar') as HTMLElement | null;
     const pageOptMenu = $('#page-options-menu');
     const commentsDrawer = $('#comments-drawer');
+    const graphView = $('#docs-graph-view');
     const dashView = $('#dashboard-view');
 
-    const inNotion = currentAppMode === 'notion';
     if (tabBar) tabBar.hidden = !inNotion;
     if (topbar) topbar.hidden = !inNotion;
-    if (!inNotion) {
+    if (!inNotion || inGraph) {
         if (pageOptMenu) pageOptMenu.hidden = true;
         if (commentsDrawer && !commentsDrawer.hidden) commentsDrawer.hidden = true;
     }
-    if (editorWrap) editorWrap.hidden = !inNotion;
-    if (coverSlot && !inNotion) coverSlot.hidden = true;
-    if (toolbarDock && !inNotion) toolbarDock.hidden = true;
+    if (!inNotion) {
+        const assetsSidebar = $('#assets-sidebar');
+        if (assetsSidebar && !assetsSidebar.hidden) toggleAssetsSidebar(false);
+    }
+    if (editorWrap) editorWrap.hidden = !inNotion || inGraph;
+    if (coverSlot && (!inNotion || inGraph)) coverSlot.hidden = true;
+    if (toolbarDock) toolbarDock.hidden = !inNotion || inGraph;
+    if (graphView) graphView.hidden = !inGraph;
     if (dashView) dashView.hidden = currentAppMode !== 'dashboard';
 
     syncInboxBadges();
     if (currentAppMode === 'dashboard') {
+        stopGraphAnimation();
         renderDashboardView();
-    } else if (inNotion && current()) {
-        renderTabs();
+    } else if (inGraph && graphView) {
         renderBreadcrumbs(current());
+        renderWorkspaceGraphView(graphView);
+    } else {
+        stopGraphAnimation();
+        if (inNotion && current()) {
+            renderTabs();
+            renderBreadcrumbs(current());
+        }
     }
     ArchitectToolbar?.renderToolbar?.();
 }
-function navigateToPage(pageId, record = true) { if (!state.pages.some(page => page.id === pageId)) return; closeDocsNotificationsPopover(); setAppMode('notion', { skipRender: true }); const switched = state.activePageId !== pageId; stopAllAudioPlayers(); closeSelectionToolbar(); hideCommentPopover(); savedEditorRange = null; formatPainterArmed = false; formatPainterStyle = null; ArchitectDatabase?.closeDbPopover?.(); ArchitectDatabase?.closeDatabasePeek?.(); editingCommentMsgId = null; typingBurstOpen = false; clearTimeout(typingUndoTimer); if (record && switched) { pageHistory = pageHistory.slice(0, historyIndex + 1); pageHistory.push(pageId); historyIndex = pageHistory.length - 1; } state.activePageId = pageId; const dest = state.pages.find(pg => pg.id === pageId); if (dest?.published && switched) recordPublishedPageView(dest); syncHistoryToActiveTab(); syncPageUrl(pageId); save(); render(); if (switched) window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); updateHistoryControls(); }
+function navigateToPage(pageId, record = true) { if (!state.pages.some(page => page.id === pageId)) return; isDocsGraphMode = false; closeBacklinksPopover(); closeDocsNotificationsPopover(); setAppMode('notion', { skipRender: true }); const switched = state.activePageId !== pageId; stopAllAudioPlayers(); closeSelectionToolbar(); hideCommentPopover(); savedEditorRange = null; formatPainterArmed = false; formatPainterStyle = null; ArchitectDatabase?.closeDbPopover?.(); ArchitectDatabase?.closeDatabasePeek?.(); editingCommentMsgId = null; typingBurstOpen = false; clearTimeout(typingUndoTimer); if (record && switched) { pageHistory = pageHistory.slice(0, historyIndex + 1); pageHistory.push(pageId); historyIndex = pageHistory.length - 1; } state.activePageId = pageId; const dest = state.pages.find(pg => pg.id === pageId); if (dest?.published && switched) recordPublishedPageView(dest); syncHistoryToActiveTab(); syncPageUrl(pageId); save(); render(); if (switched) window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); updateHistoryControls(); }
 function navigateHistory(delta) { const next = historyIndex + delta; if (next < 0 || next >= pageHistory.length) return; historyIndex = next; navigateToPage(pageHistory[historyIndex], false); }
 function syncUserProfileUi() {
     if (currentAppMode === 'dashboard') renderDashboardView();
@@ -4915,8 +6280,14 @@ function setWorkspaceSettingsTab(tab: 'general' | 'customization' | 'plugins') {
         panel.hidden = panel.dataset.wsPanel !== tab;
     });
 }
+function isBlockImageRounded(b: Block, ws = state): boolean {
+    if (typeof b?.roundedCorners === 'boolean') return b.roundedCorners;
+    return !!ws?.roundedImageCorners;
+}
 function openWorkspaceSettings() {
     setWorkspaceSettingsTab('general');
+    const roundedCb = $('#ws-rounded-images') as HTMLInputElement | null;
+    if (roundedCb) roundedCb.checked = !!state.roundedImageCorners;
     $('#settings-workspace-name').value = state.workspaceName || '';
     $('#settings-coord-mode').value = state.coordinationMode || 'local';
     $('#settings-asset-mode').value = state.assetStorageMode || 'local';
@@ -5073,6 +6444,8 @@ function cleanInlineHtml(html) {
             if (tcase && ALLOWED_INLINE_CASE_KEYS.has(tcase)) attrs.push(`data-text-case="${esc(tcase)}"`);
             const fontKey = child.getAttribute('data-font');
             if (fontKey && /^[a-zA-Z0-9 _:-]{1,64}$/.test(fontKey)) attrs.push(`data-font="${esc(fontKey)}"`);
+            const mdHeading = child.getAttribute('data-md-heading');
+            if (mdHeading && /^h[1-6]$/.test(mdHeading)) attrs.push(`data-md-heading="${esc(mdHeading)}"`);
             return attrs.length ? `<span ${attrs.join(' ')}>${content}</span>` : content;
         }
         return `<${tag.toLowerCase()}>${content}</${tag.toLowerCase()}>`;
@@ -5103,6 +6476,7 @@ function ensurePageCoverSlot() {
 }
 function render() {
     stopAllAudioPlayers();
+    document.body.classList.toggle('ws-rounded-images', !!state.roundedImageCorners);
     const p = current();
     if (!p) return;
     if (!p.blocks.length) { p.blocks.push(block('text')); save(); }
@@ -5264,10 +6638,24 @@ function render() {
     bar.className = 'page-toolbar';
     bar.contentEditable = 'false';
     const canCommentToolbar = !isReadOnlyMirror() && pagePerms.view && pagePerms.comment;
+    const pageBacklinks = findPageBacklinks(p.id);
+    const backlinksBtnHtml = pageBacklinks.length
+        ? `<button type="button" class="backlinks-pill" data-action="backlinks" aria-haspopup="dialog" aria-expanded="false"><span class="backlinks-pill-arrow" aria-hidden="true">↙</span> ${pageBacklinks.length} ${pageBacklinks.length === 1 ? 'backlink' : 'backlinks'}</button>`
+        : '';
     bar.innerHTML = ro
-        ? `<span class="edit-time">${isReadOnlyMirror() ? 'View-only mirror' : 'View only'}</span>${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`
-        : `${pageHasCover(p) ? '' : '<button data-action="cover">＋ Add cover</button>'}<button data-action="icon">☺ ${p.icon ? 'Change icon' : 'Add icon'}</button>${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}<button data-action="favorite">${p.favorite ? '★ Favorited' : '☆ Favorite'}</button><span class="edit-time">Edited just now</span>${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`;
+        ? `${backlinksBtnHtml}<span class="edit-time">${isReadOnlyMirror() ? 'View-only mirror' : 'View only'}</span>${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`
+        : `${pageHasCover(p) ? '' : '<button data-action="cover">＋ Add cover</button>'}<button data-action="icon">☺ ${p.icon ? 'Change icon' : 'Add icon'}</button>${backlinksBtnHtml}${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}<button data-action="favorite">${p.favorite ? '★ Favorited' : '☆ Favorite'}</button><span class="edit-time">Edited just now</span>${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`;
     frag.append(bar);
+    const backlinksBtn = bar.querySelector('[data-action="backlinks"]') as HTMLButtonElement | null;
+    if (backlinksBtn) {
+        backlinksBtn.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const wasOpen = !!(activeBacklinksPopoverEl && activeBacklinksAnchorEl === backlinksBtn);
+            openBacklinksPopover(p, backlinksBtn, pageBacklinks);
+            backlinksBtn.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
+        });
+    }
     if (canCommentToolbar) {
         bar.querySelector('[data-action="add-top-comment"]')?.addEventListener('click', () => focusTopCommentComposer());
     }
@@ -5953,6 +7341,688 @@ function extractBlocksForDrop(p, dragIds, targetItem, targetList = null, insertA
     });
     return { moved, adjustedInsertAt, emptiedLists };
 }
+const ASSET_DRAG_MIME = 'application/x-architect-asset';
+
+function hasDraggedAsset(dt: DataTransfer | null | undefined): boolean {
+    if (!dt) return false;
+    const types = dt.types ? Array.from(dt.types) : [];
+    return types.includes(ASSET_DRAG_MIME);
+}
+
+function readDraggedAssetId(dt: DataTransfer | null | undefined): string {
+    if (!dt) return '';
+    try { return dt.getData(ASSET_DRAG_MIME) || ''; } catch { return ''; }
+}
+
+function hasExternalFiles(dt: DataTransfer | null | undefined): boolean {
+    if (!dt || hasDraggedAsset(dt)) return false;
+    const types = dt.types ? Array.from(dt.types) : [];
+    return types.includes('Files') || (!!dt.files && dt.files.length > 0);
+}
+
+function blockTypeForAsset(asset: any): BlockType {
+    const mime = String(asset?.fileType || '').toLowerCase();
+    const cat = String(asset?.category || '').toLowerCase();
+    const name = String(asset?.name || '').toLowerCase();
+    if (cat === 'board' && asset?.metadata?.boardPageId) return 'board_view';
+    if (mime.startsWith('image/') || cat === 'image' || cat === 'illustration' || cat === 'concept') return 'image';
+    if (mime.startsWith('audio/') || cat === 'music' || cat === 'sfx') return 'audio';
+    if (mime.startsWith('video/') || cat === 'video') return 'video';
+    if (mime === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+    return 'file';
+}
+
+function buildBlockFromAsset(asset: any): Block {
+    const kind = blockTypeForAsset(asset);
+    const b = block(kind, asset?.name || 'File');
+    b.assetId = asset?.id;
+    if (kind === 'board_view' && asset?.metadata?.boardPageId) {
+        b.targetId = String(asset.metadata.boardPageId);
+        b.boardHeight = 420;
+    } else {
+        b.url = asset?.url || asset?.previewDataUrl || '';
+    }
+    b.mimeType = asset?.fileType;
+    b.category = asset?.category;
+    b.creator = asset?.creator;
+    b.tags = Array.isArray(asset?.tags) ? [...asset.tags] : [];
+    b.editedBy = getActorDisplayName();
+    b.editedAt = Date.now();
+    return b;
+}
+
+function matchBytesAt(u8: Uint8Array, idx: number, sig: number[]): boolean {
+    if (idx + sig.length > u8.length) return false;
+    for (let k = 0; k < sig.length; k++) if (u8[idx + k] !== sig[k]) return false;
+    return true;
+}
+
+function parsePureRefBinary(buffer: ArrayBuffer, fileName = 'board.pur'): {
+    version: string;
+    images: { blob: Blob; ext: string; mime: string }[];
+    notes: string[];
+} {
+    const u8 = new Uint8Array(buffer);
+    const view = new DataView(buffer);
+    let version = '';
+    try {
+        if (u8.length > 8) {
+            const len = view.getUint32(0, false);
+            if (len > 0 && len < 64 && 4 + len <= u8.length) {
+                const candidate = new TextDecoder().decode(u8.subarray(4, 4 + len)).replace(/\0/g, '').trim();
+                if (/^[0-9.a-zA-Z_-]+$/.test(candidate)) version = candidate;
+            }
+        }
+    } catch { }
+
+    const images: { blob: Blob; ext: string; mime: string }[] = [];
+    const PNG_HDR = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    const PNG_END = [0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
+    const JPG_HDR = [0xFF, 0xD8, 0xFF];
+    const WEBP_FOURCC = [0x57, 0x45, 0x42, 0x50];
+    const RIFF_HDR = [0x52, 0x49, 0x46, 0x46];
+
+    let i = 0;
+    while (i < u8.length - 12 && images.length < 150) {
+        if (matchBytesAt(u8, i, PNG_HDR)) {
+            let end = i + 8;
+            while (end <= u8.length - 8) {
+                if (matchBytesAt(u8, end, PNG_END)) { end += 8; break; }
+                end++;
+            }
+            if (end > i + 16 && end <= u8.length) {
+                images.push({ blob: new Blob([u8.subarray(i, end)], { type: 'image/png' }), ext: 'png', mime: 'image/png' });
+                i = end;
+                continue;
+            }
+        } else if (matchBytesAt(u8, i, RIFF_HDR) && matchBytesAt(u8, i + 8, WEBP_FOURCC)) {
+            const riffSize = view.getUint32(i + 4, true) + 8;
+            if (riffSize > 16 && i + riffSize <= u8.length) {
+                images.push({ blob: new Blob([u8.subarray(i, i + riffSize)], { type: 'image/webp' }), ext: 'webp', mime: 'image/webp' });
+                i += riffSize;
+                continue;
+            }
+        } else if (matchBytesAt(u8, i, JPG_HDR) && (u8[i + 3] === 0xE0 || u8[i + 3] === 0xE1 || u8[i + 3] === 0xDB || u8[i + 3] === 0xEE || u8[i + 3] === 0xFE)) {
+            let end = i + 4;
+            while (end < u8.length - 1) {
+                if (u8[end] === 0xFF && u8[end + 1] === 0xD9) {
+                    const nextIsHdr = matchBytesAt(u8, end + 2, PNG_HDR) || matchBytesAt(u8, end + 2, JPG_HDR) || end + 2 >= u8.length || u8[end + 2] === 0;
+                    if (nextIsHdr || end - i > 2048) { end += 2; break; }
+                }
+                end++;
+            }
+            if (end > i + 64 && end <= u8.length) {
+                images.push({ blob: new Blob([u8.subarray(i, end)], { type: 'image/jpeg' }), ext: 'jpg', mime: 'image/jpeg' });
+                i = end;
+                continue;
+            }
+        }
+        i++;
+    }
+
+    const notes: string[] = [];
+    const seenNotes = new Set<string>();
+    const rawText = new TextDecoder('utf-8', { fatal: false }).decode(u8.subarray(0, Math.min(u8.length, 512 * 1024)));
+    const noteMatches = rawText.match(/Note[:=]\s*([^\x00-\x1F\x7F]{2,180})/gi) || [];
+    noteMatches.forEach(m => {
+        const clean = m.replace(/^Note[:=]\s*/i, '').trim();
+        if (clean && !seenNotes.has(clean)) { seenNotes.add(clean); notes.push(clean); }
+    });
+    return { version: version || fileName, images, notes };
+}
+
+async function importPureRefFile(file: File, opts: { parentPageId?: string } = {}): Promise<{ page: Page; asset: any }> {
+    const buf = await file.arrayBuffer();
+    const parsed = parsePureRefBinary(buf, file.name);
+    const actor = getActorDisplayName();
+    const boardTitle = file.name.replace(/\.pur$/i, '').trim() || 'PureRef Board';
+    const purAsset = await ArchitectBackend.ingestLocalFile(file, {
+        creator: actor,
+        category: 'board',
+        tags: ['pureref', 'board'],
+        storageMode: state.assetStorageMode || 'local',
+        previewPolicy: state.assetPreviewPolicy,
+        metadata: { purVersion: parsed.version, imageCount: parsed.images.length }
+    });
+
+    const nodes: any[] = [];
+    const colCount = 3;
+    const colHeights = [80, 80, 80];
+    const colWidth = 260;
+    const colGap = 28;
+    const baseName = boardTitle.replace(/[^a-z0-9-_]+/gi, '_').toLowerCase() || 'pureref';
+
+    for (let idx = 0; idx < parsed.images.length; idx++) {
+        const item = parsed.images[idx];
+        const imgFile = new File([item.blob], `${baseName}_${idx + 1}.${item.ext}`, { type: item.mime });
+        const imgRec = await ArchitectBackend.ingestLocalFile(imgFile, {
+            creator: actor,
+            category: 'concept',
+            tags: ['pureref-item', boardTitle],
+            storageMode: state.assetStorageMode || 'local',
+            previewPolicy: state.assetPreviewPolicy,
+            metadata: { purAssetId: purAsset.id }
+        });
+        let colIdx = 0;
+        for (let c = 1; c < colCount; c++) if (colHeights[c] < colHeights[colIdx]) colIdx = c;
+        const aspect = (imgRec.width && imgRec.height) ? (imgRec.height / imgRec.width) : 0.72;
+        const nodeH = Math.max(120, Math.min(420, Math.round(colWidth * aspect)));
+        nodes.push({
+            id: id(),
+            kind: 'image',
+            x: 72 + colIdx * (colWidth + colGap),
+            y: colHeights[colIdx],
+            w: colWidth,
+            h: nodeH,
+            title: imgRec.name,
+            assetId: imgRec.id,
+            url: imgRec.url || imgRec.previewDataUrl || '',
+            mimeType: imgRec.fileType,
+            sizeBytes: imgRec.sizeBytes
+        });
+        colHeights[colIdx] += nodeH + 24;
+    }
+
+    parsed.notes.forEach((txt, idx) => {
+        nodes.push({
+            id: id(),
+            kind: 'sticky',
+            x: 72 + (idx % 3) * (colWidth + colGap),
+            y: Math.max(...colHeights) + 20 + Math.floor(idx / 3) * 165,
+            w: 220,
+            h: 140,
+            color: 'yellow',
+            text: txt
+        });
+    });
+
+    if (!nodes.length) {
+        nodes.push({
+            id: id(),
+            kind: 'sticky',
+            x: 80,
+            y: 72,
+            w: 260,
+            h: 150,
+            color: 'slate',
+            text: `PureRef board: ${file.name}\n(No embedded PNG/JPG/WebP items found — ready for notes & images)`
+        });
+    }
+
+    const now = Date.now();
+    const boardPage: Page = {
+        id: id(),
+        title: boardTitle,
+        icon: '🎨',
+        parentId: opts.parentPageId,
+        pageKind: 'board',
+        createdBy: actor,
+        lastEditedBy: actor,
+        blocks: [],
+        board: { viewport: { x: 24, y: 24, zoom: 1 }, nodes, edges: [] },
+        createdAt: now,
+        updatedAt: now
+    };
+    state.pages.push(boardPage);
+    ArchitectBackend.updateAsset(purAsset.id, {
+        category: 'board',
+        metadata: { ...(purAsset.metadata || {}), boardPageId: boardPage.id, nodeCount: nodes.length, imageCount: parsed.images.length, purVersion: parsed.version }
+    });
+    purAsset.metadata = { ...(purAsset.metadata || {}), boardPageId: boardPage.id, nodeCount: nodes.length, imageCount: parsed.images.length, purVersion: parsed.version };
+    save(true);
+    renderNav();
+    renderAssetsSidebar();
+    toast(`Imported PureRef board "${boardTitle}" (${parsed.images.length} images)`);
+    return { page: boardPage, asset: purAsset };
+}
+
+function insertBlocksAtTarget(
+    createdBlocks: Block[],
+    p: Page,
+    target: { list: Block[]; index: number; item: Block } | null,
+    zone: 'before' | 'after' | 'left' | 'right' | 'inside',
+    colContext?: { parentColumnsBlock: Block; childCol: Block; colIdx: number } | null
+) {
+    if (!createdBlocks.length || effectivePageReadOnly(p)) return;
+    pushUndoBeforeEdit(p);
+    if (colContext) {
+        if (zone === 'left' || zone === 'right') {
+            insertColumnIntoList(colContext.parentColumnsBlock, zone === 'left' ? colContext.colIdx : colContext.colIdx + 1, createdBlocks);
+        } else {
+            colContext.childCol.children!.push(...createdBlocks);
+        }
+    } else if (target) {
+        if (zone === 'left' || zone === 'right') {
+            insertColumnNextToBlock(p, target.item, zone, createdBlocks);
+        } else {
+            const insertAt = target.index + (zone === 'after' ? 1 : 0);
+            target.list.splice(Math.max(0, insertAt), 0, ...createdBlocks);
+        }
+    } else {
+        if (p.blocks.length === 1 && p.blocks[0].type === 'text' && !(p.blocks[0].text || '').trim() && !p.blocks[0].html && !p.blocks[0].children?.length) {
+            p.blocks.splice(0, 1, ...createdBlocks);
+        } else {
+            p.blocks.push(...createdBlocks);
+        }
+    }
+    p.lastEditedBy = getActorDisplayName();
+    p.updatedAt = Date.now();
+    save();
+    render();
+}
+
+function insertExistingAssetReferenceAtTarget(
+    asset: any,
+    p: Page,
+    target: { list: Block[]; index: number; item: Block } | null,
+    zone: 'before' | 'after' | 'left' | 'right' | 'inside',
+    colContext?: { parentColumnsBlock: Block; childCol: Block; colIdx: number } | null
+) {
+    if (!asset || effectivePageReadOnly(p)) return;
+    const b = buildBlockFromAsset(asset);
+    insertBlocksAtTarget([b], p, target, zone, colContext);
+    toast(`Referenced ${asset.name}`);
+}
+
+async function dropExternalFilesAtTarget(
+    files: File[],
+    p: Page,
+    target: { list: Block[]; index: number; item: Block } | null,
+    zone: 'before' | 'after' | 'left' | 'right' | 'inside',
+    colContext?: { parentColumnsBlock: Block; childCol: Block; colIdx: number } | null
+) {
+    if (!files.length || effectivePageReadOnly(p)) return;
+    const createdBlocks: Block[] = [];
+    for (const f of files) {
+        try {
+            if (/\.pur$/i.test(f.name)) {
+                const imported = await importPureRefFile(f, { parentPageId: p.id });
+                const b = buildBlockFromAsset(imported.asset);
+                createdBlocks.push(b);
+                continue;
+            }
+            const rec = await ArchitectBackend.ingestLocalFile(f, {
+                creator: getActorDisplayName(),
+                storageMode: state.assetStorageMode || 'local',
+                previewPolicy: state.assetPreviewPolicy
+            });
+            if (rec) createdBlocks.push(buildBlockFromAsset(rec));
+        } catch (err) {
+            toast(err?.message || `Could not attach ${f.name}`);
+        }
+    }
+    if (!createdBlocks.length) return;
+    insertBlocksAtTarget(createdBlocks, p, target, zone, colContext);
+    toast(`Added ${createdBlocks.length} ${createdBlocks.length === 1 ? 'file' : 'files'}`);
+}
+
+async function resolveImageSrcForBlock(b: Block, asset: any): Promise<string> {
+    if (asset) {
+        const u = await ArchitectBackend.resolveAssetOriginalUrl(asset);
+        if (u) return u;
+        const p = await ArchitectBackend.resolveAssetPreviewUrl(asset);
+        if (p) return p;
+    }
+    return b.url || '';
+}
+
+async function copyImageBlockToClipboard(asset: any, b: Block) {
+    const src = await resolveImageSrcForBlock(b, asset);
+    if (!src) { toast('No image source to copy'); return; }
+    try {
+        if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+            const resp = await fetch(src);
+            const blob = await resp.blob();
+            const pngBlob = blob.type === 'image/png' ? blob : await new Promise<Blob>((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const c = document.createElement('canvas');
+                    c.width = img.naturalWidth || 1;
+                    c.height = img.naturalHeight || 1;
+                    c.getContext('2d')?.drawImage(img, 0, 0);
+                    c.toBlob(out => out ? resolve(out) : reject(new Error('encode failed')), 'image/png');
+                };
+                img.onerror = () => reject(new Error('decode failed'));
+                img.src = src;
+            });
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+            toast('Copied image to clipboard');
+            return;
+        }
+    } catch { }
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(src);
+            toast('Copied image link to clipboard');
+            return;
+        }
+    } catch { }
+    toast('Copied image reference');
+}
+
+async function openImageInBrowser(asset: any, b: Block) {
+    const src = b.linkUrl || await resolveImageSrcForBlock(b, asset);
+    if (!src) { toast('No image URL available'); return; }
+    window.open(src, '_blank', 'noopener,noreferrer');
+}
+
+function focusImageCaptionEditor(p: Page, b: Block) {
+    if (b.caption === undefined) {
+        b.caption = '';
+        save();
+        render();
+    }
+    const focusNow = () => {
+        const blkEl = editor.querySelector(`[data-block-id="${CSS.escape(b.id)}"]`);
+        const capRow = blkEl?.querySelector('.image-caption-row') as HTMLElement | null;
+        if (capRow) capRow.hidden = false;
+        const inp = blkEl?.querySelector('.image-caption-input') as HTMLInputElement | null;
+        if (inp) {
+            inp.focus();
+            inp.setSelectionRange(inp.value.length, inp.value.length);
+        }
+    };
+    focusNow();
+    requestAnimationFrame(focusNow);
+}
+
+function openImageSimplePromptModal(title: string, label: string, value: string, placeholder: string, onSave: (next: string) => void, onClear?: () => void) {
+    closeRichPopover();
+    closeMenu();
+    const dlg = document.createElement('dialog');
+    dlg.className = 'settings-dialog image-meta-dialog';
+    dlg.innerHTML = `
+        <form method="dialog" class="settings-panel" style="width:min(420px,92vw);padding:18px 20px">
+            <header class="settings-header" style="margin-bottom:10px">
+                <div><h2 style="margin:0;font-size:15px">${esc(title)}</h2></div>
+                <button type="button" class="icon-button" data-close>✕</button>
+            </header>
+            <label class="settings-field">${esc(label)}<input type="text" class="img-meta-inp" placeholder="${esc(placeholder)}" value="${esc(value)}"></label>
+            <footer class="cover-footer" style="margin-top:12px">
+                ${onClear ? '<button type="button" class="secondary-button" data-clear>Clear</button>' : ''}
+                <button type="button" class="secondary-button" data-close>Cancel</button>
+                <button type="submit" class="share-button">Save</button>
+            </footer>
+        </form>
+    `;
+    document.body.append(dlg);
+    const inp = dlg.querySelector('.img-meta-inp') as HTMLInputElement;
+    dlg.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => { dlg.close(); dlg.remove(); }));
+    dlg.querySelector('[data-clear]')?.addEventListener('click', () => { onClear?.(); dlg.close(); dlg.remove(); });
+    dlg.querySelector('form')?.addEventListener('submit', e => {
+        e.preventDefault();
+        onSave(inp.value.trim());
+        dlg.close();
+        dlg.remove();
+    });
+    dlg.addEventListener('cancel', () => dlg.remove());
+    dlg.showModal();
+    requestAnimationFrame(() => { inp.focus(); inp.select(); });
+}
+
+function openImageLinkModal(p: Page, b: Block) {
+    openImageSimplePromptModal(
+        'Link to image',
+        'Destination URL or #page link',
+        b.linkUrl || '',
+        'https://example.com or #page=...',
+        next => {
+            pushUndoBeforeEdit(p);
+            b.linkUrl = next || undefined;
+            b.editedBy = getActorDisplayName();
+            b.editedAt = Date.now();
+            p.lastEditedBy = getActorDisplayName();
+            save();
+            render();
+        },
+        () => {
+            pushUndoBeforeEdit(p);
+            b.linkUrl = undefined;
+            b.editedBy = getActorDisplayName();
+            b.editedAt = Date.now();
+            save();
+            render();
+        }
+    );
+}
+
+function openImageAltTextModal(p: Page, b: Block) {
+    openImageSimplePromptModal(
+        'Image alt text',
+        'Alternative description for accessibility & screen readers',
+        b.altText || '',
+        'Describe this image…',
+        next => {
+            pushUndoBeforeEdit(p);
+            b.altText = next || undefined;
+            b.editedBy = getActorDisplayName();
+            b.editedAt = Date.now();
+            p.lastEditedBy = getActorDisplayName();
+            save();
+            render();
+        }
+    );
+}
+
+async function openImageCropModal(p: Page, b: Block) {
+    const asset = findAssetForBlock(b);
+    const src = await resolveImageSrcForBlock(b, asset);
+    if (!src) { toast('No image loaded to crop'); return; }
+    closeMenu();
+    closeRichPopover();
+
+    const rect = b.cropRect ? { ...b.cropRect } : { x: 0, y: 0, w: 100, h: 100 };
+    let aspectLock = 'free';
+    const dlg = document.createElement('dialog');
+    dlg.className = 'settings-dialog image-crop-dialog';
+    dlg.innerHTML = `
+        <form method="dialog" class="img-crop-shell">
+            <header class="img-crop-topbar">
+                <div class="img-crop-topbar-left">
+                    <select class="img-crop-ratio-select" aria-label="Crop aspect ratio">
+                        <option value="free">Freeform</option>
+                        <option value="1:1">Square (1:1)</option>
+                        <option value="16:9">16:9</option>
+                        <option value="4:3">4:3</option>
+                        <option value="3:2">3:2</option>
+                    </select>
+                    <button type="button" class="img-crop-reset-btn" data-reset>Reset</button>
+                </div>
+                <strong class="img-crop-topbar-title">Crop image</strong>
+                <div class="img-crop-topbar-right">
+                    <button type="button" class="img-crop-cancel-btn" data-close>Cancel</button>
+                    <button type="submit" class="img-crop-save-btn">Save</button>
+                </div>
+            </header>
+            <div class="img-crop-stage">
+                <div class="img-crop-canvas-box">
+                    <img class="img-crop-source" src="${esc(src)}" alt="" draggable="false">
+                    <div class="img-crop-selection" role="region" aria-label="Crop selection area">
+                        <div class="img-crop-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                        <button type="button" class="crop-handle crop-corner is-nw" data-handle="nw" aria-label="Crop top-left corner"></button>
+                        <button type="button" class="crop-handle crop-corner is-ne" data-handle="ne" aria-label="Crop top-right corner"></button>
+                        <button type="button" class="crop-handle crop-corner is-sw" data-handle="sw" aria-label="Crop bottom-left corner"></button>
+                        <button type="button" class="crop-handle crop-corner is-se" data-handle="se" aria-label="Crop bottom-right corner"></button>
+                        <button type="button" class="crop-handle crop-edge is-n" data-handle="n" aria-label="Crop top edge"></button>
+                        <button type="button" class="crop-handle crop-edge is-s" data-handle="s" aria-label="Crop bottom edge"></button>
+                        <button type="button" class="crop-handle crop-edge is-w" data-handle="w" aria-label="Crop left edge"></button>
+                        <button type="button" class="crop-handle crop-edge is-e" data-handle="e" aria-label="Crop right edge"></button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    `;
+    document.body.append(dlg);
+
+    const canvasBox = dlg.querySelector('.img-crop-canvas-box') as HTMLElement;
+    const sourceImg = dlg.querySelector('.img-crop-source') as HTMLImageElement;
+    const selBox = dlg.querySelector('.img-crop-selection') as HTMLElement;
+    const ratioSelect = dlg.querySelector('.img-crop-ratio-select') as HTMLSelectElement;
+
+    const fitStageImage = () => {
+        const natW = sourceImg.naturalWidth || 0;
+        const natH = sourceImg.naturalHeight || 0;
+        if (!natW || !natH) return;
+        const maxW = Math.min(580, Math.round(window.innerWidth * 0.78));
+        const maxH = 380;
+        const fitUp = natW < 240 && natH < 240 ? Math.min(340 / natW, 340 / natH) : 1;
+        const fitDown = Math.min(maxW / natW, maxH / natH);
+        const scale = Math.min(fitDown, Math.max(1, fitUp));
+        const dispW = Math.max(120, Math.round(natW * scale));
+        const dispH = Math.max(120, Math.round(natH * scale));
+        sourceImg.style.width = `${dispW}px`;
+        sourceImg.style.height = `${dispH}px`;
+        canvasBox.style.width = `${dispW}px`;
+        canvasBox.style.height = `${dispH}px`;
+    };
+    if (sourceImg.complete && sourceImg.naturalWidth) fitStageImage();
+    sourceImg.addEventListener('load', fitStageImage);
+
+    const roundPct = (v: number) => Math.round(v * 10) / 10;
+    const syncOverlay = () => {
+        rect.x = Math.max(0, Math.min(90, roundPct(rect.x)));
+        rect.y = Math.max(0, Math.min(90, roundPct(rect.y)));
+        rect.w = Math.max(10, Math.min(100 - rect.x, roundPct(rect.w)));
+        rect.h = Math.max(10, Math.min(100 - rect.y, roundPct(rect.h)));
+        selBox.style.left = `${rect.x}%`;
+        selBox.style.top = `${rect.y}%`;
+        selBox.style.width = `${rect.w}%`;
+        selBox.style.height = `${rect.h}%`;
+    };
+    syncOverlay();
+
+    const parsedRatio = (): number | null => {
+        if (aspectLock === 'free') return null;
+        const [a, c] = aspectLock.split(':').map(Number);
+        if (!a || !c) return null;
+        const box = canvasBox.getBoundingClientRect();
+        const imgAspect = (sourceImg.naturalWidth && sourceImg.naturalHeight)
+            ? (sourceImg.naturalWidth / sourceImg.naturalHeight)
+            : (box.width && box.height ? box.width / box.height : 1);
+        return (a / c) / imgAspect; // wPct / hPct ratio
+    };
+
+    ratioSelect.addEventListener('change', () => {
+        aspectLock = ratioSelect.value;
+        const ratio = parsedRatio();
+        if (ratio) {
+            let nh = rect.w / ratio;
+            if (rect.y + nh > 100) {
+                nh = 100 - rect.y;
+                rect.w = Math.max(10, Math.min(100 - rect.x, nh * ratio));
+            }
+            rect.h = Math.max(10, Math.min(100 - rect.y, nh));
+            syncOverlay();
+        }
+    });
+
+    const startDrag = (mode: string, startEvent: PointerEvent) => {
+        startEvent.preventDefault();
+        startEvent.stopPropagation();
+        const box = canvasBox.getBoundingClientRect();
+        if (!box.width || !box.height) return;
+        const startX = startEvent.clientX;
+        const startY = startEvent.clientY;
+        const orig = { ...rect };
+        const ratio = parsedRatio();
+        selBox.classList.add('is-dragging');
+
+        const onMove = (ev: PointerEvent) => {
+            const dxPct = ((ev.clientX - startX) / box.width) * 100;
+            const dyPct = ((ev.clientY - startY) / box.height) * 100;
+            if (mode === 'move') {
+                rect.x = Math.max(0, Math.min(100 - orig.w, orig.x + dxPct));
+                rect.y = Math.max(0, Math.min(100 - orig.h, orig.y + dyPct));
+                rect.w = orig.w;
+                rect.h = orig.h;
+            } else {
+                let nx = orig.x;
+                let ny = orig.y;
+                let nw = orig.w;
+                let nh = orig.h;
+                if (mode.includes('w')) {
+                    const maxLeft = orig.x + orig.w - 10;
+                    nx = Math.max(0, Math.min(maxLeft, orig.x + dxPct));
+                    nw = orig.x + orig.w - nx;
+                }
+                if (mode.includes('e')) {
+                    nw = Math.max(10, Math.min(100 - orig.x, orig.w + dxPct));
+                }
+                if (mode.includes('n')) {
+                    const maxTop = orig.y + orig.h - 10;
+                    ny = Math.max(0, Math.min(maxTop, orig.y + dyPct));
+                    nh = orig.y + orig.h - ny;
+                }
+                if (mode.includes('s')) {
+                    nh = Math.max(10, Math.min(100 - orig.y, orig.h + dyPct));
+                }
+                if (ratio) {
+                    if (mode === 'n' || mode === 's') {
+                        nw = Math.min(100 - nx, nh * ratio);
+                        nh = nw / ratio;
+                    } else {
+                        nh = nw / ratio;
+                        if (mode.includes('n')) {
+                            ny = Math.max(0, orig.y + orig.h - nh);
+                            nh = orig.y + orig.h - ny;
+                            nw = nh * ratio;
+                        } else if (ny + nh > 100) {
+                            nh = 100 - ny;
+                            nw = nh * ratio;
+                            if (mode.includes('w')) nx = orig.x + orig.w - nw;
+                        }
+                    }
+                }
+                rect.x = nx; rect.y = ny; rect.w = nw; rect.h = nh;
+            }
+            syncOverlay();
+        };
+
+        const onUp = () => {
+            selBox.classList.remove('is-dragging');
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
+    };
+
+    selBox.querySelectorAll<HTMLElement>('[data-handle]').forEach(h => {
+        h.addEventListener('pointerdown', ev => startDrag(h.dataset.handle || 'se', ev));
+    });
+    selBox.addEventListener('pointerdown', ev => {
+        if ((ev.target as Element)?.closest('[data-handle]')) return;
+        startDrag('move', ev);
+    });
+
+    dlg.querySelector('[data-reset]')?.addEventListener('click', () => {
+        aspectLock = 'free';
+        ratioSelect.value = 'free';
+        rect.x = 0; rect.y = 0; rect.w = 100; rect.h = 100;
+        syncOverlay();
+    });
+    dlg.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => { dlg.close(); dlg.remove(); }));
+    dlg.querySelector('form')?.addEventListener('submit', e => {
+        e.preventDefault();
+        pushUndoBeforeEdit(p);
+        b.cropRect = (rect.x <= 0.2 && rect.y <= 0.2 && rect.w >= 99.5 && rect.h >= 99.5)
+            ? undefined
+            : { x: roundPct(rect.x), y: roundPct(rect.y), w: roundPct(rect.w), h: roundPct(rect.h) };
+        b.editedBy = getActorDisplayName();
+        b.editedAt = Date.now();
+        p.lastEditedBy = getActorDisplayName();
+        save();
+        render();
+        dlg.close();
+        dlg.remove();
+    });
+    dlg.addEventListener('cancel', () => dlg.remove());
+    dlg.showModal();
+}
+
 function clearDropIndicators() {
     editor.querySelectorAll('.drop-target,.drop-before,.drop-after,.drop-left,.drop-right,.drop-inside').forEach(node => {
         node.classList.remove('drop-target', 'drop-before', 'drop-after', 'drop-left', 'drop-right', 'drop-inside');
@@ -5974,8 +8044,16 @@ function renderBlock(p, b, i, list = p.blocks) {
     if (b.align && b.align !== 'left') el.dataset.align = b.align;
     if (b.font && b.font !== 'default') el.dataset.font = b.font;
     el.addEventListener('dragover', event => {
-        if (!event.dataTransfer.types.includes('text/plain')) return;
+        const isAssetRef = hasDraggedAsset(event.dataTransfer);
+        const isExtFiles = hasExternalFiles(event.dataTransfer);
+        const isBlockDrag = !!event.dataTransfer?.types.includes('text/plain');
+        if (!isAssetRef && !isExtFiles && !isBlockDrag) return;
+        if ((isAssetRef || isExtFiles) && effectivePageReadOnly(p)) return;
         event.preventDefault(); event.stopPropagation();
+        if (event.dataTransfer) {
+            if (isAssetRef) event.dataTransfer.dropEffect = 'link';
+            else if (isExtFiles) event.dataTransfer.dropEffect = 'copy';
+        }
         clearDropIndicators();
         const zone = dropZoneForBlock(el, event);
         el.classList.add(`drop-${zone}`);
@@ -5984,11 +8062,28 @@ function renderBlock(p, b, i, list = p.blocks) {
         if (!el.contains(event.relatedTarget)) el.classList.remove('drop-target', 'drop-before', 'drop-after', 'drop-left', 'drop-right');
     });
     el.addEventListener('drop', event => {
+        const isAssetRef = hasDraggedAsset(event.dataTransfer);
+        const isExtFiles = hasExternalFiles(event.dataTransfer);
+        const isBlockDrag = !!event.dataTransfer?.types.includes('text/plain');
+        if (!isAssetRef && !isExtFiles && !isBlockDrag) return;
         event.preventDefault(); event.stopPropagation();
         const zone = dropZoneForBlock(el, event);
         clearDropIndicators();
-        const dragIds = readDragBlockIds(event.dataTransfer);
         const target = blockContext(el);
+        if (isAssetRef) {
+            const aid = readDraggedAssetId(event.dataTransfer);
+            const existing = aid ? ArchitectBackend.readAssetCatalog().find(a => a.id === aid) : null;
+            if (existing && !effectivePageReadOnly(p)) insertExistingAssetReferenceAtTarget(existing, p, target, zone);
+            return;
+        }
+        if (isExtFiles) {
+            const files = Array.from(event.dataTransfer?.files || []);
+            if (files.length && !effectivePageReadOnly(p)) {
+                dropExternalFilesAtTarget(files, p, target, zone);
+            }
+            return;
+        }
+        const dragIds = readDragBlockIds(event.dataTransfer);
         if (!target || !dragIds.length) return;
         const rawInsertAt = target.index + (zone === 'after' ? 1 : 0);
         pushUndoBeforeEdit(p);
@@ -6071,7 +8166,14 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
             linkEl.onmousedown = e => { if (e.button === 1) e.preventDefault(); };
             linkEl.onauxclick = e => { if (e.button === 1) { e.preventDefault(); e.stopPropagation(); if (target) openPageInNewTab(target.id); } };
         }
-    } else el.innerHTML = m ? `<span class="mention-chip">@ ${esc(m.label)}</span>` : esc(b.text);
+    } else {
+        el.innerHTML = m ? `<span class="mention-chip user-ref-trigger" data-user-ref="${esc(m.id || m.label)}">@ ${esc(m.label)}</span>` : esc(b.text);
+        const mc = el.querySelector('.mention-chip') as HTMLElement | null;
+        if (mc && m && m.id !== 'everyone') {
+            mc.onclick = e => { e.stopPropagation(); openUserDashboard(m.id || m.label); };
+            mc.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, m.id || m.label); };
+        }
+    }
     return el;
 } if (b.type === 'image') {
     el.contentEditable = 'false';
@@ -6086,12 +8188,32 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
         return el;
     }
     const displayName = asset?.name || b.text || 'Image';
+    const altDisplay = b.altText || displayName;
     const cachedPreview = asset ? resolvedAssetPreviewCache.get(asset.id) : '';
     const fallbackPreview = cachedPreview || (asset?.storageMode === 'local' ? (asset?.url || '') : (asset?.previewDataUrl || b.url || ''));
-    const dimAttrs = asset?.width && asset?.height ? ` width="${asset.width}" height="${asset.height}" style="width:auto;height:auto;max-width:100%;max-height:460px"` : '';
-    const chips = [asset?.category || b.category, asset?.creator || b.creator, asset?.provider].filter(Boolean);
-    el.innerHTML = `<div class="image-frame"><img class="content-image" src="${esc(fallbackPreview)}" alt="${esc(displayName)}"${dimAttrs}><div class="image-actions-bar"><button type="button" class="asset-pill-btn" data-img-expand title="Fullscreen high-quality preview">⤢ Fullscreen</button><button type="button" class="asset-pill-btn" data-img-download title="Download full-size file">↓ Download</button></div><div class="image-caption"><span>${esc(displayName)}</span><span class="asset-meta-chips">${chips.map(c => `<span class="asset-chip">${esc(String(c))}</span>`).join('')}</span></div></div>`;
-    const imgEl = el.querySelector('img');
+    const widthStyle = b.widthPx ? ` style="width:${Math.max(80, Math.round(b.widthPx))}px;max-width:100%"` : '';
+    const imgInlineStyle = b.cropRect
+        ? `width:${(10000 / Math.max(15, b.cropRect.w)).toFixed(2)}%;height:${(10000 / Math.max(15, b.cropRect.h)).toFixed(2)}%;max-width:none;max-height:none;transform:translate(-${b.cropRect.x}%, -${b.cropRect.y}%);transform-origin:top left;`
+        : (b.widthPx ? 'width:100%;height:auto;max-width:100%;max-height:none;' : (asset?.width && asset?.height ? 'width:auto;height:auto;max-width:100%;max-height:460px;' : ''));
+    const dimAttrs = (!b.cropRect && !b.widthPx && asset?.width && asset?.height) ? ` width="${asset.width}" height="${asset.height}"` : '';
+    const hasCaption = b.caption !== undefined;
+    const canCommentImg = canCommentOnPage(p);
+    el.innerHTML = `<div class="image-frame${b.cropRect ? ' is-cropped' : ''}${isBlockImageRounded(b) ? ' is-rounded' : ''}"${widthStyle}><div class="image-media-wrap"><img class="content-image" src="${esc(fallbackPreview)}" alt="${esc(altDisplay)}"${dimAttrs}${imgInlineStyle ? ` style="${imgInlineStyle}"` : ''}>${b.linkUrl ? `<a class="image-link-badge" href="${esc(b.linkUrl)}" target="_blank" rel="noopener noreferrer" title="Open link: ${esc(b.linkUrl)}">↗</a>` : ''}${!ro ? '<button type="button" class="image-resize-handle is-left" data-img-resize="left" aria-label="Resize image from left" title="Drag to resize"></button><button type="button" class="image-resize-handle is-right" data-img-resize="right" aria-label="Resize image from right" title="Drag to resize"></button>' : ''}<div class="image-resize-readout" hidden></div><div class="image-actions-bar">${canCommentImg ? '<button type="button" class="asset-pill-btn" data-img-comment title="Comment">💬</button>' : ''}${!ro ? '<button type="button" class="asset-pill-btn" data-img-caption title="Caption (Ctrl+Alt+M)">Caption</button><button type="button" class="asset-pill-btn" data-img-crop title="Crop image">✂ Crop</button>' : ''}<button type="button" class="asset-pill-btn" data-img-expand title="Fullscreen high-quality preview">⤢ Fullscreen</button><button type="button" class="asset-pill-btn" data-img-download title="Download original file">↓</button><button type="button" class="asset-pill-btn image-more-btn" data-img-more title="More actions">•••</button></div></div>${(hasCaption && (!ro || b.caption)) ? `<div class="image-caption-row"><input type="text" class="image-caption-input" placeholder="Write a caption…" value="${esc(b.caption || '')}"${ro ? ' readonly' : ''} aria-label="Image caption"></div>` : ''}</div>`;
+    const frameEl = el.querySelector('.image-frame') as HTMLElement;
+    const mediaWrap = el.querySelector('.image-media-wrap') as HTMLElement;
+    const imgEl = el.querySelector('img') as HTMLImageElement;
+    const applyCropAspect = () => {
+        if (!b.cropRect || !mediaWrap) return;
+        const natW = imgEl.naturalWidth || asset?.width || 16;
+        const natH = imgEl.naturalHeight || asset?.height || 10;
+        const croppedRatio = (natW * (b.cropRect.w / 100)) / Math.max(1, natH * (b.cropRect.h / 100));
+        mediaWrap.style.aspectRatio = `${croppedRatio}`;
+        mediaWrap.style.overflow = 'hidden';
+    };
+    if (b.cropRect) {
+        applyCropAspect();
+        imgEl.addEventListener('load', applyCropAspect);
+    }
     if (asset) {
         ArchitectBackend.resolveAssetPreviewUrl(asset).then(url => {
             if (url) resolvedAssetPreviewCache.set(asset.id, url);
@@ -6100,8 +8222,98 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
     }
     const openLb = () => openImageLightbox(asset || { id: b.id, name: displayName, fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || 'Jordan Davis', uploadedBy: 'Jordan Davis', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() });
     imgEl.ondblclick = e => { e.preventDefault(); e.stopPropagation(); openLb(); };
-    el.querySelector('[data-img-expand]').onclick = e => { e.stopPropagation(); openLb(); };
-    el.querySelector('[data-img-download]').onclick = e => { e.stopPropagation(); downloadAssetOrBlock(asset, b, displayName); };
+    el.querySelector('[data-img-expand]')?.addEventListener('click', e => { e.stopPropagation(); openLb(); });
+    el.querySelector('[data-img-download]')?.addEventListener('click', e => { e.stopPropagation(); downloadAssetOrBlock(asset, b, displayName); });
+    el.querySelector('[data-img-comment]')?.addEventListener('click', e => { e.stopPropagation(); openBlockCommentComposer(b, e.currentTarget); });
+    el.querySelector('[data-img-caption]')?.addEventListener('click', e => { e.stopPropagation(); focusImageCaptionEditor(p, b); });
+    el.querySelector('[data-img-crop]')?.addEventListener('click', e => { e.stopPropagation(); openImageCropModal(p, b); });
+    el.querySelector('[data-img-more]')?.addEventListener('click', e => {
+        e.stopPropagation();
+        showBlockMenu(p, b, e.currentTarget as HTMLElement);
+    });
+    const linkBadge = el.querySelector('.image-link-badge') as HTMLAnchorElement | null;
+    linkBadge?.addEventListener('click', e => {
+        if (b.linkUrl?.startsWith('#page=')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const targetId = b.linkUrl.slice(6).split('&')[0];
+            if (targetId && state.pages.some(pg => pg.id === targetId)) {
+                if (e.ctrlKey || e.metaKey) openPageInNewTab(targetId);
+                else navigateToPage(targetId);
+            }
+        }
+    });
+    const capInput = el.querySelector('.image-caption-input') as HTMLInputElement | null;
+    if (capInput && !ro) {
+        let capHadFocus = false;
+        capInput.addEventListener('focus', () => { capHadFocus = true; });
+        capInput.addEventListener('input', () => {
+            b.caption = capInput.value;
+            b.editedBy = getActorDisplayName();
+            b.editedAt = Date.now();
+            save();
+        });
+        capInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+                capInput.blur();
+            }
+        });
+        capInput.addEventListener('blur', () => {
+            if (capHadFocus && capInput.value.trim() === '' && b.caption === '') {
+                b.caption = undefined;
+                save();
+                render();
+            }
+        });
+    }
+    if (!ro) {
+        const readout = el.querySelector('.image-resize-readout') as HTMLElement | null;
+        el.querySelectorAll<HTMLElement>('[data-img-resize]').forEach(handle => {
+            handle.addEventListener('pointerdown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const side = handle.dataset.imgResize === 'left' ? -1 : 1;
+                const startX = e.clientX;
+                const startW = Math.max(80, Math.round(frameEl.getBoundingClientRect().width));
+                const maxW = Math.max(240, Math.round((el.parentElement?.getBoundingClientRect().width || 720) - 16));
+                let finalW = startW;
+                frameEl.classList.add('is-resizing');
+                if (readout) { readout.textContent = `${finalW} px`; readout.hidden = false; }
+                const onMove = (ev: PointerEvent) => {
+                    const dx = (ev.clientX - startX) * side * 1.15;
+                    finalW = Math.max(80, Math.min(maxW, Math.round(startW + dx)));
+                    frameEl.style.width = `${finalW}px`;
+                    frameEl.style.maxWidth = '100%';
+                    if (!b.cropRect) {
+                        imgEl.style.width = '100%';
+                        imgEl.style.height = 'auto';
+                        imgEl.style.maxHeight = 'none';
+                    }
+                    if (readout) readout.textContent = `${finalW} px`;
+                };
+                const onUp = () => {
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    window.removeEventListener('pointercancel', onUp);
+                    frameEl.classList.remove('is-resizing');
+                    if (readout) readout.hidden = true;
+                    if (finalW !== startW) {
+                        pushUndoBeforeEdit(p);
+                        b.widthPx = finalW;
+                        b.editedBy = getActorDisplayName();
+                        b.editedAt = Date.now();
+                        p.lastEditedBy = getActorDisplayName();
+                        save();
+                        render();
+                    }
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
+                window.addEventListener('pointercancel', onUp);
+            });
+        });
+    }
     return el;
 } if (b.type === 'columns') {
     el.contentEditable = 'false';
@@ -6123,8 +8335,16 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
             if (last) focusBlockById(last.id, false);
         });
         col.addEventListener('dragover', event => {
-            if (!event.dataTransfer.types.includes('text/plain')) return;
+            const isAssetRef = hasDraggedAsset(event.dataTransfer);
+            const isExtFiles = hasExternalFiles(event.dataTransfer);
+            const isBlockDrag = !!event.dataTransfer?.types.includes('text/plain');
+            if (!isAssetRef && !isExtFiles && !isBlockDrag) return;
+            if ((isAssetRef || isExtFiles) && ro) return;
             event.preventDefault(); event.stopPropagation();
+            if (event.dataTransfer) {
+                if (isAssetRef) event.dataTransfer.dropEffect = 'link';
+                else if (isExtFiles) event.dataTransfer.dropEffect = 'copy';
+            }
             clearDropIndicators();
             const rc = col.getBoundingClientRect();
             const edge = Math.min(22, rc.width * 0.2);
@@ -6132,12 +8352,28 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
             col.classList.add(`drop-${z}`);
         });
         col.addEventListener('drop', event => {
-            if (!event.dataTransfer.types.includes('text/plain')) return;
+            const isAssetRef = hasDraggedAsset(event.dataTransfer);
+            const isExtFiles = hasExternalFiles(event.dataTransfer);
+            const isBlockDrag = !!event.dataTransfer?.types.includes('text/plain');
+            if (!isAssetRef && !isExtFiles && !isBlockDrag) return;
             event.preventDefault(); event.stopPropagation();
             const rc = col.getBoundingClientRect();
             const edge = Math.min(22, rc.width * 0.2);
             const z = event.clientX <= rc.left + edge ? 'left' : event.clientX >= rc.right - edge ? 'right' : 'inside';
             clearDropIndicators();
+            if (isAssetRef) {
+                const aid = readDraggedAssetId(event.dataTransfer);
+                const existing = aid ? ArchitectBackend.readAssetCatalog().find(a => a.id === aid) : null;
+                if (existing && !ro) insertExistingAssetReferenceAtTarget(existing, p, null, z, { parentColumnsBlock: b, childCol: child, colIdx: index });
+                return;
+            }
+            if (isExtFiles) {
+                const files = Array.from(event.dataTransfer?.files || []);
+                if (files.length && !ro) {
+                    dropExternalFilesAtTarget(files, p, null, z, { parentColumnsBlock: b, childCol: child, colIdx: index });
+                }
+                return;
+            }
             const dragIds = readDragBlockIds(event.dataTransfer);
             if (!dragIds.length) return;
             pushUndoBeforeEdit(p);
@@ -6351,6 +8587,10 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
             b.viewId = undefined;
             save();
             render();
+        },
+        onTurnIntoFullPage: () => {
+            const dbTarget = state.pages.find(x => x.id === b.targetId && ArchitectDatabase.isDatabasePage(x));
+            if (dbTarget) navigateToPage(dbTarget.id);
         }
     });
     el.append(hostWrap);
@@ -6786,10 +9026,9 @@ function renderRichMediaLinkBlock(el: HTMLElement, b: Block, p: Page, ro: boolea
     }
     const refHref = asset?.externalUrl || asset?.url || b.url || '';
     const title = asset?.name || (b.text && !['Embed', 'Web bookmark', 'PDF document'].includes(b.text) ? b.text : formatLinkMentionLabel(refHref)) || b.type;
-    const chips = [asset?.category || b.category, asset?.creator || b.creator, asset?.provider, asset?.sizeBytes ? formatBytes(asset.sizeBytes) : ''].filter(Boolean);
     if (b.type === 'video') {
-        const wrap = document.createElement('div'); wrap.className = 'audio-player-card';
-        wrap.innerHTML = `<video controls preload="metadata" style="width:100%;max-height:360px;border-radius:5px;background:#000"></video><div class="media-card-row" style="border:0;padding:2px 0 0;background:transparent"><div class="media-card-main"><strong>${esc(title)}</strong><div class="asset-meta-chips">${chips.map(c => `<span class="asset-chip">${esc(String(c))}</span>`).join('')}</div></div><div class="settings-actions"><button type="button" class="secondary-button" data-vid-dl>↓ Download</button></div></div>`;
+        const wrap = document.createElement('div'); wrap.className = 'video-frame-card';
+        wrap.innerHTML = `<video controls preload="metadata" style="width:100%;max-height:380px;border-radius:6px;background:#000;display:block"></video><div class="image-actions-bar"><button type="button" class="asset-pill-btn" data-vid-dl title="Download original video">↓ Download</button></div>`;
         const video = wrap.querySelector('video') as HTMLVideoElement;
         if (asset) ArchitectBackend.resolveAssetOriginalUrl(asset).then(u => { if (u && video.isConnected) video.src = u; });
         else if (b.url) video.src = b.url;
@@ -6857,7 +9096,7 @@ function renderRichMediaLinkBlock(el: HTMLElement, b: Block, p: Page, ro: boolea
         return;
     }
     const row = document.createElement('div'); row.className = 'media-card-row';
-    row.innerHTML = `<div class="media-card-main"><strong>${esc(title)}</strong><small>${esc(refHref || asset?.fileType || b.type)}</small><div class="asset-meta-chips">${chips.map(c => `<span class="asset-chip">${esc(String(c))}</span>`).join('')}</div></div><div class="settings-actions">${asset ? '<button type="button" class="secondary-button" data-file-inspect>Inspect</button>' : ''}<button type="button" class="secondary-button" data-file-dl>↓ Download</button></div>`;
+    row.innerHTML = `<div class="media-card-main"><strong>${esc(title)}</strong></div><div class="settings-actions">${asset ? '<button type="button" class="secondary-button" data-file-inspect>Inspect</button>' : ''}<button type="button" class="secondary-button" data-file-dl>↓ Download</button></div>`;
     row.querySelector('[data-file-inspect]')?.addEventListener('click', () => openAssetLibrary(asset.id));
     row.querySelector('[data-file-dl]')?.addEventListener('click', () => downloadAssetOrBlock(asset, b, title));
     el.append(row);
@@ -7433,7 +9672,7 @@ function openButtonConfigPopover(p: Page, b: Block, _anchorEl?: HTMLElement) {
                 const destSel = document.createElement('select');
                 destSel.className = 'notion-wf-select';
                 const groupOpts = chats.filter(c => c.kind === 'group').map(c => `<option value="ch:${esc(c.id)}">Channel #${esc(c.name)}</option>`).join('');
-                const dmOpts = users.filter((u: any) => !u.blocked).map((u: any) => `<option value="dm:${esc(u.linkedAccount || u.name)}">DM @${esc(u.name)}</option>`).join('');
+                const dmOpts = users.map((u: any) => `<option value="dm:${esc(u.linkedAccount || u.name)}">DM @${esc(u.name)}</option>`).join('');
                 destSel.innerHTML = `${groupOpts}${dmOpts}`;
                 const curVal = step.chatTargetAccount ? `dm:${step.chatTargetAccount}` : `ch:${step.chatChannelId || chats[0]?.id || 'chat-general'}`;
                 destSel.value = curVal;
@@ -8065,8 +10304,7 @@ function stopAllAudioPlayers(exceptAudio = null) {
 function buildAudioPlayerElement(asset, blockItem = null) {
     const card = document.createElement('div');
     card.className = 'audio-player-card';
-    const chips = [asset.category, asset.creator, asset.provider, asset.durationSec ? formatSeconds(asset.durationSec) : ''].filter(Boolean);
-    card.innerHTML = `<div class="audio-player-head"><span>${asset.category === 'sfx' ? '🔊' : '🎵'}</span><span class="audio-player-title">${esc(asset.name || 'Audio')}</span><span class="asset-meta-chips">${chips.map(c => `<span class="asset-chip">${esc(String(c))}</span>`).join('')}</span><button type="button" class="secondary-button" style="min-height:26px;padding:0 8px" data-aud-dl>↓ Download</button></div><div class="audio-player-controls"><button type="button" class="audio-play-btn" aria-label="Play audio">▶</button><input type="range" class="audio-timeline" min="0" max="1000" value="0" aria-label="Audio timeline"><span class="audio-time">0:00 / ${formatSeconds(asset.durationSec || 0)}</span></div>`;
+    card.innerHTML = `<div class="audio-player-head"><span>${asset.category === 'sfx' ? '🔊' : '🎵'}</span><span class="audio-player-title">${esc(asset.name || 'Audio')}</span><button type="button" class="secondary-button" style="min-height:26px;padding:0 8px" data-aud-dl>↓ Download</button></div><div class="audio-player-controls"><button type="button" class="audio-play-btn" aria-label="Play audio">▶</button><input type="range" class="audio-timeline" min="0" max="1000" value="0" aria-label="Audio timeline"><span class="audio-time">0:00 / ${formatSeconds(asset.durationSec || 0)}</span></div>`;
     const playBtn = card.querySelector('.audio-play-btn');
     const slider = card.querySelector('.audio-timeline');
     const timeEl = card.querySelector('.audio-time');
@@ -8394,8 +10632,16 @@ function wireSingleLineField(el, onChange) {
 }
 function markdownInline(raw) { let html = esc(raw); html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, href) => `<a href="${esc(href)}">${label}</a>`); html = html.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>').replace(/\*([^*]+)\*/g, '<em>$1</em>'); return cleanInlineHtml(html); }
 function parseMarkdownLine(line) { let match; const leadCols = (line.match(/^([ \t]*)/)?.[1] || '').replace(/\t/g, '  ').length; const indent = Math.min(MAX_LIST_INDENT, Math.floor(leadCols / 2)); const indentProp = indent > 0 ? { indent } : {}; if ((match = line.match(/^(#{1,6})\s+(.+)$/))) return { type: `h${match[1].length}`, text: match[2], html: markdownInline(match[2]) }; if ((match = line.match(/^\s*[-*+]\s+\[([ xX])\]\s*(.*)$/))) return { type: 'todo', text: match[2], html: markdownInline(match[2]), checked: match[1].toLowerCase() === 'x', ...indentProp }; if ((match = line.match(/^\s*[-*+]\s+(.+)$/))) return { type: 'bullet', text: match[1], html: markdownInline(match[1]), ...indentProp }; if ((match = line.match(/^\s*\d+\.\s+(.+)$/))) return { type: 'numbered', text: match[1], html: markdownInline(match[1]), ...indentProp }; if ((match = line.match(/^>\s?(.*)$/))) return { type: 'quote', text: match[1], html: markdownInline(match[1]) }; if (/^(---|___|\*\*\*)\s*$/.test(line.trim())) return { type: 'divider', text: '', html: '' }; return { type: 'text', text: line, html: markdownInline(line) }; }
-function handleMarkdownPaste(event) { const clipboard = event.clipboardData, raw = clipboard?.getData('text/plain'); if (!raw) return; const blockElement = activeBlockFromSelection(), ctx = blockContext(blockElement), target = editableTarget(blockElement), selection = getSelection(); if (!blockElement || !ctx || !selection?.rangeCount) return; const selected = selection.getRangeAt(0); if (!target.contains(selected.startContainer) || !target.contains(selected.endContainer)) return; const { page, list, index, item } = ctx; if (item.type === 'code') { event.preventDefault(); pushUndoBeforeEdit(page); insertPlainTextIntoPre(target, raw.replace(/\r\n?/g, '\n')); updateBlockFromDOM(blockElement); save(); return; } const pastedUrl = isStandaloneHttpUrl(raw); if (pastedUrl) { event.preventDefault(); pushUndoBeforeEdit(page); selected.deleteContents(); const a = document.createElement('a'); a.href = pastedUrl; a.rel = 'noopener noreferrer'; a.textContent = pastedUrl; selected.insertNode(a); const sp = document.createTextNode(' '); a.after(sp); const caret = document.createRange(); caret.setStart(sp, 1); caret.collapse(true); selection.removeAllRanges(); selection.addRange(caret); updateBlockFromDOM(blockElement); save(); const anchorRect = a.getBoundingClientRect(); openLinkPreviewMenu({ page, list, item, blockElement, target, linkEl: a, url: pastedUrl, anchorRect }); return; } const lines = raw.replace(/\r\n?/g, '\n').split('\n'), looksLikeMarkdown = lines.some(line => /^(#{1,6}\s|\s*[-*+]\s|\s*\d+\.\s|>\s?|---\s*$|___\s*$|\*\*\*\s*$)/.test(line)); if (lines.length === 1 && !looksLikeMarkdown && !/\*\*|\*[^*\s][^*]*\*|~~|`|\[[^\]]+\]\(https?:\/\//.test(raw)) return; event.preventDefault(); pushUndoBeforeEdit(page); const prefixRange = document.createRange(), suffixRange = document.createRange(); prefixRange.selectNodeContents(target); prefixRange.setEnd(selected.startContainer, selected.startOffset); suffixRange.selectNodeContents(target); suffixRange.setStart(selected.endContainer, selected.endOffset); const prefix = fragmentAsEditableHTML(prefixRange.cloneContents()), suffix = fragmentAsEditableHTML(suffixRange.cloneContents()), parsed = lines.map(parseMarkdownLine); if (prefix.text) { parsed[0].text = prefix.text + parsed[0].text; parsed[0].html = cleanInlineHtml(prefix.html + parsed[0].html); parsed[0].type = item.type; parsed[0].id = item.id; } else parsed[0].id = item.id; if (suffix.text) { const last = parsed[parsed.length - 1]; last.text += suffix.text; last.html = cleanInlineHtml(last.html + suffix.html); } const inserted = parsed.map(entry => ({ ...block(entry.type, entry.text), ...entry })); list.splice(index, 1, ...inserted); save(); render(); const caretOffset = (prefix.text && parsed.length === 1 ? prefix.text.length : 0) + (lines[lines.length - 1]?.length || 0); const lastInserted = inserted[inserted.length - 1]; focusBlockById(lastInserted.id); const lastEl = editor.querySelector(`[data-block-id="${CSS.escape(lastInserted.id)}"]`); if (lastEl) setCaretAtTextOffset(editableTarget(lastEl), Math.min(caretOffset, (lastInserted.text || '').length)); }
-const MENU_GLYPHS = { 'Text':'T', 'Page':'▤', 'Board':'◩', 'Board - Inline':'⊞', 'Linked view of board':'↗', 'Turn into board':'◩', 'Database':'🗃️', 'Database - Inline':'⊞', 'Linked view of database':'↗', 'Board view':'▥', 'Gallery view':'◫', 'List view':'☰', 'Calendar view':'📅', 'Timeline view':'↦', 'Chart view':'◔', 'Feed view':'▤', 'Form view':'📝', 'Button':'🔘', 'Heading 1':'H1', 'Heading 2':'H2', 'Heading 3':'H3', 'Heading 4':'H4', 'Heading 5':'H5', 'Heading 6':'H6', 'Toggle heading 1':'▸H1', 'Toggle heading 2':'▸H2', 'Toggle heading 3':'▸H3', 'Make toggleable':'▸', 'Turn off toggle':'↩', 'Bulleted list':'•', 'Numbered list':'1.', 'To-do list':'☑', 'Toggle list':'▸', 'Quote':'❝', 'Callout':'☀', 'Divider':'—', 'Image':'▧', 'Video':'▶', 'Audio':'♪', 'File':'⌑', 'PDF':'PDF', 'Web bookmark':'⚑', 'Embed':'◇', 'Code':'</>', 'Mermaid diagram':'🧜', '2 columns':'▥', '3 columns':'▥', '4 columns':'▥', '5 columns':'▥', 'Add column left':'▥', 'Add column right':'▥', 'Add column':'▥', 'Delete column':'🗑', 'Table':'▦', 'Table of contents':'☰', 'Breadcrumb':'›', 'Mention':'@', 'Date / reminder':'▦', 'Equation':'∑', 'Emoji':'☺', 'Link to page':'↗', 'Comment':'💬', 'Duplicate block':'⧉', 'Move to page':'↪', 'Delete block':'🗑', 'Open page':'→', 'Open link':'↗', 'Open in new tab':'↗', 'Open in Peek':'◨', 'Open as full page':'⤢', 'New tab':'＋', 'Duplicate tab':'⧉', 'Pin tab':'📌', 'Unpin tab':'📌', 'Close tab':'×', 'Close other tabs':'×', 'Close tabs to the right':'×', 'Cut':'✂', 'Copy':'⧉', 'Paste':'📋', 'Select all':'▣', 'Copy image URL':'🔗', 'Add row':'＋', 'Add block':'＋', 'New page':'＋', 'New board':'◩', 'New database':'🗃️', 'Search workspace':'⌕', 'Workspace settings':'⚙', 'Back':'←', 'Forward':'→', 'Toggle full width':'↔', 'Open comments':'💬', 'Rename':'✎', 'Duplicate':'⧉', 'Copy link':'🔗', 'Copy link to block':'🔗', 'Add to favorites':'★', 'Remove from favorites':'★', 'Change icon':'☺', 'Edit icon':'☺', 'Color':'🖌', 'Delete':'🗑', 'Move to':'↪', 'Turn into':'⇄', 'Permissions':'🔒' };
+function markdownEntryToContainerHtml(entry) {
+    const bodyHtml = entry.html || esc(entry.text || '');
+    if (/^h[1-6]$/.test(entry.type || '')) return `<span data-md-heading="${entry.type}">${bodyHtml}</span>`;
+    if (entry.type === 'bullet') return `• ${bodyHtml}`;
+    if (entry.type === 'todo') return `${entry.checked ? '☑' : '☐'} ${bodyHtml}`;
+    if (entry.type === 'divider') return '───';
+    return bodyHtml;
+}
+function handleMarkdownPaste(event) { const clipboard = event.clipboardData, raw = clipboard?.getData('text/plain'); if (!raw) return; const blockElement = activeBlockFromSelection(), ctx = blockContext(blockElement), target = editableTarget(blockElement), selection = getSelection(); if (!blockElement || !ctx || !selection?.rangeCount) return; const selected = selection.getRangeAt(0); if (!target.contains(selected.startContainer) || !target.contains(selected.endContainer)) return; const { page, list, index, item } = ctx; if (item.type === 'code') { event.preventDefault(); pushUndoBeforeEdit(page); insertPlainTextIntoPre(target, raw.replace(/\r\n?/g, '\n')); updateBlockFromDOM(blockElement); save(); return; } const pastedUrl = isStandaloneHttpUrl(raw); if (pastedUrl) { event.preventDefault(); pushUndoBeforeEdit(page); selected.deleteContents(); const a = document.createElement('a'); a.href = pastedUrl; a.rel = 'noopener noreferrer'; a.textContent = pastedUrl; selected.insertNode(a); const sp = document.createTextNode(' '); a.after(sp); const caret = document.createRange(); caret.setStart(sp, 1); caret.collapse(true); selection.removeAllRanges(); selection.addRange(caret); updateBlockFromDOM(blockElement); save(); const anchorRect = a.getBoundingClientRect(); openLinkPreviewMenu({ page, list, item, blockElement, target, linkEl: a, url: pastedUrl, anchorRect }); return; } const lines = raw.replace(/\r\n?/g, '\n').split('\n'), looksLikeMarkdown = lines.some(line => /^(#{1,6}\s|\s*[-*+]\s|\s*\d+\.\s|>\s?|---\s*$|___\s*$|\*\*\*\s*$)/.test(line)); if (lines.length === 1 && !looksLikeMarkdown && !/\*\*|\*[^*\s][^*]*\*|~~|`|\[[^\]]+\]\(https?:\/\//.test(raw)) return; event.preventDefault(); pushUndoBeforeEdit(page); const prefixRange = document.createRange(), suffixRange = document.createRange(); prefixRange.selectNodeContents(target); prefixRange.setEnd(selected.startContainer, selected.startOffset); suffixRange.selectNodeContents(target); suffixRange.setStart(selected.endContainer, selected.endOffset); const prefix = fragmentAsEditableHTML(prefixRange.cloneContents()), suffix = fragmentAsEditableHTML(suffixRange.cloneContents()), parsed = lines.map(parseMarkdownLine); if (item.type === 'callout' || item.type === 'quote') { const midHtml = parsed.map(markdownEntryToContainerHtml).join('<br>'); item.html = cleanInlineHtml((prefix.html || '') + midHtml + (suffix.html || '')) || undefined; const plainLines = parsed.map(entry => entry.type === 'bullet' ? `• ${entry.text}` : entry.type === 'todo' ? `${entry.checked ? '☑' : '☐'} ${entry.text}` : entry.type === 'divider' ? '───' : (entry.text || '')).join('\n'); item.text = (prefix.text || '') + plainLines + (suffix.text || ''); save(); render(); const pastedEl = editor.querySelector(`[data-block-id="${CSS.escape(item.id)}"]`); if (pastedEl) setCaretAtTextOffset(editableTarget(pastedEl), Math.min((prefix.text || '').length + plainLines.length, (item.text || '').length)); return; } if (prefix.text) { parsed[0].text = prefix.text + parsed[0].text; parsed[0].html = cleanInlineHtml(prefix.html + parsed[0].html); parsed[0].type = item.type; parsed[0].id = item.id; } else parsed[0].id = item.id; if (suffix.text) { const last = parsed[parsed.length - 1]; last.text += suffix.text; last.html = cleanInlineHtml(last.html + suffix.html); } const inserted = parsed.map(entry => ({ ...block(entry.type, entry.text), ...entry })); list.splice(index, 1, ...inserted); save(); render(); const caretOffset = (prefix.text && parsed.length === 1 ? prefix.text.length : 0) + (lines[lines.length - 1]?.length || 0); const lastInserted = inserted[inserted.length - 1]; focusBlockById(lastInserted.id); const lastEl = editor.querySelector(`[data-block-id="${CSS.escape(lastInserted.id)}"]`); if (lastEl) setCaretAtTextOffset(editableTarget(lastEl), Math.min(caretOffset, (lastInserted.text || '').length)); }
+const MENU_GLYPHS = { 'Text':'T', 'Page':'▤', 'Board':'◩', 'Board - Inline':'⊞', 'Linked view of board':'↗', 'Turn into board':'◩', 'Database':'🗃️', 'Database - Inline':'⊞', 'Linked view of database':'↗', 'Board view':'▥', 'Gallery view':'◫', 'List view':'☰', 'Calendar view':'📅', 'Timeline view':'↦', 'Chart view':'◔', 'Feed view':'▤', 'Form view':'📝', 'Button':'🔘', 'Heading 1':'H1', 'Heading 2':'H2', 'Heading 3':'H3', 'Heading 4':'H4', 'Heading 5':'H5', 'Heading 6':'H6', 'Toggle heading 1':'▸H1', 'Toggle heading 2':'▸H2', 'Toggle heading 3':'▸H3', 'Make toggleable':'▸', 'Turn off toggle':'↩', 'Bulleted list':'•', 'Numbered list':'1.', 'To-do list':'☑', 'Toggle list':'▸', 'Quote':'❝', 'Callout':'☀', 'Divider':'—', 'Image':'▧', 'Video':'▶', 'Audio':'♪', 'File':'⌑', 'PDF':'PDF', 'Web bookmark':'⚑', 'Embed':'◇', 'Code':'</>', 'Mermaid diagram':'🧜', '2 columns':'▥', '3 columns':'▥', '4 columns':'▥', '5 columns':'▥', 'Add column left':'▥', 'Add column right':'▥', 'Add column':'▥', 'Delete column':'🗑', 'Table':'▦', 'Table of contents':'☰', 'Breadcrumb':'›', 'Mention':'@', 'Date / reminder':'▦', 'Equation':'∑', 'Emoji':'☺', 'Link to page':'↗', 'Comment':'💬', 'Duplicate block':'⧉', 'Move to page':'↪', 'Delete block':'🗑', 'Open page':'→', 'Open link':'↗', 'Open in new tab':'↗', 'Open in Peek':'◨', 'Open as full page':'⤢', 'New tab':'＋', 'Duplicate tab':'⧉', 'Pin tab':'📌', 'Unpin tab':'📌', 'Close tab':'×', 'Close other tabs':'×', 'Close tabs to the right':'×', 'Cut':'✂', 'Copy':'⧉', 'Paste':'📋', 'Copy image URL':'🔗', 'Add row':'＋', 'Add block':'＋', 'New page':'＋', 'New board':'◩', 'New database':'🗃️', 'Search workspace':'⌕', 'Workspace settings':'⚙', 'Back':'←', 'Forward':'→', 'Toggle full width':'↔', 'Open comments':'💬', 'Rename':'✎', 'Duplicate':'⧉', 'Copy link':'🔗', 'Copy link to block':'🔗', 'Add to favorites':'★', 'Remove from favorites':'★', 'Change icon':'☺', 'Edit icon':'☺', 'Color':'🖌', 'Delete':'🗑', 'Move to':'↪', 'Turn into':'⇄', 'Permissions':'🔒', 'Replace':'↻', 'Copy image':'⧉', 'Download':'↓', 'Caption':'▤', 'More options':'•••', 'Crop image':'✂', 'Edit link to image':'🔗', 'Alt text':'ALT', 'Full screen':'⤢', 'Open in browser':'↗', 'Select all':'▣' };
 const BLOCK_COLORS = [
     { key: 'default', label: 'Default', textHex: '#37352f', bgHex: '#ffffff' },
     { key: 'gray', label: 'Gray', textHex: '#787774', bgHex: '#f1f1ef' },
@@ -8691,8 +10937,14 @@ function runCommand(name, type, b, cmd) {
     save(); render(); focusBlockById(b.id);
 }
 const TURN_INTO_TARGETS = [['Text', 'text'], ['Heading 1', 'h1'], ['Heading 2', 'h2'], ['Heading 3', 'h3'], ['Heading 4', 'h4'], ['Heading 5', 'h5'], ['Heading 6', 'h6'], ['Toggle heading 1', 'h1', true], ['Toggle heading 2', 'h2', true], ['Toggle heading 3', 'h3', true], ['Bulleted list', 'bullet'], ['Numbered list', 'numbered'], ['To-do list', 'todo'], ['Toggle list', 'toggle', true], ['Quote', 'quote'], ['Callout', 'callout'], ['Code', 'code'], ['Equation', 'equation'], ['Button', 'button'], ['Table', 'table'], ['Web bookmark', 'bookmark'], ['Embed', 'embed'], ['PDF', 'pdf'], ['Divider', 'divider']];
+const EXTRA_BLOCK_LABELS: Record<string, string> = {
+    image: 'Image', video: 'Video', audio: 'Audio', file: 'File', pdf: 'PDF',
+    page_link: 'Page', columns: 'Columns', database_view: 'Database', board_view: 'Board',
+    toc: 'Table of contents', breadcrumb: 'Breadcrumb', date: 'Date / reminder', mention: 'Mention'
+};
 function blockTypeLabel(type, toggle = false) {
     if (toggle && isHeadingType(type)) return `Toggle heading ${type.slice(1)}`;
+    if (EXTRA_BLOCK_LABELS[type]) return EXTRA_BLOCK_LABELS[type];
     const found = TURN_INTO_TARGETS.find(([, value, isToggle]) => value === type && !!isToggle === !!toggle);
     return found ? found[0] : (TURN_INTO_TARGETS.find(([, value]) => value === type)?.[0] || 'Text');
 }
@@ -8763,11 +11015,35 @@ function showBlockMenu(p, b, anchor, commentDraftContext = null) {
         { label: 'Copy link', group: blockLabel, icon: menuGlyph('Copy link'), run: () => copyPageLink(linkedPageTarget) }
     ] : [];
 
-    const mediaActions = [];
+    const mediaActions: { label: string; group: string; icon: string; shortcut?: string; run: () => void }[] = [];
+    const imageMoreItems: { label: string; group: string; icon: string; shortcut?: string; checked?: boolean; run: () => void }[] = [];
     if (b.type === 'image' && (b.url || b.assetId)) {
         const asset = findAssetForBlock(b);
-        mediaActions.push({ label: 'Expand fullscreen', group: blockLabel, icon: menuGlyph('Open in new tab'), run: () => openImageLightbox(asset || { id: b.id, name: b.text || 'Image', fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || getActorDisplayName(), uploadedBy: getActorDisplayName(), tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() }) });
-        mediaActions.push({ label: 'Download original', group: blockLabel, icon: menuGlyph('File'), run: () => downloadAssetOrBlock(asset, b, b.text || 'image') });
+        const openLbImg = () => openImageLightbox(asset || { id: b.id, name: b.text || 'Image', fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || getActorDisplayName(), uploadedBy: getActorDisplayName(), tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() });
+        if (!ro) mediaActions.push({ label: 'Replace', group: blockLabel, icon: menuGlyph('Replace'), run: () => uploadForBlock(b, p, 'image') });
+        mediaActions.push({ label: 'Copy image', group: blockLabel, icon: menuGlyph('Copy image'), run: () => copyImageBlockToClipboard(asset, b) });
+        mediaActions.push({ label: 'Download', group: blockLabel, icon: menuGlyph('Download'), run: () => downloadAssetOrBlock(asset, b, b.text || 'image') });
+        if (!ro) mediaActions.push({ label: 'Caption', group: blockLabel, icon: menuGlyph('Caption'), shortcut: 'Ctrl+Alt+M', run: () => focusImageCaptionEditor(p, b) });
+        if (!ro) {
+            imageMoreItems.push({
+                label: 'Rounded corners',
+                group: 'More options',
+                icon: menuGlyph('Image'),
+                checked: isBlockImageRounded(b),
+                run: () => {
+                    pushUndoBeforeEdit(p);
+                    const next = !isBlockImageRounded(b);
+                    b.roundedCorners = (next === !!state.roundedImageCorners) ? undefined : next;
+                    save();
+                    render();
+                }
+            });
+            imageMoreItems.push({ label: 'Crop image', group: 'More options', icon: menuGlyph('Crop image'), run: () => openImageCropModal(p, b) });
+            imageMoreItems.push({ label: 'Edit link to image', group: 'More options', icon: menuGlyph('Edit link to image'), shortcut: 'Ctrl+K', run: () => openImageLinkModal(p, b) });
+            imageMoreItems.push({ label: 'Alt text', group: 'More options', icon: menuGlyph('Alt text'), run: () => openImageAltTextModal(p, b) });
+        }
+        imageMoreItems.push({ label: 'Full screen', group: 'More options', icon: menuGlyph('Full screen'), shortcut: 'Space', run: openLbImg });
+        imageMoreItems.push({ label: 'Open in browser', group: 'More options', icon: menuGlyph('Open in browser'), run: () => openImageInBrowser(asset, b) });
     } else if (b.assetId) {
         mediaActions.push({ label: 'Inspect in Asset library', group: blockLabel, icon: menuGlyph('File'), run: () => openAssetLibrary(b.assetId) });
     }
@@ -8874,6 +11150,10 @@ function showBlockMenu(p, b, anchor, commentDraftContext = null) {
                 selColorItems.filter(it => it.group === grp).forEach(it => sec.append(menuRow(it.label, it.icon, it.run)));
                 subList.append(sec);
             });
+        } else if (kind === 'image-more') {
+            const section = document.createElement('section'); section.className = 'command-group';
+            imageMoreItems.forEach(item => section.append(menuRow(item.label, item.icon, item.run, '', item.shortcut || '', { checked: !!item.checked })));
+            subList.append(section);
         } else {
             if (lastUsedColor) {
                 const recent = BLOCK_COLORS.find(c => c.key === lastUsedColor.key);
@@ -8924,6 +11204,7 @@ function showBlockMenu(p, b, anchor, commentDraftContext = null) {
                 ...selColorItems,
                 ...linkActions,
                 ...mediaActions,
+                ...imageMoreItems,
                 ...iconAction,
                 ...toggleAction,
                 ...primaryActions,
@@ -8955,22 +11236,30 @@ function showBlockMenu(p, b, anchor, commentDraftContext = null) {
                 selGroup.append(selFmtRow, selColorRow);
                 list.append(selGroup);
             }
-            if (!ro || linkActions.length || mediaActions.length || iconAction.length || toggleAction.length) {
+            if (!ro || linkActions.length || mediaActions.length || imageMoreItems.length || iconAction.length || toggleAction.length) {
                 const topGroup = document.createElement('section'); topGroup.className = 'command-group';
                 const topHeading = document.createElement('div'); topHeading.className = 'command-group-label'; topHeading.textContent = blockLabel;
                 topGroup.append(topHeading);
                 if (!ro) {
                     const turnRow = menuRow('Turn into', menuGlyph('Turn into'), () => openSubmenu('turn-into', turnRow), '', '', { hasSubmenu: true, keepOpen: true });
                     wireSubmenuTrigger(turnRow, 'turn-into');
-                    const colorRow = menuRow('Color', menuGlyph('Color'), () => openSubmenu('color', colorRow), '', '', { hasSubmenu: true, keepOpen: true });
-                    wireSubmenuTrigger(colorRow, 'color');
-                    topGroup.append(turnRow, colorRow);
+                    topGroup.append(turnRow);
+                    if (b.type !== 'image') {
+                        const colorRow = menuRow('Color', menuGlyph('Color'), () => openSubmenu('color', colorRow), '', '', { hasSubmenu: true, keepOpen: true });
+                        wireSubmenuTrigger(colorRow, 'color');
+                        topGroup.append(colorRow);
+                    }
                 }
                 [...linkActions, ...mediaActions, ...iconAction, ...toggleAction].forEach(item => {
-                    const r = menuRow(item.label, item.icon, item.run);
+                    const r = menuRow(item.label, item.icon, item.run, '', item.shortcut || '');
                     r.onmouseenter = () => { submenuCloseTimer = window.setTimeout(hideSubmenu, 100); };
                     topGroup.append(r);
                 });
+                if (imageMoreItems.length) {
+                    const moreRow = menuRow('More options', menuGlyph('More options'), () => openSubmenu('image-more', moreRow), '', '', { hasSubmenu: true, keepOpen: true });
+                    wireSubmenuTrigger(moreRow, 'image-more');
+                    topGroup.append(moreRow);
+                }
                 list.append(topGroup);
             }
 
@@ -8995,12 +11284,12 @@ function showBlockMenu(p, b, anchor, commentDraftContext = null) {
         menuIndex = q ? 0 : -1; refreshMenuSelection();
     };
     input.addEventListener('input', draw);
-    const author = p.lastEditedBy || getActorDisplayName();
+    const author = b.editedBy || p.lastEditedBy || getActorDisplayName();
     const initials = author.split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase() || 'JD';
     const blockPlain = [b.text || '', ...collectBlockText(b.children || [])].join(' ').trim();
     const words = blockPlain ? blockPlain.split(/\s+/).filter(Boolean).length : 0;
     const chars = blockPlain.length;
-    const stamp = new Date(p.updatedAt || Date.now()).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const stamp = new Date(b.editedAt || p.updatedAt || Date.now()).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     const footer = document.createElement('div'); footer.className = 'menu-footer';
     footer.innerHTML = `<div class="menu-footer-title">Last edited</div><div class="menu-footer-user"><span class="menu-footer-avatar">${esc(initials)}</span><span>${esc(author)}</span></div><div>${esc(stamp)}</div><div>${words} ${words === 1 ? 'word' : 'words'}, ${chars} ${chars === 1 ? 'character' : 'characters'}</div>`;
     menu.append(footer);
@@ -9252,7 +11541,6 @@ function wireInlineReminderChip(chip: HTMLElement, p: Page, b: Block) {
 function buildMentionUserSuggestions(q = ''): Array<{ id: string; label: string; kind: 'person'; roleLabel: string }> {
     const query = q.trim().toLowerCase();
     const list: Array<{ id: string; label: string; kind: 'person'; roleLabel: string }> = (state.users || [])
-        .filter(u => !u.blocked)
         .map(u => {
             const topRole = getUserRoles(u)[0]?.name || 'Member';
             return { id: u.id, label: u.name, kind: 'person', roleLabel: topRole };
@@ -9421,6 +11709,175 @@ function isCaretAtVerticalEdge(target, toTop) {
     if (!caretRect || !targetRect.height) return false;
     return toTop ? (caretRect.top - targetRect.top <= 10) : (targetRect.bottom - caretRect.bottom <= 10);
 }
+function activeHeadingSpanFromCaret(target: HTMLElement): HTMLElement | null {
+    const sel = getSelection();
+    if (!sel?.rangeCount) return null;
+    const node = sel.getRangeAt(0).startContainer;
+    const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
+    const span = el?.closest?.('[data-md-heading]') as HTMLElement | null;
+    return span && target.contains(span) ? span : null;
+}
+function rangeFromCurrentLineStartToCaret(target: HTMLElement): Range | null {
+    const sel = getSelection();
+    if (!sel?.rangeCount || !sel.isCollapsed) return null;
+    const caret = sel.getRangeAt(0);
+    if (!target.contains(caret.startContainer)) return null;
+    let lastBrBefore: HTMLBRElement | null = null;
+    for (const br of target.querySelectorAll('br')) {
+        const probe = document.createRange();
+        probe.setStartAfter(br);
+        probe.collapse(true);
+        if (probe.compareBoundaryPoints(Range.START_TO_START, caret) <= 0) lastBrBefore = br as HTMLBRElement;
+    }
+    const lineRange = document.createRange();
+    if (lastBrBefore) lineRange.setStartAfter(lastBrBefore);
+    else lineRange.setStart(target, 0);
+    lineRange.setEnd(caret.startContainer, caret.startOffset);
+    return lineRange;
+}
+function applyContainerMarkdownOnSpace(ctx, target: HTMLElement, blockEl: HTMLElement, e: KeyboardEvent): boolean {
+    const lineRange = rangeFromCurrentLineStartToCaret(target);
+    if (!lineRange) return false;
+    const fragCheck = lineRange.cloneContents();
+    if (fragCheck.querySelector?.('.inline-mention-chip, .inline-math, img, button')) return false;
+    const prefix = lineRange.toString().replace(/\u200b/g, '');
+    const headingMatch = prefix.match(/^(#{1,6})$/);
+    if (headingMatch) {
+        const level = `h${headingMatch[1].length}`;
+        e.preventDefault();
+        pushUndoBeforeEdit(ctx.page);
+        lineRange.deleteContents();
+        let firstBrAfter: HTMLBRElement | null = null;
+        for (const br of target.querySelectorAll('br')) {
+            const probe = document.createRange();
+            probe.setStartBefore(br);
+            probe.collapse(true);
+            if (probe.compareBoundaryPoints(Range.START_TO_START, lineRange) >= 0) {
+                firstBrAfter = br as HTMLBRElement;
+                break;
+            }
+        }
+        const tailRange = document.createRange();
+        tailRange.setStart(lineRange.endContainer, lineRange.endOffset);
+        if (firstBrAfter) tailRange.setEndBefore(firstBrAfter);
+        else tailRange.setEnd(target, target.childNodes.length);
+        const tailFrag = tailRange.extractContents();
+        tailFrag.querySelectorAll('[data-md-heading]').forEach(el => el.replaceWith(...el.childNodes));
+        target.querySelectorAll('[data-md-heading]').forEach(el => {
+            if (!(el.textContent || '').replace(/\u200b/g, '') && !el.querySelector('.inline-mention-chip, .inline-math, a')) el.remove();
+        });
+        const span = document.createElement('span');
+        span.dataset.mdHeading = level;
+        const hasTailContent = (tailFrag.textContent || '').replace(/\u200b/g, '').length > 0 || !!tailFrag.querySelector?.('.inline-mention-chip, .inline-math, a');
+        if (hasTailContent) {
+            span.append(tailFrag);
+            tailRange.insertNode(span);
+            setCaretAtTextOffset(span, 0);
+        } else {
+            const anchor = document.createTextNode('\u200b');
+            span.append(anchor);
+            tailRange.insertNode(span);
+            const caret = document.createRange();
+            caret.setStart(anchor, 1);
+            caret.collapse(true);
+            const sel = getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(caret);
+        }
+        updateBlockFromDOM(blockEl);
+        save();
+        scheduleBadgeLayout();
+        return true;
+    }
+    if (prefix === '-' || prefix === '*' || prefix === '+' || prefix === '[]' || prefix === '[ ]') {
+        e.preventDefault();
+        pushUndoBeforeEdit(ctx.page);
+        lineRange.deleteContents();
+        const glyph = document.createTextNode(prefix.startsWith('[') ? '☐ ' : '• ');
+        lineRange.insertNode(glyph);
+        const caret = document.createRange();
+        caret.setStart(glyph, glyph.textContent.length);
+        caret.collapse(true);
+        const sel = getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(caret);
+        updateBlockFromDOM(blockEl);
+        save();
+        scheduleBadgeLayout();
+        return true;
+    }
+    return false;
+}
+function unwrapHeadingSpanAtStart(ctx, target: HTMLElement, blockEl: HTMLElement): boolean {
+    const sel = getSelection();
+    if (!sel?.rangeCount || !sel.isCollapsed) return false;
+    const headingEl = activeHeadingSpanFromCaret(target);
+    if (!headingEl) return false;
+    const pre = document.createRange();
+    pre.selectNodeContents(headingEl);
+    pre.setEnd(sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset);
+    if (pre.toString().replace(/\u200b/g, '') !== '') return false;
+    pushUndoBeforeEdit(ctx.page);
+    const marker = document.createTextNode('\u200b');
+    headingEl.parentNode?.insertBefore(marker, headingEl);
+    while (headingEl.firstChild) {
+        const ch = headingEl.firstChild;
+        if (ch.nodeType === Node.TEXT_NODE && !(ch.textContent || '').replace(/\u200b/g, '')) ch.remove();
+        else headingEl.parentNode?.insertBefore(ch, headingEl);
+    }
+    headingEl.remove();
+    const caret = document.createRange();
+    caret.setStart(marker, marker.textContent.length);
+    caret.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(caret);
+    removeCaretAnchorFromInput(target);
+    updateBlockFromDOM(blockEl);
+    save();
+    scheduleBadgeLayout();
+    return true;
+}
+function breakOutOfHeadingSpanOnShiftEnter(ctx, target: HTMLElement, blockEl: HTMLElement): boolean {
+    const sel = getSelection();
+    if (!sel?.rangeCount) return false;
+    const headingEl = activeHeadingSpanFromCaret(target);
+    if (!headingEl) return false;
+    pushUndoBeforeEdit(ctx.page);
+    const selRange = sel.getRangeAt(0);
+    if (!selRange.collapsed) selRange.deleteContents();
+    const after = document.createRange();
+    after.setStart(selRange.startContainer, selRange.startOffset);
+    after.setEnd(headingEl, headingEl.childNodes.length);
+    const tailFrag = after.extractContents();
+    const br = document.createElement('br');
+    headingEl.after(br);
+    const hasTail = (tailFrag.textContent || '').replace(/\u200b/g, '').length > 0 || !!tailFrag.querySelector?.('.inline-mention-chip, .inline-math, a');
+    if (hasTail) {
+        const marker = document.createTextNode('\u200b');
+        br.after(marker, tailFrag);
+        const caret = document.createRange();
+        caret.setStart(marker, 1);
+        caret.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(caret);
+        removeCaretAnchorFromInput(target);
+    } else {
+        const marker = document.createTextNode('\u200b');
+        br.after(marker);
+        const caret = document.createRange();
+        caret.setStart(marker, 1);
+        caret.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(caret);
+    }
+    if (!(headingEl.textContent || '').replace(/\u200b/g, '') && !headingEl.querySelector('.inline-mention-chip, .inline-math, a')) {
+        headingEl.remove();
+    }
+    updateBlockFromDOM(blockEl);
+    save();
+    scheduleBadgeLayout();
+    return true;
+}
 function editorKeys(e) {
     const el = e.target;
     if (!editor.contains(el) || !el.isContentEditable) return;
@@ -9523,9 +11980,16 @@ function editorKeys(e) {
         render();
         focusBlockById(next.id);
     };
+    const isContainerTextBlock = b.type === 'callout' || b.type === 'quote';
+    if (e.key === 'Enter' && e.shiftKey) {
+        if (breakOutOfHeadingSpanOnShiftEnter(ctx, target, blockEl)) {
+            e.preventDefault();
+            return;
+        }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
         const raw = (target.textContent || '').replace(/\u200b/g, '').trim();
-        if (!isToggleBlock(b) && (raw === '---' || raw === '___' || raw === '***')) {
+        if (!isToggleBlock(b) && !isContainerTextBlock && (raw === '---' || raw === '___' || raw === '***')) {
             convertLineToDivider(true);
             return;
         }
@@ -9534,6 +11998,10 @@ function editorKeys(e) {
         return;
     }
     if (e.key === 'Backspace' && getSelection()?.isCollapsed) {
+        if (unwrapHeadingSpanAtStart(ctx, target, blockEl)) {
+            e.preventDefault();
+            return;
+        }
         const before = contentAtCaret(target, false);
         if (before?.toString().replace(/\u200b/g, '') === '' && (isToggleBlock(b) || (isIndentableListBlock(b) && normalizedListIndent(b) > 0) || b.text === '' || idx > 0 || ctx.parentBlock)) {
             e.preventDefault();
@@ -9543,6 +12011,10 @@ function editorKeys(e) {
     }
     if (e.key === '/' && !(target.textContent || '').replace(/\u200b/g, '')) { setTimeout(() => showMenu('', b), 0); return; }
     if (e.key === ' ') {
+        if (isContainerTextBlock) {
+            applyContainerMarkdownOnSpace(ctx, target, blockEl, e);
+            return;
+        }
         const raw = (target.textContent || '').replace(/\u200b/g, '').trim();
         const toggleMatch = raw.match(/^>(#{1,6})$/);
         if (raw === '>>' || toggleMatch) {
@@ -10013,13 +12485,20 @@ function renderCommentThreadCard(page, thread, opts = {}) {
         const head = document.createElement('div');
         head.className = 'comment-msg-head';
 
+        const userRef = msg.authorId || msg.authorName || 'Jordan Davis';
         const avatar = document.createElement('span');
-        avatar.className = 'comment-avatar';
+        avatar.className = 'comment-avatar user-ref-trigger';
+        avatar.dataset.userRef = userRef;
         avatar.textContent = commentUserInitials(msg.authorName);
+        avatar.onclick = e => { e.stopPropagation(); openUserDashboard(userRef); };
+        avatar.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef); };
 
         const author = document.createElement('span');
-        author.className = 'comment-msg-author';
+        author.className = 'comment-msg-author user-ref-trigger';
+        author.dataset.userRef = userRef;
         author.textContent = msg.authorName || 'Jordan Davis';
+        author.onclick = e => { e.stopPropagation(); openUserDashboard(userRef); };
+        author.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef); };
 
         const time = document.createElement('span');
         time.className = 'comment-msg-time';
@@ -10159,7 +12638,31 @@ function renderCommentThreadCard(page, thread, opts = {}) {
         } else {
             const body = document.createElement('div');
             body.className = 'comment-msg-body';
-            body.textContent = msg.text;
+            const rawComment = String(msg.text || '');
+            const mentionNames = (state.users || []).map(u => u.name.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+            if (mentionNames.length && rawComment.includes('@')) {
+                const escapedNames = mentionNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                const mRe = new RegExp(`@(?:${escapedNames.join('|')})`, 'gi');
+                let cursor = 0;
+                let match: RegExpExecArray | null;
+                while ((match = mRe.exec(rawComment)) !== null) {
+                    if (match.index > cursor) body.append(document.createTextNode(rawComment.slice(cursor, match.index)));
+                    const mText = match[0];
+                    const targetU = findWorkspaceUser(mText.slice(1));
+                    const span = document.createElement('span');
+                    span.className = 'inline-mention-chip user-ref-trigger';
+                    span.dataset.mentionKind = 'person';
+                    span.dataset.userRef = targetU?.id || mText.slice(1);
+                    span.textContent = mText;
+                    span.onclick = ev => { ev.stopPropagation(); openUserDashboard(targetU?.id || mText.slice(1)); };
+                    span.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); openUserContextMenu(ev, targetU?.id || mText.slice(1)); };
+                    body.append(span);
+                    cursor = match.index + mText.length;
+                }
+                if (cursor < rawComment.length) body.append(document.createTextNode(rawComment.slice(cursor)));
+            } else {
+                body.textContent = rawComment;
+            }
             row.append(body);
         }
         msgList.append(row);
@@ -10694,11 +13197,184 @@ function toggleCommentsDrawer(forceOpen = null) {
     const btn = $('[data-action="toggle-comments"]');
     if (!drawer) return;
     const nextOpen = forceOpen === null ? drawer.hidden : !!forceOpen;
+    if (nextOpen) {
+        const assetsSidebar = $('#assets-sidebar');
+        if (assetsSidebar && !assetsSidebar.hidden) toggleAssetsSidebar(false);
+    }
     drawer.hidden = !nextOpen;
     btn?.setAttribute('aria-expanded', String(nextOpen));
     if (nextOpen) renderCommentsDrawer();
     layoutRightComments(current());
     if (commentPopoverState) renderCommentPopover();
+}
+
+let assetsSidebarSearch = '';
+let assetsSidebarCategory = 'all';
+
+function toggleAssetsSidebar(forceOpen: boolean | null = null) {
+    const drawer = $('#assets-sidebar');
+    const btn = $('[data-action="toggle-assets-sidebar"]');
+    if (!drawer) return;
+    const nextOpen = forceOpen === null ? drawer.hidden : !!forceOpen;
+    if (nextOpen) {
+        const cDrawer = $('#comments-drawer');
+        if (cDrawer && !cDrawer.hidden) toggleCommentsDrawer(false);
+    }
+    drawer.hidden = !nextOpen;
+    btn?.classList.toggle('is-active', nextOpen);
+    btn?.setAttribute('aria-expanded', String(nextOpen));
+    if (nextOpen) {
+        renderAssetsSidebar();
+        requestAnimationFrame(() => ($('#assets-sidebar-search') as HTMLInputElement | null)?.focus());
+    }
+}
+
+function renderAssetsSidebar() {
+    const drawer = $('#assets-sidebar');
+    if (!drawer || drawer.hidden) return;
+    const prevFocusId = (document.activeElement as HTMLElement | null)?.id || '';
+    const all = ArchitectBackend.readAssetCatalog();
+    const filtered = ArchitectBackend.queryAssets(all, {
+        query: assetsSidebarSearch,
+        category: assetsSidebarCategory,
+        creator: 'all',
+        storageMode: 'all'
+    });
+    drawer.innerHTML = `
+        <header class="assets-sidebar-head">
+            <div class="assets-sidebar-title-wrap">
+                <strong>Assets</strong>
+                <span class="assets-sidebar-count">${filtered.length}</span>
+            </div>
+            <div class="assets-sidebar-head-actions">
+                <label class="secondary-button assets-sidebar-upload-btn" title="Upload files or PureRef (.pur) boards">＋ Upload<input id="assets-sidebar-upload" type="file" multiple hidden></label>
+                <button type="button" class="icon-button" data-sidebar-full-lib title="Open full Asset Library">⤢</button>
+                <button type="button" class="icon-button" data-sidebar-close aria-label="Close Assets sidebar">×</button>
+            </div>
+        </header>
+        <div class="assets-sidebar-filters">
+            <input id="assets-sidebar-search" type="search" placeholder="Search assets, .pur boards, tags…" value="${esc(assetsSidebarSearch)}" autocomplete="off" aria-label="Search assets sidebar">
+            <select id="assets-sidebar-cat" aria-label="Filter category in sidebar">
+                <option value="all"${assetsSidebarCategory === 'all' ? ' selected' : ''}>All categories</option>
+                <option value="board"${assetsSidebarCategory === 'board' ? ' selected' : ''}>Board (.pur)</option>
+                <option value="image"${assetsSidebarCategory === 'image' ? ' selected' : ''}>Image</option>
+                <option value="concept"${assetsSidebarCategory === 'concept' ? ' selected' : ''}>Concept</option>
+                <option value="illustration"${assetsSidebarCategory === 'illustration' ? ' selected' : ''}>Illustration</option>
+                <option value="music"${assetsSidebarCategory === 'music' ? ' selected' : ''}>Music</option>
+                <option value="sfx"${assetsSidebarCategory === 'sfx' ? ' selected' : ''}>SFX</option>
+                <option value="video"${assetsSidebarCategory === 'video' ? ' selected' : ''}>Video</option>
+                <option value="3d model"${assetsSidebarCategory === '3d model' ? ' selected' : ''}>3D model</option>
+                <option value="document"${assetsSidebarCategory === 'document' ? ' selected' : ''}>Document</option>
+                <option value="other"${assetsSidebarCategory === 'other' ? ' selected' : ''}>Other</option>
+            </select>
+        </div>
+        <div class="assets-sidebar-hint">Drag any item into your page or board to link without copying.</div>
+        <div class="assets-sidebar-list" id="assets-sidebar-list" role="list"></div>
+    `;
+
+    const searchInp = drawer.querySelector('#assets-sidebar-search') as HTMLInputElement;
+    searchInp.addEventListener('input', () => {
+        assetsSidebarSearch = searchInp.value;
+        renderAssetsSidebar();
+    });
+    const catSel = drawer.querySelector('#assets-sidebar-cat') as HTMLSelectElement;
+    catSel.addEventListener('change', () => {
+        assetsSidebarCategory = catSel.value;
+        renderAssetsSidebar();
+    });
+    drawer.querySelector('[data-sidebar-full-lib]')?.addEventListener('click', () => openAssetLibrary());
+    drawer.querySelector('[data-sidebar-close]')?.addEventListener('click', () => toggleAssetsSidebar(false));
+    const upInp = drawer.querySelector('#assets-sidebar-upload') as HTMLInputElement;
+    upInp.addEventListener('change', async () => {
+        const files = [...(upInp.files || [])];
+        if (!files.length) return;
+        for (const f of files) {
+            try {
+                if (/\.pur$/i.test(f.name)) {
+                    const imported = await importPureRefFile(f, { parentPageId: current()?.id });
+                    selectedLibraryAssetId = imported.asset.id;
+                } else {
+                    const rec = await ArchitectBackend.ingestLocalFile(f, { creator: getActorDisplayName(), storageMode: state.assetStorageMode || 'local', previewPolicy: state.assetPreviewPolicy });
+                    selectedLibraryAssetId = rec.id;
+                }
+            } catch (err) {
+                toast(err?.message || `Failed to upload ${f.name}`);
+            }
+        }
+        upInp.value = '';
+        renderAssetsSidebar();
+    });
+
+    const listEl = drawer.querySelector('#assets-sidebar-list') as HTMLElement;
+    if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'assets-inspector-empty';
+        empty.textContent = all.length ? 'No assets match your search.' : 'No assets yet. Upload files or .pur boards above.';
+        listEl.append(empty);
+    }
+
+    filtered.forEach(asset => {
+        const card = document.createElement('div');
+        card.className = 'assets-sidebar-card';
+        card.setAttribute('role', 'listitem');
+        card.draggable = true;
+        card.dataset.assetId = asset.id;
+        const isImg = asset.fileType.startsWith('image/') || asset.category === 'concept' || asset.category === 'illustration' || asset.category === 'image';
+        const isBoard = asset.category === 'board' || !!asset.metadata?.boardPageId;
+        const initialThumb = asset.storageMode === 'local' ? (asset.url || '') : (asset.previewDataUrl || asset.url || '');
+        const glyph = isBoard ? '🎨' : asset.category === 'music' ? '🎵' : asset.category === 'sfx' ? '🔊' : asset.category === 'video' ? '🎬' : asset.category === '3d model' ? '◇' : '📄';
+        const thumbHtml = (isImg && initialThumb) ? `<img src="${esc(initialThumb)}" alt="" draggable="false">` : glyph;
+        card.innerHTML = `
+            <div class="assets-sidebar-thumb">${thumbHtml}</div>
+            <div class="assets-sidebar-meta">
+                <strong title="${esc(asset.name)}">${esc(asset.name)}</strong>
+                <span>${esc(asset.category)}</span>
+            </div>
+            <div class="assets-sidebar-card-btns">
+                ${isBoard && asset.metadata?.boardPageId ? '<button type="button" class="assets-mini-btn" data-open-board title="Open linked Board">↗</button>' : ''}
+                <button type="button" class="assets-mini-btn" data-ref-insert title="Insert reference (no copy)">＋</button>
+            </div>
+        `;
+        if (isImg) {
+            ArchitectBackend.resolveAssetPreviewUrl(asset).then(url => {
+                const t = card.querySelector('.assets-sidebar-thumb');
+                if (url && t && card.isConnected) t.innerHTML = `<img src="${esc(url)}" alt="" draggable="false">`;
+            });
+        }
+        card.addEventListener('dragstart', ev => {
+            if (!ev.dataTransfer) return;
+            ev.dataTransfer.effectAllowed = 'link';
+            ev.dataTransfer.setData(ASSET_DRAG_MIME, asset.id);
+        });
+        card.querySelector('[data-open-board]')?.addEventListener('click', ev => {
+            ev.stopPropagation();
+            if (asset.metadata?.boardPageId) navigateToPage(String(asset.metadata.boardPageId));
+        });
+        card.querySelector('[data-ref-insert]')?.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const pg = current();
+            if (!pg || effectivePageReadOnly(pg)) { toast('Page is read-only'); return; }
+            if (ArchitectBoard.isBoardPage(pg)) {
+                ArchitectBoard.insertAssetNodeIntoBoard(pg, asset);
+                toast(`Referenced ${asset.name} on board`);
+            } else if (ArchitectDatabase.isDatabasePage(pg)) {
+                toast('Drag assets onto a doc block or board page');
+            } else {
+                insertExistingAssetReferenceAtTarget(asset, pg, null, 'after');
+            }
+        });
+        card.addEventListener('dblclick', () => {
+            if (isBoard && asset.metadata?.boardPageId) navigateToPage(String(asset.metadata.boardPageId));
+            else if (isImg) openImageLightbox(asset);
+            else openAssetLibrary(asset.id);
+        });
+        listEl.append(card);
+    });
+
+    if (prevFocusId === 'assets-sidebar-search') {
+        const el = drawer.querySelector('#assets-sidebar-search') as HTMLInputElement | null;
+        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }
 }
 function syncCommentViews() {
     const p = current();
@@ -11459,6 +14135,67 @@ editor.addEventListener('contextmenu', event => {
 editor.addEventListener('input', onEditorInput);
 editor.addEventListener('beforeinput', handleBlockRangeDeletion);
 editor.addEventListener('paste', handleMarkdownPaste);
+editor.addEventListener('dragover', event => {
+    const isAssetRef = hasDraggedAsset(event.dataTransfer);
+    const isExtFiles = hasExternalFiles(event.dataTransfer);
+    if (!isAssetRef && !isExtFiles) return;
+    if (currentAppMode !== 'notion' || isDocsGraphMode) return;
+    const p = current();
+    if (!p || effectivePageReadOnly(p)) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = isAssetRef ? 'link' : 'copy';
+    clearDropIndicators();
+    const rawTarget = event.target instanceof Element ? event.target : null;
+    const hovered = resolveHoveredBlock(rawTarget, event.clientX, event.clientY);
+    if (hovered) {
+        hovered.classList.add(`drop-${dropZoneForBlock(hovered, event)}`);
+    } else {
+        const lastBlk = editor.querySelector('.block-editor > .block:last-child') as HTMLElement | null;
+        if (lastBlk) lastBlk.classList.add('drop-after');
+    }
+});
+editor.addEventListener('dragleave', event => {
+    const related = event.relatedTarget as Node | null;
+    if (!related || !editor.contains(related)) clearDropIndicators();
+});
+editor.addEventListener('drop', event => {
+    const isAssetRef = hasDraggedAsset(event.dataTransfer);
+    const isExtFiles = hasExternalFiles(event.dataTransfer);
+    if (!isAssetRef && !isExtFiles) return;
+    if (currentAppMode !== 'notion' || isDocsGraphMode) return;
+    const p = current();
+    event.preventDefault();
+    event.stopPropagation();
+    clearDropIndicators();
+    if (!p || effectivePageReadOnly(p)) return;
+    const rawTarget = event.target instanceof Element ? event.target : null;
+    const hovered = resolveHoveredBlock(rawTarget, event.clientX, event.clientY);
+    const lastBlk = !hovered ? (editor.querySelector('.block-editor > .block:last-child') as HTMLElement | null) : null;
+    const ctx = hovered ? blockContext(hovered) : (lastBlk ? blockContext(lastBlk) : null);
+    const zone = hovered ? dropZoneForBlock(hovered, event) : 'after';
+    if (isAssetRef) {
+        const aid = readDraggedAssetId(event.dataTransfer);
+        const existing = aid ? ArchitectBackend.readAssetCatalog().find(a => a.id === aid) : null;
+        if (existing) insertExistingAssetReferenceAtTarget(existing, p, ctx, zone);
+        return;
+    }
+    const files = Array.from(event.dataTransfer?.files || []);
+    if (!files.length) return;
+    dropExternalFilesAtTarget(files, p, ctx, zone);
+});
+window.addEventListener('dragover', event => {
+    if (!hasExternalFiles(event.dataTransfer)) return;
+    const t = event.target instanceof Element ? event.target : null;
+    if (t?.closest('dialog, input[type="file"]')) return;
+    event.preventDefault();
+});
+window.addEventListener('drop', event => {
+    if (!hasExternalFiles(event.dataTransfer)) return;
+    const t = event.target instanceof Element ? event.target : null;
+    if (t?.closest('dialog, input[type="file"]')) return;
+    clearDropIndicators();
+    event.preventDefault();
+});
 editor.addEventListener('click', event => {
     const rawTarget = event.target instanceof Element ? event.target : null;
     const pageMention = rawTarget?.closest?.('.inline-mention-chip[data-mention-kind="page"]') as HTMLElement | null;
@@ -11469,6 +14206,16 @@ editor.addEventListener('click', event => {
             event.stopPropagation();
             if (event.ctrlKey || event.metaKey) openPageInNewTab(pid);
             else navigateToPage(pid);
+            return;
+        }
+    }
+    const personMention = rawTarget?.closest?.('.inline-mention-chip[data-mention-kind="person"]') as HTMLElement | null;
+    if (personMention) {
+        const uidOrLabel = personMention.dataset.mentionId || personMention.textContent?.replace(/^@/, '').trim() || '';
+        if (uidOrLabel && uidOrLabel.toLowerCase() !== 'everyone') {
+            event.preventDefault();
+            event.stopPropagation();
+            openUserDashboard(uidOrLabel);
             return;
         }
     }
@@ -11650,7 +14397,7 @@ function wireAllModalDialogs() {
                 return;
             }
             if (dlg.id === 'settings-dialog') {
-                if (target.closest('#settings-sync-now, #export-workspace, #export-pre-reset-backup, #choose-sync-folder, #choose-asset-cache-folder, #sync-pull-now, #sync-push-now, #apply-workspace-import')) return;
+                if (target.closest('#settings-sync-now, #settings-check-updates, #export-workspace, #export-pre-reset-backup, #choose-sync-folder, #choose-asset-cache-folder, #sync-pull-now, #sync-push-now, #apply-workspace-import')) return;
                 e.preventDefault();
                 const nameInput = $('#settings-workspace-name') as HTMLInputElement | null;
                 const trimmed = nameInput?.value.trim() || '';
@@ -11724,22 +14471,34 @@ function wireAllModalDialogs() {
 wireAllModalDialogs();
 
 document.addEventListener('click', e => {
+    const rawTarget = e.target as Element | null;
+    if (activeBacklinksPopoverEl && rawTarget && !activeBacklinksPopoverEl.contains(rawTarget) && !rawTarget.closest('[data-action="backlinks"]')) {
+        closeBacklinksPopover();
+    }
     const modeBtn = e.target.closest('button[data-app-mode]') as HTMLElement | null;
     if (modeBtn) {
         const mode = modeBtn.dataset.appMode as 'notion' | 'dashboard' | 'inbox';
+        if (mode === 'notion') {
+            if (isDocsGraphMode) setDocsGraphMode(false);
+            else setAppMode('notion');
+            return;
+        }
         if (mode) setAppMode(mode);
         return;
     }
     const dashSubBtn = e.target.closest('button[data-dashboard-submode]') as HTMLElement | null;
     if (dashSubBtn) {
         const subMode = dashSubBtn.dataset.dashboardSubmode as DashboardSubMode;
+        if (subMode === 'user') inspectedDashboardUserId = null;
         if (subMode) setDashboardSubMode(subMode);
         return;
     }
     const a = e.target.closest('[data-action]')?.dataset.action;
+    if (a === 'graph-view') { setDocsGraphMode(!isDocsGraphMode); return; }
     if (a === 'dashboard') { setAppMode('dashboard'); return; }
     if (a === 'updates') { if (currentAppMode === 'notion') toggleDocsNotificationsPopover(); else setDashboardSubMode('notifications'); return; }
     if (a === 'search') { openSearch(); return; }
+    if (a === 'toggle-assets-sidebar') { toggleAssetsSidebar(); return; }
     if (a === 'asset-library') { openAssetLibrary(); return; }
     if (a === 'sync-now') { synchronizeNow(); return; }
     if (a === 'trash') {
@@ -11833,10 +14592,58 @@ $('#ws-settings-tabs')?.addEventListener('click', e => {
 });
 $('#save-workspace-name').addEventListener('click', () => { const name = $('#settings-workspace-name').value.trim(); if (!name) { $('#settings-feedback').textContent = 'Enter a workspace name first.'; $('#settings-workspace-name').focus(); return; } state.workspaceName = name; save(); syncActiveWorkspaceInIndex(); renderNav(); renderBreadcrumbs(current()); $('#settings-feedback').textContent = 'Workspace name saved.'; toast('Workspace name updated'); });
 $('#settings-sync-now')?.addEventListener('click', () => synchronizeNow());
+$('#settings-check-updates')?.addEventListener('click', () => checkForAppUpdates(undefined, true));
 $('#export-workspace').addEventListener('click', exportWorkspaceBackup);
 $('#export-pre-reset-backup').addEventListener('click', exportPreviousWorkspaceBackup);
 $('#import-workspace-file').addEventListener('change', async e => { const file = e.target.files?.[0]; if (!file) return; try { pendingWorkspaceImport = decodeWorkspaceBackup(JSON.parse(await file.text())); $('#settings-feedback').textContent = `Ready to restore “${pendingWorkspaceImport.workspace.workspaceName}” with ${pendingWorkspaceImport.workspace.pages.length} pages and ${pendingWorkspaceImport.assets.length} assets. Restoring replaces the current local workspace.`; $('#apply-workspace-import').disabled = false; } catch (error) { pendingWorkspaceImport = null; $('#apply-workspace-import').disabled = true; $('#settings-feedback').textContent = error.message || 'Could not read this backup file.'; } });
 $('#apply-workspace-import').addEventListener('click', restoreWorkspaceBackup);
+$('#import-notion-folder')?.addEventListener('change', async e => {
+    const inp = e.target as HTMLInputElement;
+    const files = Array.from(inp.files || []);
+    inp.value = '';
+    if (!files.length) return;
+    const feedbackEl = $('#notion-import-feedback');
+    try {
+        if (feedbackEl) feedbackEl.textContent = `Reading ${files.length} files from Notion export folder…`;
+        const filesMap = new Map<string, File>();
+        let bundleFile: File | null = null;
+        for (const f of files) {
+            const rel = ((f as any).webkitRelativePath || f.name).replace(/\\/g, '/');
+            filesMap.set(rel, f);
+            const lower = rel.toLowerCase();
+            if (lower.endsWith('/normalized/bundle.json') || lower === 'normalized/bundle.json') {
+                bundleFile = f;
+            } else if (!bundleFile && (lower === 'bundle.json' || lower.endsWith('/bundle.json'))) {
+                bundleFile = f;
+            }
+        }
+        if (!bundleFile) throw new Error('Could not find normalized/bundle.json inside the selected folder.');
+        const bundle = JSON.parse(await bundleFile.text());
+        const stats = await importNotionBundle(bundle, filesMap);
+        const msg = `Imported ${stats.importedPages} pages, ${stats.newUsers} collaborator profiles, ${stats.commentMessages} comments, and ${stats.ingestedAssets} assets (${stats.reusedDuplicates} duplicates skipped).`;
+        if (feedbackEl) feedbackEl.textContent = msg;
+        toast(`Notion folder imported (${stats.importedPages} pages)`);
+    } catch (err: any) {
+        if (feedbackEl) feedbackEl.textContent = err?.message || 'Could not import Notion folder.';
+    }
+});
+$('#import-notion-json')?.addEventListener('change', async e => {
+    const inp = e.target as HTMLInputElement;
+    const file = inp.files?.[0];
+    inp.value = '';
+    if (!file) return;
+    const feedbackEl = $('#notion-import-feedback');
+    try {
+        if (feedbackEl) feedbackEl.textContent = `Importing ${file.name}…`;
+        const bundle = JSON.parse(await file.text());
+        const stats = await importNotionBundle(bundle);
+        const msg = `Imported ${stats.importedPages} pages, ${stats.newUsers} collaborator profiles, and ${stats.commentMessages} comments.`;
+        if (feedbackEl) feedbackEl.textContent = msg;
+        toast(`Notion bundle imported (${stats.importedPages} pages)`);
+    } catch (err: any) {
+        if (feedbackEl) feedbackEl.textContent = err?.message || 'Could not parse bundle.json.';
+    }
+});
 function persistSettingsChange() {
     state.actingAsAdmin = state.actingAsAdmin !== false;
     state.coordinationMode = $('#settings-coord-mode').value;
@@ -11888,6 +14695,12 @@ function persistSettingsChange() {
 ['#settings-coord-mode', '#settings-asset-mode', '#settings-preview-mode', '#settings-proxy-max-kb', '#settings-cache-folder', '#settings-sync-provider', '#settings-sync-readonly', '#settings-sync-cadence', '#settings-sync-interval', '#settings-sync-folder', '#settings-sync-url', '#settings-server-url'].forEach(sel => {
     $(sel)?.addEventListener('change', persistSettingsChange);
 });
+$('#ws-rounded-images')?.addEventListener('change', e => {
+    state.roundedImageCorners = !!(e.target as HTMLInputElement).checked;
+    save(true);
+    render();
+    toast(state.roundedImageCorners ? 'Rounded image corners enabled by default' : 'Sharp image corners enabled by default');
+});
 $('#choose-asset-cache-folder')?.addEventListener('click', async () => {
     const desktop = ArchitectBackend.host();
     if (desktop) {
@@ -11925,7 +14738,7 @@ $('#sync-push-now')?.addEventListener('click', () => { persistSettingsChange(); 
 $('#topbar-sync-now')?.addEventListener('click', () => runSyncPull(true));
 
 let libraryTargetContext = null;
-const ASSET_CATEGORIES = ['music', 'sfx', '3d model', 'concept', 'illustration', 'video', 'document', 'image', 'other'];
+const ASSET_CATEGORIES = ['music', 'sfx', '3d model', 'concept', 'illustration', 'video', 'document', 'image', 'board', 'other'];
 function insertAssetIntoBlockTarget(asset, targetPage, targetBlock) {
     if (effectivePageReadOnly(targetPage)) { toast('Read-only: cannot edit this page'); return; }
     pushUndoBeforeEdit(targetPage);
@@ -11941,6 +14754,10 @@ function insertAssetIntoBlockTarget(asset, targetPage, targetBlock) {
     targetBlock.category = asset.category;
     targetBlock.creator = asset.creator;
     targetBlock.tags = [...(asset.tags || [])];
+    targetBlock.cropRect = undefined;
+    targetBlock.editedBy = getActorDisplayName();
+    targetBlock.editedAt = Date.now();
+    targetPage.lastEditedBy = getActorDisplayName();
     save(); render();
 }
 function refreshAssetCreatorFilter(all) {
@@ -11955,7 +14772,7 @@ function renderAssetLibrary() {
     stopAllAudioPlayers();
     const all = ArchitectBackend.readAssetCatalog();
     const actor = getCurrentActorUser();
-    const isAdmin = !actor?.blocked && (userHasGlobalPerm('manageAssets', actor) || getUserHighestRank(actor) === 0);
+    const isAdmin = !!actor && (userHasGlobalPerm('manageAssets', actor) || getUserHighestRank(actor) === 0);
     const storeLabel = state.assetStorageMode === 'drive' ? 'External Drive' : state.assetStorageMode === 'server' ? 'Team Server' : 'Local Storage';
     const subtitle = $('#assets-subtitle');
     if (subtitle) subtitle.textContent = `Storage: ${storeLabel} · Role: ${isAdmin ? 'Admin (creator reassignment enabled)' : 'Member (creator read-only)'} — Search, play audio timelines, or insert references.`;
@@ -11982,7 +14799,7 @@ function renderAssetLibrary() {
         const initialThumb = asset.storageMode === 'local' ? (asset.url || '') : (asset.previewDataUrl || asset.url || '');
         const thumbHtml = (initialThumb && (asset.fileType.startsWith('image/') || asset.previewDataUrl))
             ? `<img src="${esc(initialThumb)}" alt="">`
-            : asset.category === 'music' ? '🎵' : asset.category === 'sfx' ? '🔊' : asset.category === 'video' ? '🎬' : asset.category === '3d model' ? '◇' : '📄';
+            : asset.category === 'board' ? '🎨' : asset.category === 'music' ? '🎵' : asset.category === 'sfx' ? '🔊' : asset.category === 'video' ? '🎬' : asset.category === '3d model' ? '◇' : '📄';
         const storeLabel = asset.storageMode === 'drive-reference' ? 'Drive ref' : asset.storageMode === 'server' ? 'Server' : 'Local';
         card.innerHTML = `<div class="asset-thumb">${thumbHtml}</div><div class="asset-card-name">${esc(asset.name)}</div><div class="asset-card-sub"><span>${esc(asset.category)} · ${esc(asset.creator)}</span><span>${esc(storeLabel)}</span></div>`;
         card.onclick = () => { selectedLibraryAssetId = asset.id; renderAssetLibrary(); };
@@ -12022,7 +14839,13 @@ function renderAssetLibrary() {
         expandBtn.onclick = () => openImageLightbox(selected);
         previewBox.append(img, expandBtn);
     } else {
-        previewBox.innerHTML = `<div style="font-size:32px">${selected.category === '3d model' ? '◇' : '📄'}</div><strong style="font-size:12px">${esc(selected.name)}</strong><small style="color:#787774">${esc(selected.fileType)} ${selected.sizeBytes ? '· ' + formatBytes(selected.sizeBytes) : ''}</small>`;
+        previewBox.innerHTML = `<div style="font-size:32px">${selected.category === 'board' ? '🎨' : selected.category === '3d model' ? '◇' : '📄'}</div><strong style="font-size:12px">${esc(selected.name)}</strong><small style="color:#787774">${esc(selected.fileType)} ${selected.sizeBytes ? '· ' + formatBytes(selected.sizeBytes) : ''}</small>`;
+        if (selected.metadata?.boardPageId) {
+            const openBoardBtn = document.createElement('button');
+            openBoardBtn.type = 'button'; openBoardBtn.className = 'secondary-button'; openBoardBtn.textContent = '🎨 Open linked Board';
+            openBoardBtn.onclick = () => { $('#assets-dialog').close(); navigateToPage(String(selected.metadata.boardPageId)); };
+            previewBox.append(openBoardBtn);
+        }
     }
     inspector.append(previewBox);
     const metaBox = document.createElement('div');
@@ -12112,14 +14935,20 @@ $('#assets-upload-input')?.addEventListener('change', async event => {
     const creator = getActorDisplayName();
     for (const file of files) {
         try {
-            const rec = await ArchitectBackend.ingestLocalFile(file, { creator, storageMode: state.assetStorageMode || 'local', previewPolicy: state.assetPreviewPolicy });
-            selectedLibraryAssetId = rec.id;
+            if (/\.pur$/i.test(file.name)) {
+                const imported = await importPureRefFile(file, { parentPageId: current()?.id });
+                selectedLibraryAssetId = imported.asset.id;
+            } else {
+                const rec = await ArchitectBackend.ingestLocalFile(file, { creator, storageMode: state.assetStorageMode || 'local', previewPolicy: state.assetPreviewPolicy });
+                selectedLibraryAssetId = rec.id;
+            }
         } catch (err) {
             toast(err?.message || `Failed to store ${file.name}`);
         }
     }
     event.target.value = '';
     renderAssetLibrary();
+    renderAssetsSidebar();
     toast(`Added ${files.length} ${files.length === 1 ? 'asset' : 'assets'}`);
 });
 $('#assets-add-drive-ref')?.addEventListener('click', () => { $('#drive-ref-form').hidden = !$('#drive-ref-form').hidden; });
@@ -12160,7 +14989,7 @@ $('#lightbox-zoom-in')?.addEventListener('click', () => setLightboxScale(lightbo
 $('#lightbox-zoom-out')?.addEventListener('click', () => setLightboxScale(lightboxZoom - 0.35));
 $('#lightbox-fit')?.addEventListener('click', () => setLightboxScale(1));
 $('#lightbox-download')?.addEventListener('click', () => { if (lightboxAsset) ArchitectBackend.downloadFullAsset(lightboxAsset); });
-function pageMenu(p, anchor) { closeMenu(); const menu = $('#command-menu'); menu.className = 'command-menu page-actions'; menu.replaceChildren(); const heading = document.createElement('div'); heading.className = 'menu-heading'; const icon = document.createElement('span'); icon.className = 'menu-heading-icon'; icon.innerHTML = pageIconMarkup(p.icon); const title = document.createElement('strong'); title.textContent = p.title || 'Untitled'; heading.append(icon, title); menu.append(heading); const list = document.createElement('div'); list.className = 'command-list'; menu.append(list); const add = (label, run) => list.append(menuRow(label, menuGlyph(label), run)); const divider = () => { const line = document.createElement('div'); line.className = 'menu-divider'; list.append(line); }; const pgPerms = resolvePagePermissions(p); const actor = getCurrentActorUser(); const canManagePerms = !actor?.blocked && (userHasGlobalPerm('managePagePermissions', actor) || getUserHighestRank(actor) === 0); add('Open in new tab', () => openPageInNewTab(p.id)); if (pgPerms.edit && !isReadOnlyMirror()) { add('Rename', () => { const name = prompt('Page title', p.title); if (name?.trim()) { p.title = name.trim(); save(); render(); } }); add('Duplicate', () => duplicatePage(p)); } add('Copy link', () => copyPageLink(p)); divider(); add(p.favorite ? 'Remove from favorites' : 'Add to favorites', () => { p.favorite = !p.favorite; save(); render(); }); add('Version history', () => openVersionHistoryModal(p)); if (pgPerms.edit && !isReadOnlyMirror()) { add(p.published ? 'Unpublish page' : 'Publish page', () => togglePagePublish(p)); } if (p.published) { add('Page analytics', () => openPageAnalyticsModal(p)); } if (pgPerms.edit && !isReadOnlyMirror()) { add('Change icon', () => iconPicker(p)); if (!ArchitectDatabase.isDatabasePage(p) && !ArchitectBoard.isBoardPage(p) && !p.databaseId) { add('Turn into database', () => { ArchitectDatabase.convertPageToDatabase(p); save(); render(); }); add('Turn into board', () => { ArchitectBoard.convertPageToBoard(p); save(); render(); }); } } if (canManagePerms) { add('Permissions', () => openPagePermissionsDialog(p)); } divider(); if (pgPerms.edit && !isReadOnlyMirror()) { add('Delete', () => { if (confirm(`Move “${p.title}” and its children to Trash?`)) { deletePageTree(p.id); if (!state.pages.length) createPage(); if (!state.pages.some(page => page.id === state.activePageId)) state.activePageId = state.pages[0].id; pageHistory = [state.activePageId]; historyIndex = 0; save(); render(); } }); } const point = anchor?.clientX != null ? { x: anchor.clientX, y: anchor.clientY + 2 } : anchor?.getBoundingClientRect ? { x: anchor.getBoundingClientRect().right, y: anchor.getBoundingClientRect().bottom + 2 } : { x: 256, y: 92 }; placeFloatingMenu(menu, point.x, point.y); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
+function pageMenu(p, anchor) { closeMenu(); const menu = $('#command-menu'); menu.className = 'command-menu page-actions'; menu.replaceChildren(); const heading = document.createElement('div'); heading.className = 'menu-heading'; const icon = document.createElement('span'); icon.className = 'menu-heading-icon'; icon.innerHTML = pageIconMarkup(p.icon); const title = document.createElement('strong'); title.textContent = p.title || 'Untitled'; heading.append(icon, title); menu.append(heading); const list = document.createElement('div'); list.className = 'command-list'; menu.append(list); const add = (label, run) => list.append(menuRow(label, menuGlyph(label), run)); const divider = () => { const line = document.createElement('div'); line.className = 'menu-divider'; list.append(line); }; const pgPerms = resolvePagePermissions(p); const actor = getCurrentActorUser(); const canManagePerms = !!actor && (userHasGlobalPerm('managePagePermissions', actor) || getUserHighestRank(actor) === 0); add('Open in new tab', () => openPageInNewTab(p.id)); if (pgPerms.edit && !isReadOnlyMirror()) { add('Rename', () => { const name = prompt('Page title', p.title); if (name?.trim()) { p.title = name.trim(); save(); render(); } }); add('Duplicate', () => duplicatePage(p)); } add('Copy link', () => copyPageLink(p)); divider(); add(p.favorite ? 'Remove from favorites' : 'Add to favorites', () => { p.favorite = !p.favorite; save(); render(); }); add('Version history', () => openVersionHistoryModal(p)); if (pgPerms.edit && !isReadOnlyMirror()) { add(p.published ? 'Unpublish page' : 'Publish page', () => togglePagePublish(p)); } if (p.published) { add('Page analytics', () => openPageAnalyticsModal(p)); } if (pgPerms.edit && !isReadOnlyMirror()) { add('Change icon', () => iconPicker(p)); if (!ArchitectDatabase.isDatabasePage(p) && !ArchitectBoard.isBoardPage(p) && !p.databaseId) { add('Turn into database', () => { ArchitectDatabase.convertPageToDatabase(p); save(); render(); }); add('Turn into board', () => { ArchitectBoard.convertPageToBoard(p); save(); render(); }); } } if (canManagePerms) { add('Permissions', () => openPagePermissionsDialog(p)); } divider(); if (pgPerms.edit && !isReadOnlyMirror()) { add('Delete', () => { if (confirm(`Move “${p.title}” and its children to Trash?`)) { deletePageTree(p.id); if (!state.pages.length) createPage(); if (!state.pages.some(page => page.id === state.activePageId)) state.activePageId = state.pages[0].id; pageHistory = [state.activePageId]; historyIndex = 0; save(); render(); } }); } const point = anchor?.clientX != null ? { x: anchor.clientX, y: anchor.clientY + 2 } : anchor?.getBoundingClientRect ? { x: anchor.getBoundingClientRect().right, y: anchor.getBoundingClientRect().bottom + 2 } : { x: 256, y: 92 }; placeFloatingMenu(menu, point.x, point.y); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
 function readAssets() { return ArchitectBackend.readAssetCatalog(); }
 function coverBannerAspect() {
     const cover = document.querySelector('.page-cover');
@@ -12593,6 +15422,7 @@ document.addEventListener('keydown', e => {
         return;
     }
     if (e.key === 'Escape') {
+        if (activeBacklinksPopoverEl) { closeBacklinksPopover(); return; }
         if (activeRichPopoverEl) { closeRichPopover(); return; }
         if (activeMenu && !activeMenu.hidden) { closeMenu(); return; }
         if (document.querySelector('.db-popover')) { ArchitectDatabase.closeDbPopover(); return; }
@@ -12601,6 +15431,8 @@ document.addEventListener('keydown', e => {
         if (!$('#comment-popover')?.hidden || commentPopoverState) { hideCommentPopover(); return; }
         if (!$('#selection-toolbar')?.hidden) { closeSelectionToolbar(); return; }
         if (!$('#comments-drawer')?.hidden) { toggleCommentsDrawer(false); return; }
+        if (!$('#assets-sidebar')?.hidden) { toggleAssetsSidebar(false); return; }
+        if (isDocsGraphMode) { setDocsGraphMode(false); return; }
     }
 });
 
@@ -12865,6 +15697,16 @@ function handleDocumentContextMenu(event) {
         return;
     }
 
+    // 4b. Right-clicking any user reference anywhere (comment author, @mention, DB person, DM, Team overview)
+    const userRefEl = rawTarget.closest('[data-user-ref], .comment-msg-author, .comment-avatar, .inline-mention-chip[data-mention-kind="person"], .db-person-chip') as HTMLElement | null;
+    if (userRefEl) {
+        const ref = userRefEl.dataset.userRef || userRefEl.dataset.mentionId || userRefEl.textContent?.replace(/^@/, '').trim() || '';
+        if (ref && ref.toLowerCase() !== 'everyone') {
+            openUserContextMenu(event, ref);
+            return;
+        }
+    }
+
     // 5. Images & links
     const imgEl = rawTarget.closest('img.content-image, #lightbox-img, .assets-preview img, img');
     const linkEl = rawTarget.closest('a[href]');
@@ -13005,6 +15847,8 @@ ArchitectDatabase.initHost({
     isPageReadOnly: page => effectivePageReadOnly(page || current()),
     canViewPage: page => !page || resolvePagePermissions(page).view,
     openAssetLibrary: assetId => openAssetLibrary(assetId),
+    openUserDashboard: ref => openUserDashboard(ref),
+    openUserContextMenu: (ev, ref) => openUserContextMenu(ev, ref),
     toast: msg => toast(msg),
     iconPicker: page => iconPicker(page),
     iconPickerForValue: (currentVal: string | undefined, allowEmpty: boolean, cb: (val: string) => void) => iconPickerForCallback(currentVal, allowEmpty, cb),
@@ -13015,16 +15859,32 @@ ArchitectDatabase.initHost({
 (window as any).ArchitectWorkspace = {
     applyImportedDefaultPermissions,
     importExternalPages,
+    importNotionBundle,
     pushWorkspaceChatMessage,
     checkDueReminders,
     openVersionHistoryModal,
     openPageAnalyticsModal,
     togglePagePublish,
     toggleDocsNotificationsPopover,
+    setDocsGraphMode,
+    toggleAssetsSidebar,
+    importPureRefFile,
+    parsePureRefBinary,
+    findPageBacklinks,
+    checkForUpdates: (feedUrl?: string, manual?: boolean) => checkForAppUpdates(feedUrl, manual),
+    setUpdateInfo: (info: { currentVersion?: string; availableVersion: string; notes?: string; downloadUrl?: string } | null) => {
+        pendingUpdateInfo = info
+            ? { currentVersion: info.currentVersion || currentRuntimeVersion, availableVersion: info.availableVersion, notes: info.notes, downloadUrl: info.downloadUrl }
+            : null;
+        renderAppUpdateBanner(pendingUpdateInfo);
+    },
     getState: () => state,
     render: () => render(),
     save: (force?: boolean) => save(!!force),
-    openPage: (pageId: string) => navigateToPage(pageId)
+    openPage: (pageId: string) => navigateToPage(pageId),
+    openUserDashboard,
+    openUserDirectMessage,
+    openUserContextMenu
 };
 ArchitectBoard.initHost({
     getPages: () => state.pages,
@@ -13049,6 +15909,7 @@ ArchitectBoard.initHost({
         storageMode: state.assetStorageMode || 'local',
         previewPolicy: state.assetPreviewPolicy
     }),
+    importPureRef: (file, opts) => importPureRefFile(file, opts),
     findAssetById: (assetId, url) => {
         const all = ArchitectBackend.readAssetCatalog();
         if (assetId) return all.find(a => a.id === assetId) || null;
@@ -13105,7 +15966,7 @@ ArchitectToolbar.initHost({
     toast: msg => toast(msg),
     isReadOnlyMirror: () => effectivePageReadOnly(current()),
     isToolbarAllowed: () => {
-        if (currentAppMode !== 'notion') return false;
+        if (currentAppMode !== 'notion' || isDocsGraphMode) return false;
         const pg = current();
         if (!pg) return true;
         if (effectivePageReadOnly(pg)) return false;
@@ -13204,9 +16065,13 @@ ArchitectToolbar.initHost({
 let coverResizeFrame = 0;
 window.addEventListener('resize', () => { cancelAnimationFrame(coverResizeFrame); coverResizeFrame = requestAnimationFrame(() => { const page = current(), cover = document.querySelector('.page-cover'); if (cover && pageHasCover(page)) applyCoverBackground(cover, page); if ($('#cover-dialog').open) positionCoverCrop(); layoutRightComments(page); if (commentPopoverState) renderCommentPopover(); }); });
 const initialParams = new URLSearchParams(location.hash.replace(/^#/, ''));
-const initialPageId = initialParams.get('page'), initialBlockId = initialParams.get('block'), initialInviteCode = initialParams.get('invite');
+const initialPageId = initialParams.get('page'), initialViewId = initialParams.get('view'), initialBlockId = initialParams.get('block'), initialInviteCode = initialParams.get('invite');
 if (initialPageId && state.pages.some(page => page.id === initialPageId)) {
     state.activePageId = initialPageId;
+    if (initialViewId) {
+        const pg = state.pages.find(page => page.id === initialPageId);
+        if (pg?.database?.views?.some((v: any) => v.id === initialViewId)) pg.database.activeViewId = initialViewId;
+    }
     const matchTab = state.tabs?.find(t => t.pageId === initialPageId);
     if (matchTab) state.activeTabId = matchTab.id;
     else ensureTabs();
@@ -13223,7 +16088,7 @@ function handleInviteHash(inviteCode: string | null) {
         if (codeInp) { codeInp.value = inviteCode; ($('#mm-redeem-account') as HTMLInputElement | null)?.focus(); }
     });
 }
-window.addEventListener('hashchange', () => { const params = new URLSearchParams(location.hash.replace(/^#/, '')), pageId = params.get('page'), inviteCode = params.get('invite'); if (pageId) navigateToPage(pageId); const blockId = params.get('block'); if (blockId) requestAnimationFrame(() => { focusLinkedBlock(blockId); try { history.replaceState(null, '', pageHref(current().id, blockId)); } catch { } }); if (inviteCode) handleInviteHash(inviteCode); });
+window.addEventListener('hashchange', () => { const params = new URLSearchParams(location.hash.replace(/^#/, '')), pageId = params.get('page'), viewId = params.get('view'), inviteCode = params.get('invite'); if (pageId && viewId) { const pg = state.pages.find(page => page.id === pageId); if (pg?.database?.views?.some((v: any) => v.id === viewId)) pg.database.activeViewId = viewId; } if (pageId) navigateToPage(pageId); const blockId = params.get('block'); if (blockId) requestAnimationFrame(() => { focusLinkedBlock(blockId); try { history.replaceState(null, '', pageHref(current().id, blockId)); } catch { } }); if (inviteCode) handleInviteHash(inviteCode); });
 render();
 if (current()?.published) recordPublishedPageView(current());
 flushScheduledNotifications(state, true, true);
@@ -13233,6 +16098,7 @@ if (initialInviteCode) handleInviteHash(initialInviteCode);
 if (initialBlockId) { try { history.replaceState(null, '', pageHref(state.activePageId, initialBlockId)); } catch { } requestAnimationFrame(() => focusLinkedBlock(initialBlockId)); } else syncPageUrl(state.activePageId);
 scheduleAutoSync();
 if (state.coordinationMode === 'cloud-sync') runSyncPull(false);
+checkForAppUpdates();
 if (ArchitectBackend.host()) {
     Promise.all([
         ArchitectBackend.host().readWorkspace().catch(() => null),

@@ -179,6 +179,10 @@ type DbView = {
   sorts: DbSortRule[];
   groupBy?: string;
   subGroupBy?: string;
+  hideEmptyGroups?: boolean;
+  groupSort?: 'manual' | 'asc' | 'desc';
+  showGroupCounts?: boolean;
+  conditionalColors?: DbConditionalColorRule[];
   datePropertyId?: string;
   chartConfig?: {
     chartType: 'vertical_bar' | 'horizontal_bar' | 'donut';
@@ -201,6 +205,24 @@ type DbView = {
   timelineZoom?: 'day' | 'week' | 'month';
 };
 
+type DbConditionalColorRule = {
+  id: string;
+  enabled?: boolean;
+  propertyId: string;
+  op: DbFilterOp;
+  value?: string;
+  colorMode: 'fixed' | 'match_property_value';
+  color?: string;
+  applyTo?: 'row' | 'property';
+};
+
+type DbDatabaseConnection = {
+  id: string;
+  label: string;
+  provider: string;
+  enabled: boolean;
+};
+
 type DbTemplate = {
   id: string;
   name: string;
@@ -220,6 +242,9 @@ type DatabaseConfig = {
   parentPropertyId?: string;
   dependenciesPropertyId?: string;
   showTitle?: boolean;
+  locked?: boolean;
+  linkedEventsEnabled?: boolean;
+  connections?: DbDatabaseConnection[];
 };
 
 const ArchitectDatabase = (() => {
@@ -371,9 +396,14 @@ const ArchitectDatabase = (() => {
     return host?.getCurrentUser?.() || getState()?.users?.[0]?.name || 'Jordan Davis';
   }
 
-  function roMode(page?: any) {
+  function isHostReadOnly(page?: any) {
     if (page && host?.isPageReadOnly) return !!host.isPageReadOnly(page);
     return !!host?.isReadOnlyMirror?.();
+  }
+
+  function roMode(page?: any) {
+    if (page?.database?.locked) return true;
+    return isHostReadOnly(page);
   }
 
   function persist(shouldRender = false) {
@@ -449,6 +479,10 @@ const ArchitectDatabase = (() => {
       filterMatch: 'and',
       sorts: [],
       groupBy: type === 'board' ? (statusOrSelect || allIds[1]) : undefined,
+      hideEmptyGroups: false,
+      groupSort: 'manual',
+      showGroupCounts: true,
+      conditionalColors: [],
       datePropertyId: dateProp,
       chartConfig: {
         chartType: 'vertical_bar',
@@ -507,6 +541,11 @@ const ArchitectDatabase = (() => {
       v.sorts = Array.isArray(v.sorts) ? v.sorts : [];
       v.calculations = v.calculations || {};
       v.columnWidths = v.columnWidths || {};
+      v.hiddenGroups = Array.isArray(v.hiddenGroups) ? v.hiddenGroups : [];
+      v.collapsedGroups = Array.isArray(v.collapsedGroups) ? v.collapsedGroups : [];
+      v.conditionalColors = Array.isArray(v.conditionalColors) ? v.conditionalColors : [];
+      v.groupSort = v.groupSort || 'manual';
+      if (v.showGroupCounts === undefined) v.showGroupCounts = true;
       if (!v.datePropertyId) v.datePropertyId = db.schema.find(s => s.type === 'date')?.id;
       if (v.type === 'board' && (!v.groupBy || !schemaIds.includes(v.groupBy))) {
         const grp = db.schema.find(s => ['status', 'select', 'person', 'checkbox', 'multi_select'].includes(s.type));
@@ -519,6 +558,7 @@ const ArchitectDatabase = (() => {
     db.defaultOpenMode = db.defaultOpenMode || 'side_peek';
     db.templates = Array.isArray(db.templates) ? db.templates : [];
     db.automations = Array.isArray(db.automations) ? db.automations : [];
+    db.connections = Array.isArray(db.connections) ? db.connections : [];
     if (db.schema.some(s => s.type === 'unique_id')) assignUniqueIds(dbPage);
     return db;
   }
@@ -1760,6 +1800,49 @@ const ArchitectDatabase = (() => {
     return group.match === 'or' ? group.rules.some(evalNode) : group.rules.every(evalNode);
   }
 
+  function evaluateConditionalColor(view: DbView, rowPage: any, dbPage: any) {
+    const db = ensureDatabaseConfig(dbPage);
+    let rowColor: string | undefined;
+    const propColors = new Map<string, string>();
+    const rules = Array.isArray(view.conditionalColors) ? view.conditionalColors : [];
+    for (const rule of rules) {
+      if (!rule || rule.enabled === false) continue;
+      const synth: DbFilterRule = { id: rule.id, propertyId: rule.propertyId, op: rule.op, value: rule.value };
+      if (!matchesSingleFilter(synth, rowPage, dbPage)) continue;
+      let colorKey = String(rule.color || 'blue');
+      if (rule.colorMode === 'match_property_value') {
+        const prop = db.schema.find(s => s.id === rule.propertyId);
+        if (prop && prop.options?.length) {
+          const raw = getRawValue(prop, rowPage, dbPage);
+          const candidate = Array.isArray(raw) ? raw[0] : raw;
+          const opt = resolveOption(prop, candidate);
+          if (opt?.color) colorKey = opt.color;
+        }
+      }
+      if (rule.applyTo === 'property') {
+        if (!propColors.has(rule.propertyId)) propColors.set(rule.propertyId, colorKey);
+      } else if (!rowColor) {
+        rowColor = colorKey;
+      }
+    }
+    return { rowColor, propColors };
+  }
+
+  function applyConditionalRowColor(el: HTMLElement, colorKey?: string) {
+    if (colorKey && colorKey !== 'default') {
+      el.dataset.rowColor = colorKey;
+    } else {
+      delete el.dataset.rowColor;
+    }
+  }
+
+  function copyViewLink(dbPage: any, view: DbView) {
+    const hash = `#page=${encodeURIComponent(dbPage.id)}&view=${encodeURIComponent(view.id)}`;
+    const fullUrl = typeof location !== 'undefined' ? `${location.origin}${location.pathname}${hash}` : hash;
+    try { navigator.clipboard?.writeText(fullUrl).catch(() => {}); } catch { }
+    host?.toast?.('Copied link to view');
+  }
+
   function queryViewRows(dbPage: any, view: DbView, searchQuery = '') {
     let rows = getDatabaseRows(dbPage.id);
     if (searchQuery.trim()) {
@@ -1906,7 +1989,7 @@ const ArchitectDatabase = (() => {
   }
 
   function setRowValue(rowPage: any, prop: DbSchemaProperty, value: any, dbPage: any, rerenderAll = true, automationDepth = 0) {
-    if (roMode()) return;
+    if (roMode(dbPage)) return;
     rowPage.propertyValues = rowPage.propertyValues || {};
     if (prop.type === 'title') {
       rowPage.title = String(value ?? '');
@@ -1939,9 +2022,95 @@ const ArchitectDatabase = (() => {
     return pill;
   }
 
+  function buildDbUserChip(uidOrName: string, users: any[]) {
+    const u = users.find((x: any) => x.id === uidOrName || x.name === uidOrName) || { id: '', name: uidOrName };
+    const chip = document.createElement('span');
+    chip.className = 'db-person-chip';
+    const ref = u.id || u.name;
+    chip.dataset.userRef = ref;
+    chip.title = `${u.name} — Click to view dashboard · Right-click for options`;
+    const av = document.createElement('span');
+    av.className = 'db-person-avatar';
+    av.textContent = String(u.name || '?').split(/\s+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+    const nm = document.createElement('span');
+    nm.textContent = u.name;
+    chip.append(av, nm);
+    chip.onclick = e => {
+      e.stopPropagation();
+      host?.openUserDashboard?.(ref);
+    };
+    chip.oncontextmenu = e => {
+      if (host?.openUserContextMenu) {
+        e.preventDefault();
+        e.stopPropagation();
+        host.openUserContextMenu(e, ref);
+      }
+    };
+    return chip;
+  }
+
+  function toSafeDbHref(propType: DbPropertyType, val: string): string | null {
+    const s = String(val ?? '').trim();
+    if (!s || /^\s*(javascript|vbscript|data):/i.test(s)) return null;
+    if (s.startsWith('#page=')) return s;
+    if (propType === 'email') {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? `mailto:${s}` : null;
+    }
+    if (propType === 'phone_number') {
+      const cleaned = s.replace(/[^\d+]/g, '');
+      return /^[+\d()\s.-]{5,}$/.test(s) && cleaned.length >= 5 ? `tel:${cleaned}` : null;
+    }
+    if (/^(https?:|mailto:|tel:)/i.test(s)) return s;
+    if (propType === 'url' && /^([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s]*)?$/i.test(s)) return `https://${s}`;
+    return null;
+  }
+
+  function wireDbAnchorClick(a: HTMLAnchorElement, href: string) {
+    a.href = href;
+    if (href.startsWith('#page=')) {
+      a.onclick = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetId = href.slice(6).split('&')[0];
+        if (targetId) {
+          if (e.ctrlKey || e.metaKey) host?.openPageInNewTab?.(targetId);
+          else host?.navigateToPage?.(targetId);
+        }
+      };
+    } else {
+      if (/^https?:/i.test(href)) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      }
+      a.onclick = e => e.stopPropagation();
+    }
+  }
+
+  function appendTextWithDbLinks(parent: HTMLElement, text: string): boolean {
+    const tokenRe = /(https?:\/\/[^\s<>()]+|#page=[^\s<>()]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    let last = 0;
+    let hasLink = false;
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(text)) !== null) {
+      hasLink = true;
+      if (m.index > last) parent.append(document.createTextNode(text.slice(last, m.index)));
+      const rawTok = m[0];
+      const href = rawTok.includes('@') && !rawTok.startsWith('http') && !rawTok.startsWith('#') ? `mailto:${rawTok}` : rawTok;
+      const a = document.createElement('a');
+      a.className = 'db-cell-link';
+      a.textContent = rawTok;
+      wireDbAnchorClick(a, href);
+      parent.append(a);
+      last = m.index + rawTok.length;
+    }
+    if (!hasLink) return false;
+    if (last < text.length) parent.append(document.createTextNode(text.slice(last)));
+    return true;
+  }
+
   // Shared cell & property-sheet renderer used identically in Table cells, Peek properties, and Full Row Page properties!
   function renderPropertyValueControl(prop: DbSchemaProperty, rowPage: any, dbPage: any, opts: { compact?: boolean; onOpenRow?: () => void; onCommit?: () => void } = {}) {
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const wrap = document.createElement('div');
     wrap.className = 'db-cell-control' + (opts.compact ? ' is-compact' : '');
     const commit = () => {
@@ -2044,14 +2213,16 @@ const ArchitectDatabase = (() => {
     }
 
     if (['created_time', 'last_edited_time', 'created_by', 'last_edited_by', 'formula', 'rollup'].includes(prop.type)) {
+      if ((prop.type === 'created_by' || prop.type === 'last_edited_by') && raw) {
+        const users = getState()?.users || [];
+        wrap.append(buildDbUserChip(String(raw), users));
+        return wrap;
+      }
       if (prop.type === 'formula' && raw && typeof raw === 'object' && raw.__richFormula) {
         const node = raw.href ? document.createElement('a') : document.createElement('span');
         node.className = 'db-readonly-val is-formula db-formula-styled';
         if (raw.href && node instanceof HTMLAnchorElement) {
-          node.href = raw.href;
-          node.target = '_blank';
-          node.rel = 'noopener noreferrer';
-          node.onclick = ev => ev.stopPropagation();
+          wireDbAnchorClick(node, String(raw.href));
         }
         node.textContent = String(raw.text ?? '');
         const styles: string[] = Array.isArray(raw.styles) ? raw.styles : [];
@@ -2079,8 +2250,9 @@ const ArchitectDatabase = (() => {
       let disp = raw;
       if (prop.type === 'formula' && typeof raw === 'number') disp = formatNumberVal(raw, prop.numberFormat);
       else if (prop.type === 'formula' && typeof raw === 'boolean') disp = raw ? '☑ True' : '☐ False';
-      span.textContent = String(disp ?? '') || (opts.compact ? '' : 'Empty');
-      if (!disp) span.classList.add('is-empty');
+      const dispStr = String(disp ?? '');
+      if (dispStr && !appendTextWithDbLinks(span, dispStr)) span.textContent = dispStr;
+      else if (!dispStr) { span.textContent = opts.compact ? '' : 'Empty'; span.classList.add('is-empty'); }
       wrap.append(span);
       return wrap;
     }
@@ -2133,18 +2305,7 @@ const ArchitectDatabase = (() => {
       } else {
         const list = document.createElement('div');
         list.className = 'db-pill-list';
-        ids.forEach(uidVal => {
-          const u = users.find((x: any) => x.id === uidVal || x.name === uidVal) || { name: uidVal };
-          const chip = document.createElement('span');
-          chip.className = 'db-person-chip';
-          const av = document.createElement('span');
-          av.className = 'db-person-avatar';
-          av.textContent = String(u.name || '?').split(/\s+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-          const nm = document.createElement('span');
-          nm.textContent = u.name;
-          chip.append(av, nm);
-          list.append(chip);
-        });
+        ids.forEach(uidVal => list.append(buildDbUserChip(uidVal, users)));
         btn.append(list);
       }
       if (!ro) {
@@ -2253,57 +2414,90 @@ const ArchitectDatabase = (() => {
     }
 
     // text, number, url, email, phone
-    const input = document.createElement('input');
-    input.className = 'db-inline-input' + (prop.type === 'number' ? ' is-number' : '');
-    input.type = prop.type === 'number' ? 'text' : prop.type === 'email' ? 'email' : prop.type === 'url' ? 'url' : 'text';
-    input.disabled = ro;
-    const syncDisplay = () => {
-      if (prop.type === 'number' && document.activeElement !== input) {
-        input.value = formatNumberVal(getRawValue(prop, rowPage, dbPage), prop.numberFormat);
-      } else {
-        input.value = String(getRawValue(prop, rowPage, dbPage) ?? '');
-      }
-    };
-    syncDisplay();
-    input.placeholder = opts.compact ? '' : 'Empty';
-    input.addEventListener('click', e => e.stopPropagation());
-    if (prop.type === 'number') {
-      input.addEventListener('focus', () => {
-        const cur = getRawValue(prop, rowPage, dbPage);
-        input.value = cur == null ? '' : String(cur);
-      });
-    }
-    input.addEventListener('input', () => {
-      if (prop.type === 'number') {
-        const cleaned = input.value.replace(/[^0-9.\-]/g, '');
-        const val = cleaned === '' || cleaned === '-' ? '' : Number(cleaned);
-        setRowValue(rowPage, prop, Number.isNaN(val) ? '' : val, dbPage, false);
-      } else {
-        setRowValue(rowPage, prop, input.value, dbPage, false);
-      }
-    });
-    input.addEventListener('blur', () => {
+    const startInlineInput = (autoFocus = false) => {
+      wrap.replaceChildren();
+      const input = document.createElement('input');
+      input.className = 'db-inline-input' + (prop.type === 'number' ? ' is-number' : '');
+      input.type = prop.type === 'number' ? 'text' : prop.type === 'email' ? 'email' : prop.type === 'url' ? 'url' : 'text';
+      input.disabled = ro;
+      const syncDisplay = () => {
+        if (prop.type === 'number' && document.activeElement !== input) {
+          input.value = formatNumberVal(getRawValue(prop, rowPage, dbPage), prop.numberFormat);
+        } else {
+          input.value = String(getRawValue(prop, rowPage, dbPage) ?? '');
+        }
+      };
       syncDisplay();
-      commit();
-    });
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        input.blur();
+      input.placeholder = opts.compact ? '' : 'Empty';
+      input.addEventListener('click', e => e.stopPropagation());
+      if (prop.type === 'number') {
+        input.addEventListener('focus', () => {
+          const cur = getRawValue(prop, rowPage, dbPage);
+          input.value = cur == null ? '' : String(cur);
+        });
       }
-    });
-    wrap.append(input);
-    if (prop.type === 'url' && typeof raw === 'string' && /^https?:\/\//i.test(raw.trim())) {
-      const a = document.createElement('a');
-      a.href = raw.trim();
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.className = 'db-ext-link';
-      a.textContent = '↗';
-      a.title = 'Open URL';
-      a.onclick = e => e.stopPropagation();
-      wrap.append(a);
+      input.addEventListener('input', () => {
+        if (prop.type === 'number') {
+          const cleaned = input.value.replace(/[^0-9.\-]/g, '');
+          const val = cleaned === '' || cleaned === '-' ? '' : Number(cleaned);
+          setRowValue(rowPage, prop, Number.isNaN(val) ? '' : val, dbPage, false);
+        } else {
+          setRowValue(rowPage, prop, input.value, dbPage, false);
+        }
+      });
+      input.addEventListener('blur', () => {
+        syncDisplay();
+        commit();
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+      });
+      wrap.append(input);
+      if (autoFocus) requestAnimationFrame(() => input.focus());
+    };
+
+    const rawStr = String(raw ?? '').trim();
+    const directHref = (prop.type === 'url' || prop.type === 'email' || prop.type === 'phone_number')
+      ? toSafeDbHref(prop.type, rawStr)
+      : null;
+    const hasRichTextLinks = prop.type === 'text' && /(https?:\/\/[^\s<>()]+|#page=[^\s<>()]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(rawStr);
+
+    if (directHref || hasRichTextLinks) {
+      const linkWrap = document.createElement('div');
+      linkWrap.className = 'db-cell-link-wrap';
+      if (directHref) {
+        const a = document.createElement('a');
+        a.className = 'db-cell-link';
+        a.textContent = rawStr;
+        a.title = directHref;
+        wireDbAnchorClick(a, directHref);
+        linkWrap.append(a);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'db-readonly-val';
+        appendTextWithDbLinks(span, String(raw ?? ''));
+        linkWrap.append(span);
+      }
+      if (!ro) {
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'db-mini-btn db-cell-edit-btn';
+        editBtn.textContent = '✎';
+        editBtn.title = `Edit ${prop.name}`;
+        editBtn.onclick = e => {
+          e.stopPropagation();
+          startInlineInput(true);
+        };
+        linkWrap.append(editBtn);
+      }
+      wrap.append(linkWrap);
+      return wrap;
     }
+
+    startInlineInput(false);
     return wrap;
   }
 
@@ -2458,8 +2652,16 @@ const ArchitectDatabase = (() => {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'db-pop-option-btn';
+          btn.dataset.userRef = u.id || u.name;
           const has = selected.includes(u.id);
           btn.innerHTML = `<span class="db-person-chip"><span class="db-person-avatar">${escHtml(u.name.split(/\s+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase())}</span><span>${escHtml(u.name)}</span></span><span class="db-pop-check">${has ? '✓' : ''}</span>`;
+          btn.oncontextmenu = ev => {
+            if (host?.openUserContextMenu) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              host.openUserContextMenu(ev, u.id || u.name);
+            }
+          };
           btn.onclick = () => {
             selected = has ? selected.filter(x => x !== u.id) : [...selected, u.id];
             setRowValue(rowPage, prop, selected, dbPage, true);
@@ -3020,133 +3222,210 @@ const ArchitectDatabase = (() => {
     }, 250);
   }
 
-  function openPropertiesMenu(anchor: HTMLElement, view: DbView, dbPage: any) {
+  function makePopSubHeader(titleText: string, close: () => void, onBack?: () => void) {
+    const header = document.createElement('div');
+    header.className = 'db-pop-header db-pop-nav-header';
+    const left = document.createElement('div');
+    left.className = 'db-pop-nav-left';
+    if (onBack) {
+      const backBtn = document.createElement('button');
+      backBtn.type = 'button';
+      backBtn.className = 'db-mini-btn db-pop-back-btn';
+      backBtn.textContent = '←';
+      backBtn.title = 'Back';
+      backBtn.setAttribute('aria-label', 'Back');
+      backBtn.onclick = onBack;
+      left.append(backBtn);
+    }
+    const titleEl = document.createElement('span');
+    titleEl.className = 'db-pop-nav-title';
+    titleEl.textContent = titleText;
+    left.append(titleEl);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'db-mini-btn db-pop-close-btn';
+    closeBtn.textContent = '✕';
+    closeBtn.title = 'Close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.onclick = close;
+    header.append(left, closeBtn);
+    return header;
+  }
+
+  function renderPropertiesPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack?: () => void) {
     const db = ensureDatabaseConfig(dbPage);
-    openDbPopover(anchor, (pop, close) => {
-      const header = document.createElement('div');
-      header.className = 'db-pop-header';
-      header.textContent = 'Properties';
-      const toggleAll = document.createElement('button');
-      toggleAll.type = 'button';
-      toggleAll.className = 'db-link-btn';
-      const allShown = db.schema.every(s => view.visiblePropertyIds.includes(s.id));
-      toggleAll.textContent = allShown ? 'Hide all' : 'Show all';
-      toggleAll.onclick = () => {
-        const titleProp = db.schema.find(s => s.type === 'title');
-        view.visiblePropertyIds = allShown ? (titleProp ? [titleProp.id] : []) : db.schema.map(s => s.id);
-        persist(false); refreshAllDatabaseViews(); draw();
-      };
-      header.append(toggleAll);
+    const ro = roMode(dbPage);
+    let query = '';
+    container.replaceChildren();
+    container.append(makePopSubHeader('Property visibility', close, onBack));
 
-      const list = document.createElement('div');
-      list.className = 'db-pop-list';
-      const draw = () => {
-        list.replaceChildren();
-        view.propertyOrder.forEach((pid, idx) => {
-          const prop = db.schema.find(s => s.id === pid);
-          if (!prop) return;
-          const row = document.createElement('div');
-          row.className = 'db-pop-option-row';
-          const visible = view.visiblePropertyIds.includes(prop.id);
-          const lbl = document.createElement('span');
-          lbl.className = 'db-prop-label';
-          lbl.innerHTML = `<span class="db-prop-type-ico">${escHtml(propMeta(prop.type).icon)}</span> ${escHtml(prop.name)}`;
+    const searchInput = document.createElement('input');
+    searchInput.type = 'search';
+    searchInput.className = 'db-pop-search';
+    searchInput.placeholder = 'Search for a property…';
 
-          const controls = document.createElement('div');
-          controls.className = 'db-prop-mini-actions';
-          if (idx > 0) {
-            const up = document.createElement('button');
-            up.type = 'button'; up.className = 'db-mini-btn'; up.textContent = '↑'; up.title = 'Move left / up';
-            up.onclick = () => {
-              const tmp = view.propertyOrder[idx - 1];
-              view.propertyOrder[idx - 1] = view.propertyOrder[idx];
-              view.propertyOrder[idx] = tmp;
-              persist(false); refreshAllDatabaseViews(); draw();
-            };
-            controls.append(up);
-          }
-          if (idx < view.propertyOrder.length - 1) {
-            const dn = document.createElement('button');
-            dn.type = 'button'; dn.className = 'db-mini-btn'; dn.textContent = '↓'; dn.title = 'Move right / down';
-            dn.onclick = () => {
-              const tmp = view.propertyOrder[idx + 1];
-              view.propertyOrder[idx + 1] = view.propertyOrder[idx];
-              view.propertyOrder[idx] = tmp;
-              persist(false); refreshAllDatabaseViews(); draw();
-            };
-            controls.append(dn);
-          }
-          const eye = document.createElement('button');
-          eye.type = 'button';
-          eye.className = 'db-mini-btn ' + (visible ? 'is-on' : 'is-off');
-          eye.textContent = visible ? '👁' : '🚫';
-          eye.disabled = prop.type === 'title';
-          eye.title = visible ? 'Hide in view' : 'Show in view';
-          eye.onclick = () => {
-            if (visible) view.visiblePropertyIds = view.visiblePropertyIds.filter(id => id !== prop.id);
-            else view.visiblePropertyIds.push(prop.id);
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+
+    const draw = () => {
+      list.replaceChildren();
+      const q = query.trim().toLowerCase();
+      const ordered = view.propertyOrder
+        .map(pid => db.schema.find(s => s.id === pid))
+        .filter((p): p is DbSchemaProperty => Boolean(p) && (!q || p!.name.toLowerCase().includes(q)));
+      const shown = ordered.filter(p => view.visiblePropertyIds.includes(p.id));
+      const hidden = ordered.filter(p => !view.visiblePropertyIds.includes(p.id));
+
+      const buildRow = (prop: DbSchemaProperty, visible: boolean) => {
+        const idx = view.propertyOrder.indexOf(prop.id);
+        const row = document.createElement('div');
+        row.className = 'db-pop-option-row';
+        const lbl = document.createElement('span');
+        lbl.className = 'db-prop-label';
+        lbl.innerHTML = `<span class="db-prop-type-ico">${escHtml(propMeta(prop.type).icon)}</span> ${escHtml(prop.name)}`;
+
+        const controls = document.createElement('div');
+        controls.className = 'db-prop-mini-actions';
+        if (!ro && idx > 0) {
+          const up = document.createElement('button');
+          up.type = 'button'; up.className = 'db-mini-btn'; up.textContent = '↑'; up.title = 'Move left / up';
+          up.onclick = () => {
+            const tmp = view.propertyOrder[idx - 1];
+            view.propertyOrder[idx - 1] = view.propertyOrder[idx];
+            view.propertyOrder[idx] = tmp;
             persist(false); refreshAllDatabaseViews(); draw();
           };
-          controls.append(eye);
-          row.append(lbl, controls);
-          list.append(row);
-        });
+          controls.append(up);
+        }
+        if (!ro && idx >= 0 && idx < view.propertyOrder.length - 1) {
+          const dn = document.createElement('button');
+          dn.type = 'button'; dn.className = 'db-mini-btn'; dn.textContent = '↓'; dn.title = 'Move right / down';
+          dn.onclick = () => {
+            const tmp = view.propertyOrder[idx + 1];
+            view.propertyOrder[idx + 1] = view.propertyOrder[idx];
+            view.propertyOrder[idx] = tmp;
+            persist(false); refreshAllDatabaseViews(); draw();
+          };
+          controls.append(dn);
+        }
+        const eye = document.createElement('button');
+        eye.type = 'button';
+        eye.className = 'db-mini-btn ' + (visible ? 'is-on' : 'is-off');
+        eye.textContent = visible ? '👁' : '🚫';
+        eye.disabled = ro || prop.type === 'title';
+        eye.title = prop.type === 'title' ? 'Title is always visible' : (visible ? 'Hide in view' : 'Show in view');
+        eye.onclick = () => {
+          if (visible) view.visiblePropertyIds = view.visiblePropertyIds.filter(id => id !== prop.id);
+          else view.visiblePropertyIds.push(prop.id);
+          persist(false); refreshAllDatabaseViews(); draw();
+        };
+        controls.append(eye);
+        row.append(lbl, controls);
+        return row;
       };
-      draw();
 
+      const shownHead = document.createElement('div');
+      shownHead.className = 'db-pop-section-head';
+      shownHead.innerHTML = '<span>Shown in view</span>';
+      if (!ro && shown.some(p => p.type !== 'title')) {
+        const hideAllBtn = document.createElement('button');
+        hideAllBtn.type = 'button'; hideAllBtn.className = 'db-link-btn';
+        hideAllBtn.textContent = 'Hide all';
+        hideAllBtn.onclick = () => {
+          const titleProp = db.schema.find(s => s.type === 'title');
+          view.visiblePropertyIds = titleProp ? [titleProp.id] : [];
+          persist(false); refreshAllDatabaseViews(); draw();
+        };
+        shownHead.append(hideAllBtn);
+      }
+      list.append(shownHead);
+      shown.forEach(p => list.append(buildRow(p, true)));
+
+      if (hidden.length) {
+        const hiddenHead = document.createElement('div');
+        hiddenHead.className = 'db-pop-section-head';
+        hiddenHead.innerHTML = '<span>Hidden in view</span>';
+        if (!ro) {
+          const showAllBtn = document.createElement('button');
+          showAllBtn.type = 'button'; showAllBtn.className = 'db-link-btn';
+          showAllBtn.textContent = 'Show all';
+          showAllBtn.onclick = () => {
+            view.visiblePropertyIds = db.schema.map(s => s.id);
+            persist(false); refreshAllDatabaseViews(); draw();
+          };
+          hiddenHead.append(showAllBtn);
+        }
+        list.append(hiddenHead);
+        hidden.forEach(p => list.append(buildRow(p, false)));
+      }
+    };
+
+    searchInput.addEventListener('input', () => { query = searchInput.value; draw(); });
+    draw();
+
+    const wrapBtn = document.createElement('button');
+    wrapBtn.type = 'button';
+    wrapBtn.className = 'db-pop-option-btn';
+    wrapBtn.disabled = ro;
+    const drawWrapState = () => {
+      wrapBtn.innerHTML = `<span>Wrap all properties</span><span class="db-pop-check">${view.wrapCells ? '✓' : ''}</span>`;
+    };
+    drawWrapState();
+    wrapBtn.onclick = () => { view.wrapCells = !view.wrapCells; persist(false); refreshAllDatabaseViews(); drawWrapState(); };
+
+    container.append(searchInput, list, wrapBtn);
+    if (!ro) {
       const addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'db-pop-create-btn';
       addBtn.textContent = '＋ New property';
       addBtn.onclick = () => {
+        const anchorRect = container.getBoundingClientRect();
         close();
-        openAddPropertyPopover(anchor, dbPage);
+        openAddPropertyPopover(anchorRect, dbPage);
       };
-
-      pop.append(header, list, addBtn);
-    }, 270);
+      container.append(addBtn);
+    }
+    requestAnimationFrame(() => searchInput.focus());
   }
 
-  function openSortPopover(anchor: HTMLElement, view: DbView, dbPage: any) {
+  function renderSortPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack?: () => void) {
     const db = ensureDatabaseConfig(dbPage);
-    openDbPopover(anchor, pop => {
-      const header = document.createElement('div');
-      header.className = 'db-pop-header';
-      header.textContent = 'Sort';
-      const clear = document.createElement('button');
-      clear.type = 'button';
-      clear.className = 'db-link-btn';
-      clear.textContent = 'Delete all';
-      clear.onclick = () => { view.sorts = []; persist(false); refreshAllDatabaseViews(); draw(); };
-      header.append(clear);
+    const ro = roMode(dbPage);
+    container.replaceChildren();
+    container.append(makePopSubHeader('Sort', close, onBack));
 
-      const list = document.createElement('div');
-      list.className = 'db-pop-list';
-      const draw = () => {
-        list.replaceChildren();
-        view.sorts.forEach((rule, idx) => {
-          const row = document.createElement('div');
-          row.className = 'db-rule-row';
-          const propSel = document.createElement('select');
-          db.schema.forEach(s => {
-            const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; propSel.append(o);
-          });
-          propSel.value = rule.propertyId;
-          propSel.onchange = () => { rule.propertyId = propSel.value; persist(false); refreshAllDatabaseViews(); };
-
-          const dirSel = document.createElement('select');
-          [['asc', 'Ascending'], ['desc', 'Descending']].forEach(([k, l]) => {
-            const o = document.createElement('option'); o.value = k; o.textContent = l; dirSel.append(o);
-          });
-          dirSel.value = rule.direction;
-          dirSel.onchange = () => { rule.direction = dirSel.value as any; persist(false); refreshAllDatabaseViews(); };
-
-          const rm = document.createElement('button');
-          rm.type = 'button'; rm.className = 'db-mini-btn'; rm.textContent = '✕';
-          rm.onclick = () => { view.sorts.splice(idx, 1); persist(false); refreshAllDatabaseViews(); draw(); };
-          row.append(propSel, dirSel, rm);
-          list.append(row);
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+    const draw = () => {
+      list.replaceChildren();
+      view.sorts.forEach((rule, idx) => {
+        const row = document.createElement('div');
+        row.className = 'db-rule-row';
+        const propSel = document.createElement('select');
+        propSel.disabled = ro;
+        db.schema.forEach(s => {
+          const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; propSel.append(o);
         });
+        propSel.value = rule.propertyId;
+        propSel.onchange = () => { rule.propertyId = propSel.value; persist(false); refreshAllDatabaseViews(); };
+
+        const dirSel = document.createElement('select');
+        dirSel.disabled = ro;
+        [['asc', 'Ascending'], ['desc', 'Descending']].forEach(([k, l]) => {
+          const o = document.createElement('option'); o.value = k; o.textContent = l; dirSel.append(o);
+        });
+        dirSel.value = rule.direction;
+        dirSel.onchange = () => { rule.direction = dirSel.value as any; persist(false); refreshAllDatabaseViews(); };
+
+        const rm = document.createElement('button');
+        rm.type = 'button'; rm.className = 'db-mini-btn'; rm.textContent = '✕'; rm.disabled = ro;
+        rm.onclick = () => { view.sorts.splice(idx, 1); persist(false); refreshAllDatabaseViews(); draw(); };
+        row.append(propSel, dirSel, rm);
+        list.append(row);
+      });
+      if (!ro) {
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'db-pop-create-btn';
@@ -3156,10 +3435,26 @@ const ArchitectDatabase = (() => {
           persist(false); refreshAllDatabaseViews(); draw();
         };
         list.append(addBtn);
-      };
-      draw();
-      pop.append(header, list);
-    }, 280);
+      }
+      if (!ro && view.sorts.length) {
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'db-link-btn';
+        clear.textContent = 'Delete all sorts';
+        clear.onclick = () => { view.sorts = []; persist(false); refreshAllDatabaseViews(); draw(); };
+        list.append(clear);
+      }
+    };
+    draw();
+    container.append(list);
+  }
+
+  function openPropertiesMenu(anchor: HTMLElement, view: DbView, dbPage: any) {
+    openDbPopover(anchor, (pop, close) => renderPropertiesPanel(pop, view, dbPage, close), 285);
+  }
+
+  function openSortPopover(anchor: HTMLElement, view: DbView, dbPage: any) {
+    openDbPopover(anchor, (pop, close) => renderSortPanel(pop, view, dbPage, close), 280);
   }
 
   function openFilterPopover(anchor: HTMLElement, view: DbView, dbPage: any, key: string) {
@@ -3174,18 +3469,34 @@ const ArchitectDatabase = (() => {
     void anchor;
   }
 
-  function openGroupPopover(anchor: HTMLElement, view: DbView, dbPage: any) {
+  type DbViewSettingsOpts = {
+    initialPanel?: string;
+    isInline?: boolean;
+    onChangeSourceDb?: (nextDb: any) => void;
+    onTurnIntoFullPage?: () => void;
+  };
+
+  function renderGroupPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack?: () => void) {
     const db = ensureDatabaseConfig(dbPage);
-    openDbPopover(anchor, (pop, close) => {
-      const header = document.createElement('div');
-      header.className = 'db-pop-header';
-      header.textContent = 'Group by';
+    const ro = roMode(dbPage);
+    container.replaceChildren();
+    container.append(makePopSubHeader('Group', close, onBack));
+
+    const draw = () => {
+      while (container.children.length > 1) container.lastElementChild?.remove();
+      const groupable = db.schema.filter(s => ['status', 'select', 'multi_select', 'person', 'checkbox', 'text', 'date'].includes(s.type));
+      const byHead = document.createElement('div');
+      byHead.className = 'db-pop-section-head';
+      byHead.innerHTML = '<span>Group by</span>';
+      container.append(byHead);
+
       const list = document.createElement('div');
       list.className = 'db-pop-list';
 
       const noneBtn = document.createElement('button');
       noneBtn.type = 'button';
       noneBtn.className = 'db-pop-option-btn';
+      noneBtn.disabled = ro;
       noneBtn.innerHTML = `<span>None</span><span class="db-pop-check">${!view.groupBy ? '✓' : ''}</span>`;
       noneBtn.onclick = () => {
         if (view.type === 'board') {
@@ -3193,199 +3504,841 @@ const ArchitectDatabase = (() => {
           return;
         }
         view.groupBy = undefined;
-        persist(false); refreshAllDatabaseViews(); close();
+        persist(false); refreshAllDatabaseViews();
+        if (onBack) draw(); else close();
       };
       list.append(noneBtn);
 
-      db.schema.filter(s => ['status', 'select', 'multi_select', 'person', 'checkbox', 'text', 'date'].includes(s.type)).forEach(prop => {
+      groupable.forEach(prop => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'db-pop-option-btn';
+        btn.disabled = ro;
         btn.innerHTML = `<span><span class="db-prop-type-ico">${escHtml(propMeta(prop.type).icon)}</span> ${escHtml(prop.name)}</span><span class="db-pop-check">${view.groupBy === prop.id ? '✓' : ''}</span>`;
         btn.onclick = () => {
           view.groupBy = prop.id;
-          persist(false); refreshAllDatabaseViews(); close();
+          persist(false); refreshAllDatabaseViews();
+          if (onBack) draw(); else close();
         };
         list.append(btn);
       });
-      pop.append(header, list);
-    }, 240);
+      container.append(list);
+
+      const groupProp = view.groupBy ? db.schema.find(s => s.id === view.groupBy) : undefined;
+      if (groupProp) {
+        const optsHead = document.createElement('div');
+        optsHead.className = 'db-pop-section-head';
+        optsHead.innerHTML = '<span>Group options</span>';
+        container.append(optsHead);
+
+        const sortRow = document.createElement('label');
+        sortRow.className = 'db-pop-field-row';
+        sortRow.innerHTML = '<span>Sort</span>';
+        const sortSel = document.createElement('select');
+        sortSel.disabled = ro;
+        [['manual', 'Manual'], ['asc', 'Alphabetical'], ['desc', 'Reverse alphabetical']].forEach(([k, l]) => {
+          const o = document.createElement('option'); o.value = k; o.textContent = l; sortSel.append(o);
+        });
+        sortSel.value = view.groupSort || 'manual';
+        sortSel.onchange = () => { view.groupSort = sortSel.value as any; persist(false); refreshAllDatabaseViews(); };
+        sortRow.append(sortSel);
+        container.append(sortRow);
+
+        const hideEmptyBtn = document.createElement('button');
+        hideEmptyBtn.type = 'button';
+        hideEmptyBtn.className = 'db-pop-option-btn';
+        hideEmptyBtn.disabled = ro;
+        hideEmptyBtn.innerHTML = `<span>Hide empty groups</span><span class="db-pop-check">${view.hideEmptyGroups ? '✓' : ''}</span>`;
+        hideEmptyBtn.onclick = () => { view.hideEmptyGroups = !view.hideEmptyGroups; persist(false); refreshAllDatabaseViews(); draw(); };
+        container.append(hideEmptyBtn);
+
+        const showCntBtn = document.createElement('button');
+        showCntBtn.type = 'button';
+        showCntBtn.className = 'db-pop-option-btn';
+        showCntBtn.disabled = ro;
+        showCntBtn.innerHTML = `<span>Show group counts</span><span class="db-pop-check">${view.showGroupCounts !== false ? '✓' : ''}</span>`;
+        showCntBtn.onclick = () => { view.showGroupCounts = view.showGroupCounts === false; persist(false); refreshAllDatabaseViews(); draw(); };
+        container.append(showCntBtn);
+
+        const allBuckets = buildGroupsForRows(getDatabaseRows(dbPage.id), groupProp, dbPage, view, { includeHidden: true });
+        const visHead = document.createElement('div');
+        visHead.className = 'db-pop-section-head';
+        visHead.innerHTML = '<span>Visible groups</span>';
+        if (!ro && (view.hiddenGroups || []).length) {
+          const resetVis = document.createElement('button');
+          resetVis.type = 'button'; resetVis.className = 'db-link-btn'; resetVis.textContent = 'Show all';
+          resetVis.onclick = () => { view.hiddenGroups = []; persist(false); refreshAllDatabaseViews(); draw(); };
+          visHead.append(resetVis);
+        }
+        container.append(visHead);
+
+        const visList = document.createElement('div');
+        visList.className = 'db-pop-list';
+        allBuckets.forEach(g => {
+          const hiddenSet = new Set(view.hiddenGroups || []);
+          const isHidden = hiddenSet.has(g.key);
+          const row = document.createElement('div');
+          row.className = 'db-pop-option-row';
+          const pillWrap = document.createElement('div');
+          pillWrap.className = 'db-prop-label';
+          pillWrap.append(createPillEl(g.label, g.color, groupProp.type === 'status', g.statusGroup));
+          const cnt = document.createElement('span');
+          cnt.className = 'db-group-count';
+          cnt.textContent = String(g.rows.length);
+          pillWrap.append(cnt);
+          const eye = document.createElement('button');
+          eye.type = 'button';
+          eye.className = 'db-mini-btn ' + (!isHidden ? 'is-on' : 'is-off');
+          eye.textContent = !isHidden ? '👁' : '🚫';
+          eye.disabled = ro;
+          eye.title = isHidden ? 'Show group' : 'Hide group';
+          eye.onclick = () => {
+            view.hiddenGroups = isHidden
+              ? (view.hiddenGroups || []).filter(k => k !== g.key)
+              : [...new Set([...(view.hiddenGroups || []), g.key])];
+            persist(false); refreshAllDatabaseViews(); draw();
+          };
+          row.append(pillWrap, eye);
+          visList.append(row);
+        });
+        container.append(visList);
+      }
+    };
+    draw();
   }
 
-  function openViewSettingsPopover(anchor: HTMLElement, view: DbView, dbPage: any) {
+  function renderFilterSettingsPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack: () => void) {
     const db = ensureDatabaseConfig(dbPage);
-    openDbPopover(anchor, (pop, close) => {
-      const header = document.createElement('div');
-      header.className = 'db-pop-header';
-      header.textContent = 'View settings';
+    const ro = roMode(dbPage);
+    container.replaceChildren();
+    container.append(makePopSubHeader('Filter', close, onBack));
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
 
-      const nameRow = document.createElement('div');
-      nameRow.className = 'db-pop-field-col';
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.className = 'db-pop-search';
-      nameInput.value = view.name;
-      nameInput.placeholder = 'View name';
-      nameInput.oninput = () => { view.name = nameInput.value || 'View'; persist(false); };
-      nameInput.onblur = () => refreshAllDatabaseViews();
-      nameRow.append(nameInput);
+    const draw = () => {
+      list.replaceChildren();
+      if (view.filters.length > 1) {
+        const matchRow = document.createElement('label');
+        matchRow.className = 'db-pop-field-row';
+        matchRow.innerHTML = '<span>Match</span>';
+        const matchSel = document.createElement('select');
+        matchSel.disabled = ro;
+        matchSel.innerHTML = '<option value="and">All filters (And)</option><option value="or">Any filter (Or)</option>';
+        matchSel.value = view.filterMatch || 'and';
+        matchSel.onchange = () => { view.filterMatch = matchSel.value as 'and' | 'or'; persist(false); refreshAllDatabaseViews(); };
+        matchRow.append(matchSel);
+        list.append(matchRow);
+      }
+      view.filters.forEach((rule, idx) => {
+        const card = document.createElement('div');
+        card.className = 'db-cond-card';
+        const top = document.createElement('div');
+        top.className = 'db-rule-row';
+        const propSel = document.createElement('select');
+        propSel.disabled = ro;
+        db.schema.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; propSel.append(o); });
+        propSel.value = rule.propertyId;
+        propSel.onchange = () => { rule.propertyId = propSel.value; persist(false); refreshAllDatabaseViews(); };
 
-      const layoutRow = document.createElement('div');
-      layoutRow.className = 'db-layout-grid';
-      DB_VIEW_TYPES.forEach(vt => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'db-layout-tile' + (view.type === vt.type ? ' active' : '');
-        btn.innerHTML = `<span>${vt.icon}</span><small>${vt.label}</small>`;
-        btn.onclick = () => {
-          view.type = vt.type;
-          if (vt.type === 'board' && !view.groupBy) {
-            view.groupBy = db.schema.find(s => ['status', 'select', 'person', 'checkbox'].includes(s.type))?.id;
-          }
-          if ((vt.type === 'calendar' || vt.type === 'timeline') && !view.datePropertyId) {
-            let dp = db.schema.find(s => s.type === 'date');
-            if (!dp) dp = addSchemaProperty(dbPage, 'Date', 'date');
-            view.datePropertyId = dp.id;
-          }
-          if (vt.type === 'chart' && !view.chartConfig) {
-            view.chartConfig = { chartType: 'vertical_bar', xPropertyId: db.schema[1]?.id || db.schema[0].id, yMode: 'count' };
-          }
-          persist(false); refreshAllDatabaseViews(); close();
-        };
-        layoutRow.append(btn);
+        const opSel = document.createElement('select');
+        opSel.disabled = ro;
+        DB_FILTER_OPS.forEach(f => { const o = document.createElement('option'); o.value = f.op; o.textContent = f.label; opSel.append(o); });
+        opSel.value = rule.op;
+        opSel.onchange = () => { rule.op = opSel.value as DbFilterOp; persist(false); refreshAllDatabaseViews(); draw(); };
+
+        const rm = document.createElement('button');
+        rm.type = 'button'; rm.className = 'db-mini-btn'; rm.textContent = '✕'; rm.disabled = ro;
+        rm.onclick = () => { view.filters.splice(idx, 1); persist(false); refreshAllDatabaseViews(); draw(); };
+        top.append(propSel, opSel, rm);
+        card.append(top);
+
+        const opMeta = DB_FILTER_OPS.find(f => f.op === rule.op);
+        if (!opMeta?.noValue) {
+          const valInp = document.createElement('input');
+          valInp.type = 'text';
+          valInp.className = 'db-pop-search';
+          valInp.placeholder = 'Filter value…';
+          valInp.value = rule.value || '';
+          valInp.disabled = ro;
+          valInp.oninput = () => { rule.value = valInp.value; persist(false); refreshAllDatabaseViews(); };
+          card.append(valInp);
+        }
+        list.append(card);
       });
+      if (!view.filters.length) {
+        const empty = document.createElement('div');
+        empty.className = 'db-pop-muted';
+        empty.textContent = 'No filters applied to this view.';
+        list.append(empty);
+      }
+      if (!ro) {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'db-pop-create-btn';
+        addBtn.textContent = '＋ Add filter';
+        addBtn.onclick = () => {
+          view.filters.push({ id: uid(), propertyId: db.schema[0].id, op: 'contains', value: '' });
+          persist(false); refreshAllDatabaseViews(); draw();
+        };
+        list.append(addBtn);
+      }
+    };
+    draw();
+    container.append(list);
+  }
+
+  function renderConditionalColorPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack: () => void) {
+    const db = ensureDatabaseConfig(dbPage);
+    const ro = roMode(dbPage);
+    view.conditionalColors = view.conditionalColors || [];
+    container.replaceChildren();
+    container.append(makePopSubHeader('Conditional color', close, onBack));
+
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+
+    const draw = () => {
+      list.replaceChildren();
+      const rules = view.conditionalColors!;
+      if (!rules.length) {
+        const empty = document.createElement('div');
+        empty.className = 'db-pop-muted';
+        empty.textContent = 'Highlight rows or properties automatically when conditions match.';
+        list.append(empty);
+      }
+      rules.forEach((rule, idx) => {
+        const card = document.createElement('div');
+        card.className = 'db-cond-card';
+
+        const rTop = document.createElement('div');
+        rTop.className = 'db-rule-row';
+        const enCb = document.createElement('input');
+        enCb.type = 'checkbox';
+        enCb.checked = rule.enabled !== false;
+        enCb.disabled = ro;
+        enCb.title = 'Enable rule';
+        enCb.onchange = () => { rule.enabled = enCb.checked; persist(false); refreshAllDatabaseViews(); };
+
+        const propSel = document.createElement('select');
+        propSel.disabled = ro;
+        db.schema.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; propSel.append(o); });
+        propSel.value = rule.propertyId;
+        propSel.onchange = () => { rule.propertyId = propSel.value; persist(false); refreshAllDatabaseViews(); draw(); };
+
+        const rm = document.createElement('button');
+        rm.type = 'button'; rm.className = 'db-mini-btn'; rm.textContent = '✕'; rm.disabled = ro;
+        rm.onclick = () => { rules.splice(idx, 1); persist(false); refreshAllDatabaseViews(); draw(); };
+        rTop.append(enCb, propSel, rm);
+        card.append(rTop);
+
+        const rMid = document.createElement('div');
+        rMid.className = 'db-rule-row';
+        const opSel = document.createElement('select');
+        opSel.disabled = ro;
+        DB_FILTER_OPS.forEach(f => { const o = document.createElement('option'); o.value = f.op; o.textContent = f.label; opSel.append(o); });
+        opSel.value = rule.op;
+        opSel.onchange = () => { rule.op = opSel.value as DbFilterOp; persist(false); refreshAllDatabaseViews(); draw(); };
+        rMid.append(opSel);
+
+        const opMeta = DB_FILTER_OPS.find(f => f.op === rule.op);
+        if (!opMeta?.noValue) {
+          const valInp = document.createElement('input');
+          valInp.type = 'text';
+          valInp.className = 'db-pop-search';
+          valInp.placeholder = 'Value…';
+          valInp.value = rule.value || '';
+          valInp.disabled = ro;
+          const prop = db.schema.find(s => s.id === rule.propertyId);
+          if (prop?.options?.length) {
+            const dlId = `dl-${rule.id}`;
+            const dl = document.createElement('datalist');
+            dl.id = dlId;
+            prop.options.forEach(o => { const optEl = document.createElement('option'); optEl.value = o.name; dl.append(optEl); });
+            valInp.setAttribute('list', dlId);
+            card.append(dl);
+          }
+          valInp.oninput = () => { rule.value = valInp.value; persist(false); refreshAllDatabaseViews(); };
+          rMid.append(valInp);
+        }
+        card.append(rMid);
+
+        const rBot = document.createElement('div');
+        rBot.className = 'db-rule-row';
+        const modeSel = document.createElement('select');
+        modeSel.disabled = ro;
+        [['fixed', 'Fixed color'], ['match_property_value', 'Match option']].forEach(([k, l]) => {
+          const o = document.createElement('option'); o.value = k; o.textContent = l; modeSel.append(o);
+        });
+        modeSel.value = rule.colorMode || 'fixed';
+        modeSel.onchange = () => { rule.colorMode = modeSel.value as any; persist(false); refreshAllDatabaseViews(); draw(); };
+
+        const applySel = document.createElement('select');
+        applySel.disabled = ro;
+        [['row', 'Entire row'], ['property', 'This cell']].forEach(([k, l]) => {
+          const o = document.createElement('option'); o.value = k; o.textContent = l; applySel.append(o);
+        });
+        applySel.value = rule.applyTo || 'row';
+        applySel.onchange = () => { rule.applyTo = applySel.value as any; persist(false); refreshAllDatabaseViews(); };
+        rBot.append(modeSel, applySel);
+        card.append(rBot);
+
+        if ((rule.colorMode || 'fixed') === 'fixed') {
+          const swatches = document.createElement('div');
+          swatches.className = 'db-color-swatches';
+          DB_COLORS.slice(1).forEach(c => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'db-color-swatch' + (rule.color === c.key ? ' is-selected' : '');
+            dot.style.backgroundColor = c.bg;
+            dot.style.borderColor = c.dot;
+            dot.title = c.label;
+            dot.disabled = ro;
+            dot.onclick = () => { rule.color = c.key; persist(false); refreshAllDatabaseViews(); draw(); };
+            swatches.append(dot);
+          });
+          card.append(swatches);
+        }
+        list.append(card);
+      });
+    };
+    draw();
+    container.append(list);
+
+    if (!ro) {
+      const addRuleBtn = document.createElement('button');
+      addRuleBtn.type = 'button';
+      addRuleBtn.className = 'db-pop-create-btn';
+      addRuleBtn.textContent = '＋ New color rule';
+      addRuleBtn.onclick = () => {
+        const pref = db.schema.find(s => s.type === 'status' || s.type === 'select') || db.schema[0];
+        view.conditionalColors!.push({
+          id: uid(),
+          enabled: true,
+          propertyId: pref.id,
+          op: pref.options?.[0] ? 'equals' : 'is_not_empty',
+          value: pref.options?.[0]?.name || undefined,
+          colorMode: 'fixed',
+          color: 'blue',
+          applyTo: 'row'
+        });
+        persist(false); refreshAllDatabaseViews(); draw();
+      };
+      container.append(addRuleBtn);
+    }
+  }
+
+  function renderEditPropertiesPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack: () => void, editPropId?: string) {
+    const db = ensureDatabaseConfig(dbPage);
+    const ro = roMode(dbPage);
+    container.replaceChildren();
+
+    if (editPropId) {
+      const prop = db.schema.find(s => s.id === editPropId);
+      if (!prop) { renderEditPropertiesPanel(container, view, dbPage, close, onBack); return; }
+      container.append(makePopSubHeader(prop.name || 'Edit property', close, () => renderEditPropertiesPanel(container, view, dbPage, close, onBack)));
+
+      const nameInp = document.createElement('input');
+      nameInp.type = 'text';
+      nameInp.className = 'db-pop-search';
+      nameInp.value = prop.name;
+      nameInp.disabled = ro;
+      nameInp.oninput = () => { prop.name = nameInp.value || 'Untitled'; persist(false); };
+      nameInp.onblur = () => refreshAllDatabaseViews();
+      container.append(nameInp);
 
       const list = document.createElement('div');
       list.className = 'db-pop-list';
 
-      const openModeRow = document.createElement('label');
-      openModeRow.className = 'db-pop-field-row';
-      openModeRow.innerHTML = '<span>Open pages in</span>';
-      const openSel = document.createElement('select');
-      [['side_peek', 'Side peek'], ['center_peek', 'Center peek'], ['full_page', 'Full page']].forEach(([k, l]) => {
-        const o = document.createElement('option'); o.value = k; o.textContent = l; openSel.append(o);
-      });
-      openSel.value = db.defaultOpenMode || 'side_peek';
-      openSel.onchange = () => { db.defaultOpenMode = openSel.value as DbOpenMode; persist(false); refreshAllDatabaseViews(); };
-      openModeRow.append(openSel);
-      list.append(openModeRow);
-
-      if (view.type === 'gallery' || view.type === 'board') {
-        const prevRow = document.createElement('label');
-        prevRow.className = 'db-pop-field-row';
-        prevRow.innerHTML = '<span>Card preview</span>';
-        const prevSel = document.createElement('select');
-        [['none', 'None'], ['cover', 'Page cover'], ['content', 'Page content'], ['files', 'Files & media']].forEach(([k, l]) => {
-          const o = document.createElement('option'); o.value = k; o.textContent = l; prevSel.append(o);
-        });
-        prevSel.value = view.cardPreview || 'none';
-        prevSel.onchange = () => { view.cardPreview = prevSel.value as any; persist(false); refreshAllDatabaseViews(); };
-        prevRow.append(prevSel);
-        list.append(prevRow);
+      if (prop.type !== 'title') {
+        const typeRow = document.createElement('label');
+        typeRow.className = 'db-pop-field-row';
+        typeRow.innerHTML = '<span>Type</span>';
+        const sel = document.createElement('select');
+        sel.disabled = ro;
+        DB_PROPERTY_TYPES.forEach(pt => { const o = document.createElement('option'); o.value = pt.type; o.textContent = pt.label; sel.append(o); });
+        sel.value = prop.type;
+        sel.onchange = () => {
+          prop.type = sel.value as DbPropertyType;
+          if (prop.type === 'status' && !prop.options?.length) prop.options = defaultStatusOptions();
+          if ((prop.type === 'select' || prop.type === 'multi_select') && !prop.options?.length) prop.options = defaultTagOptions();
+          if (prop.type === 'formula' && !prop.formulaExpr) prop.formulaExpr = 'prop("Name")';
+          if (prop.type === 'unique_id') { prop.idPrefix = prop.idPrefix || 'ID'; assignUniqueIds(dbPage); }
+          persist(false); refreshAllDatabaseViews();
+          renderEditPropertiesPanel(container, view, dbPage, close, onBack, prop.id);
+        };
+        typeRow.append(sel);
+        list.append(typeRow);
       }
 
-      if (view.type === 'gallery') {
-        const sizeRow = document.createElement('label');
-        sizeRow.className = 'db-pop-field-row';
-        sizeRow.innerHTML = '<span>Card size</span>';
-        const sizeSel = document.createElement('select');
-        [['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']].forEach(([k, l]) => {
-          const o = document.createElement('option'); o.value = k; o.textContent = l; sizeSel.append(o);
+      if (prop.type === 'select' || prop.type === 'multi_select' || prop.type === 'status') {
+        const optHead = document.createElement('div');
+        optHead.className = 'db-pop-section-head';
+        optHead.innerHTML = '<span>Options</span>';
+        list.append(optHead);
+        prop.options = prop.options || [];
+        prop.options.forEach((opt, idx) => {
+          const oRow = document.createElement('div');
+          oRow.className = 'db-pop-option-row';
+          const cBtn = document.createElement('button');
+          cBtn.type = 'button';
+          cBtn.className = 'db-color-swatch';
+          const cm = colorMeta(opt.color);
+          cBtn.style.backgroundColor = cm.bg;
+          cBtn.style.borderColor = cm.dot;
+          cBtn.disabled = ro;
+          cBtn.title = 'Cycle color';
+          cBtn.onclick = () => {
+            const ci = DB_COLORS.findIndex(c => c.key === opt.color);
+            opt.color = DB_COLORS[(ci + 1) % DB_COLORS.length].key;
+            persist(false); refreshAllDatabaseViews();
+            renderEditPropertiesPanel(container, view, dbPage, close, onBack, prop.id);
+          };
+          const oInp = document.createElement('input');
+          oInp.type = 'text';
+          oInp.className = 'db-pop-search';
+          oInp.value = opt.name;
+          oInp.disabled = ro;
+          oInp.onchange = () => { opt.name = oInp.value.trim() || opt.name; persist(false); refreshAllDatabaseViews(); };
+          oRow.append(cBtn, oInp);
+          if (!ro) {
+            const delO = document.createElement('button');
+            delO.type = 'button'; delO.className = 'db-mini-btn'; delO.textContent = '✕';
+            delO.onclick = () => {
+              prop.options!.splice(idx, 1);
+              persist(false); refreshAllDatabaseViews();
+              renderEditPropertiesPanel(container, view, dbPage, close, onBack, prop.id);
+            };
+            oRow.append(delO);
+          }
+          list.append(oRow);
         });
-        sizeSel.value = view.cardSize || 'medium';
-        sizeSel.onchange = () => { view.cardSize = sizeSel.value as any; persist(false); refreshAllDatabaseViews(); };
-        sizeRow.append(sizeSel);
-        list.append(sizeRow);
+        if (!ro) {
+          const addOptRow = document.createElement('div');
+          addOptRow.className = 'db-pop-option-row';
+          const newOptInp = document.createElement('input');
+          newOptInp.type = 'text';
+          newOptInp.className = 'db-pop-search';
+          newOptInp.placeholder = 'New option…';
+          const addOptBtn = document.createElement('button');
+          addOptBtn.type = 'button'; addOptBtn.className = 'db-mini-btn'; addOptBtn.textContent = '＋';
+          const doAddOpt = () => {
+            const label = newOptInp.value.trim();
+            if (!label) return;
+            const nextColor = DB_COLORS[(prop.options!.length % (DB_COLORS.length - 1)) + 1].key;
+            prop.options!.push({ id: uid(), name: label, color: nextColor, ...(prop.type === 'status' ? { statusGroup: 'todo' as DbStatusGroup } : {}) });
+            persist(false); refreshAllDatabaseViews();
+            renderEditPropertiesPanel(container, view, dbPage, close, onBack, prop.id);
+          };
+          addOptBtn.onclick = doAddOpt;
+          newOptInp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); doAddOpt(); } };
+          addOptRow.append(newOptInp, addOptBtn);
+          list.append(addOptRow);
+        }
       }
 
-      if (view.type === 'calendar' || view.type === 'timeline') {
-        const dateRow = document.createElement('label');
-        dateRow.className = 'db-pop-field-row';
-        dateRow.innerHTML = '<span>Date by</span>';
-        const dateSel = document.createElement('select');
+      if (prop.type === 'number') {
+        const fmtRow = document.createElement('label');
+        fmtRow.className = 'db-pop-field-row';
+        fmtRow.innerHTML = '<span>Number format</span>';
+        const fSel = document.createElement('select');
+        fSel.disabled = ro;
+        [['number', 'Number'], ['percent', 'Percent'], ['dollar', 'US Dollar'], ['euro', 'Euro']].forEach(([k, l]) => {
+          const o = document.createElement('option'); o.value = k; o.textContent = l; fSel.append(o);
+        });
+        fSel.value = prop.numberFormat || 'number';
+        fSel.onchange = () => { prop.numberFormat = fSel.value as any; persist(false); refreshAllDatabaseViews(); };
+        fmtRow.append(fSel);
+        list.append(fmtRow);
+      }
+
+      if (prop.type === 'formula') {
+        const fRow = document.createElement('div');
+        fRow.className = 'db-pop-field-col';
+        fRow.innerHTML = '<small>Formula expression</small>';
+        const fInp = document.createElement('input');
+        fInp.type = 'text'; fInp.className = 'db-pop-search'; fInp.value = prop.formulaExpr || ''; fInp.disabled = ro;
+        fInp.onchange = () => { prop.formulaExpr = fInp.value; persist(false); refreshAllDatabaseViews(); };
+        fRow.append(fInp);
+        list.append(fRow);
+      }
+
+      if (prop.type === 'relation') {
+        const rRow = document.createElement('label');
+        rRow.className = 'db-pop-field-row';
+        rRow.innerHTML = '<span>Target DB</span>';
+        const rSel = document.createElement('select');
+        rSel.disabled = ro;
+        rSel.innerHTML = '<option value="">Choose database…</option>';
+        getDatabasePages().forEach((d: any) => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.title || 'Untitled'; rSel.append(o); });
+        rSel.value = prop.relationDatabaseId || '';
+        rSel.onchange = () => { prop.relationDatabaseId = rSel.value; persist(false); refreshAllDatabaseViews(); };
+        rRow.append(rSel);
+        list.append(rRow);
+      }
+
+      if (!ro && prop.type !== 'title') {
+        const delProp = document.createElement('button');
+        delProp.type = 'button';
+        delProp.className = 'db-pop-option-btn is-danger';
+        delProp.innerHTML = '<span>🗑 Delete property</span>';
+        delProp.onclick = () => {
+          db.schema = db.schema.filter(s => s.id !== prop.id);
+          db.views.forEach(v => {
+            v.propertyOrder = v.propertyOrder.filter(id => id !== prop.id);
+            v.visiblePropertyIds = v.visiblePropertyIds.filter(id => id !== prop.id);
+            if (v.groupBy === prop.id) v.groupBy = undefined;
+          });
+          persist(false); refreshAllDatabaseViews();
+          renderEditPropertiesPanel(container, view, dbPage, close, onBack);
+        };
+        list.append(delProp);
+      }
+      container.append(list);
+      return;
+    }
+
+    container.append(makePopSubHeader('Properties', close, onBack));
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+    db.schema.forEach(prop => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'db-pop-option-btn';
+      btn.innerHTML = `<span><span class="db-prop-type-ico">${escHtml(propMeta(prop.type).icon)}</span> ${escHtml(prop.name)}</span><span class="db-pop-muted-chev">${escHtml(propMeta(prop.type).label)} ›</span>`;
+      btn.onclick = () => renderEditPropertiesPanel(container, view, dbPage, close, onBack, prop.id);
+      list.append(btn);
+    });
+    container.append(list);
+    if (!ro) {
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'db-pop-create-btn';
+      addBtn.textContent = '＋ New property';
+      addBtn.onclick = () => {
+        const r = container.getBoundingClientRect();
+        close();
+        openAddPropertyPopover(r, dbPage);
+      };
+      container.append(addBtn);
+    }
+  }
+
+  function renderMoreSettingsPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack: () => void) {
+    const db = ensureDatabaseConfig(dbPage);
+    const ro = roMode(dbPage);
+    const pushDetail = (sub: 'subitems' | 'dependencies' | 'linked_events' | 'connections' | 'page_layout') => {
+      container.replaceChildren();
+      const backToMore = () => renderMoreSettingsPanel(container, view, dbPage, close, onBack);
+      if (sub === 'subitems') {
+        container.append(makePopSubHeader('Sub-items', close, backToMore));
+        const togBtn = document.createElement('button');
+        togBtn.type = 'button'; togBtn.className = 'db-pop-option-btn'; togBtn.disabled = ro;
+        togBtn.innerHTML = `<span>Enable sub-items hierarchy</span><span class="db-pop-check">${db.subItemsEnabled ? '✓' : ''}</span>`;
+        togBtn.onclick = () => {
+          db.subItemsEnabled = !db.subItemsEnabled;
+          if (db.subItemsEnabled && (!db.parentPropertyId || !db.schema.some(s => s.id === db.parentPropertyId))) {
+            const p = addSchemaProperty(dbPage, 'Parent item', 'relation');
+            p.relationDatabaseId = dbPage.id;
+            db.parentPropertyId = p.id;
+          }
+          persist(false); refreshAllDatabaseViews(); pushDetail('subitems');
+        };
+        const pRow = document.createElement('label');
+        pRow.className = 'db-pop-field-row';
+        pRow.innerHTML = '<span>Parent relation</span>';
+        const sel = document.createElement('select');
+        sel.disabled = ro;
+        db.schema.filter(s => s.type === 'relation').forEach(rp => {
+          const o = document.createElement('option'); o.value = rp.id; o.textContent = rp.name; sel.append(o);
+        });
+        sel.value = db.parentPropertyId || '';
+        sel.onchange = () => { db.parentPropertyId = sel.value || undefined; db.subItemsEnabled = Boolean(sel.value); persist(false); refreshAllDatabaseViews(); };
+        pRow.append(sel);
+        container.append(togBtn, pRow);
+        return;
+      }
+      if (sub === 'dependencies') {
+        container.append(makePopSubHeader('Dependencies', close, backToMore));
+        const togBtn = document.createElement('button');
+        togBtn.type = 'button'; togBtn.className = 'db-pop-option-btn'; togBtn.disabled = ro;
+        togBtn.innerHTML = `<span>Blocking / Blocked by</span><span class="db-pop-check">${db.dependenciesPropertyId ? '✓' : ''}</span>`;
+        togBtn.onclick = () => {
+          if (db.dependenciesPropertyId) {
+            db.dependenciesPropertyId = undefined;
+          } else {
+            const existing = db.schema.find(s => s.type === 'relation' && s.name.toLowerCase().includes('block'));
+            const depProp = existing || addSchemaProperty(dbPage, 'Blocked by', 'relation');
+            depProp.relationDatabaseId = dbPage.id;
+            db.dependenciesPropertyId = depProp.id;
+          }
+          persist(false); refreshAllDatabaseViews(); pushDetail('dependencies');
+        };
+        container.append(togBtn);
+        return;
+      }
+      if (sub === 'linked_events') {
+        container.append(makePopSubHeader('Linked events', close, backToMore));
+        const togBtn = document.createElement('button');
+        togBtn.type = 'button'; togBtn.className = 'db-pop-option-btn'; togBtn.disabled = ro;
+        togBtn.innerHTML = `<span>Sync calendar events with dated rows</span><span class="db-pop-check">${db.linkedEventsEnabled ? '✓' : ''}</span>`;
+        togBtn.onclick = () => {
+          db.linkedEventsEnabled = !db.linkedEventsEnabled;
+          if (db.linkedEventsEnabled && !view.datePropertyId) {
+            let dp = db.schema.find(s => s.type === 'date');
+            if (!dp) dp = addSchemaProperty(dbPage, 'Date', 'date');
+            view.datePropertyId = dp.id;
+          }
+          persist(false); refreshAllDatabaseViews(); pushDetail('linked_events');
+        };
+        const dRow = document.createElement('label');
+        dRow.className = 'db-pop-field-row';
+        dRow.innerHTML = '<span>Date property</span>';
+        const dSel = document.createElement('select');
+        dSel.disabled = ro;
         db.schema.filter(s => s.type === 'date').forEach(dp => {
-          const o = document.createElement('option'); o.value = dp.id; o.textContent = dp.name; dateSel.append(o);
+          const o = document.createElement('option'); o.value = dp.id; o.textContent = dp.name; dSel.append(o);
         });
-        dateSel.value = view.datePropertyId || '';
-        dateSel.onchange = () => { view.datePropertyId = dateSel.value; persist(false); refreshAllDatabaseViews(); };
-        dateRow.append(dateSel);
-        list.append(dateRow);
+        dSel.value = view.datePropertyId || '';
+        dSel.onchange = () => { view.datePropertyId = dSel.value; persist(false); refreshAllDatabaseViews(); };
+        dRow.append(dSel);
+        container.append(togBtn, dRow);
+        return;
       }
-
-      if (view.type === 'chart') {
-        view.chartConfig = view.chartConfig || { chartType: 'vertical_bar', xPropertyId: db.schema[1]?.id || db.schema[0].id, yMode: 'count' };
-        const ctRow = document.createElement('label');
-        ctRow.className = 'db-pop-field-row';
-        ctRow.innerHTML = '<span>Chart style</span>';
-        const ctSel = document.createElement('select');
-        [['vertical_bar', 'Vertical bar'], ['horizontal_bar', 'Horizontal bar'], ['donut', 'Donut']].forEach(([k, l]) => {
-          const o = document.createElement('option'); o.value = k; o.textContent = l; ctSel.append(o);
+      if (sub === 'connections') {
+        container.append(makePopSubHeader('Connections', close, backToMore));
+        db.connections = db.connections && db.connections.length ? db.connections : [
+          { id: 'conn-slack', label: 'Slack updates', provider: 'Slack', enabled: false },
+          { id: 'conn-github', label: 'GitHub PR sync', provider: 'GitHub', enabled: false },
+          { id: 'conn-cal', label: 'Calendar feed', provider: 'Calendar', enabled: false }
+        ];
+        db.connections.forEach(c => {
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'db-pop-option-btn'; btn.disabled = ro;
+          btn.innerHTML = `<span>${escHtml(c.label)}</span><span class="db-pop-check">${c.enabled ? '✓' : ''}</span>`;
+          btn.onclick = () => { c.enabled = !c.enabled; persist(false); pushDetail('connections'); };
+          container.append(btn);
         });
-        ctSel.value = view.chartConfig.chartType;
-        ctSel.onchange = () => { view.chartConfig!.chartType = ctSel.value as any; persist(false); refreshAllDatabaseViews(); };
-        ctRow.append(ctSel);
-        list.append(ctRow);
-
-        const xRow = document.createElement('label');
-        xRow.className = 'db-pop-field-row';
-        xRow.innerHTML = '<span>Group by</span>';
-        const xSel = document.createElement('select');
-        db.schema.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; xSel.append(o); });
-        xSel.value = view.chartConfig.xPropertyId;
-        xSel.onchange = () => { view.chartConfig!.xPropertyId = xSel.value; persist(false); refreshAllDatabaseViews(); };
-        xRow.append(xSel);
-        list.append(xRow);
+        if (!ro) {
+          const autoBtn = document.createElement('button');
+          autoBtn.type = 'button'; autoBtn.className = 'db-pop-create-btn';
+          autoBtn.textContent = '⚡ Configure webhook automations…';
+          autoBtn.onclick = () => { const r = container.getBoundingClientRect(); close(); openAutomationsPopover(r as any, dbPage); };
+          container.append(autoBtn);
+        }
+        return;
       }
-
-      const subItemsBtn = document.createElement('button');
-      subItemsBtn.type = 'button';
-      subItemsBtn.className = 'db-pop-option-btn';
-      subItemsBtn.innerHTML = `<span>↳ Sub-items hierarchy</span><span class="db-pop-check">${db.subItemsEnabled ? '✓' : ''}</span>`;
-      subItemsBtn.onclick = () => {
-        db.subItemsEnabled = !db.subItemsEnabled;
-        if (db.subItemsEnabled && (!db.parentPropertyId || !db.schema.some(s => s.id === db.parentPropertyId))) {
-          const parentProp = addSchemaProperty(dbPage, 'Parent item', 'relation');
-          parentProp.relationDatabaseId = dbPage.id;
-          db.parentPropertyId = parentProp.id;
-        }
-        persist(false); refreshAllDatabaseViews(); close();
-      };
-      list.append(subItemsBtn);
-
-      const depsBtn = document.createElement('button');
-      depsBtn.type = 'button';
-      depsBtn.className = 'db-pop-option-btn';
-      depsBtn.innerHTML = `<span>⛓ Dependencies (Blocked by)</span><span class="db-pop-check">${db.dependenciesPropertyId ? '✓' : ''}</span>`;
-      depsBtn.onclick = () => {
-        if (db.dependenciesPropertyId) {
-          db.dependenciesPropertyId = undefined;
-        } else {
-          const existing = db.schema.find(s => s.type === 'relation' && s.name.toLowerCase().includes('block'));
-          const depProp = existing || addSchemaProperty(dbPage, 'Blocked by', 'relation');
-          depProp.relationDatabaseId = dbPage.id;
-          db.dependenciesPropertyId = depProp.id;
-        }
-        persist(false); refreshAllDatabaseViews(); close();
-      };
-      list.append(depsBtn);
-
-      const wrapBtn = document.createElement('button');
-      wrapBtn.type = 'button';
-      wrapBtn.className = 'db-pop-option-btn';
-      wrapBtn.innerHTML = `<span>Wrap all properties</span><span class="db-pop-check">${view.wrapCells ? '✓' : ''}</span>`;
-      wrapBtn.onclick = () => { view.wrapCells = !view.wrapCells; persist(false); refreshAllDatabaseViews(); close(); };
-      list.append(wrapBtn);
+      container.append(makePopSubHeader('Customize page layout', close, backToMore));
+      const openRow = document.createElement('label');
+      openRow.className = 'db-pop-field-row';
+      openRow.innerHTML = '<span>Open pages in</span>';
+      const oSel = document.createElement('select');
+      oSel.disabled = ro;
+      [['side_peek', 'Side peek'], ['center_peek', 'Center peek'], ['full_page', 'Full page']].forEach(([k, l]) => {
+        const o = document.createElement('option'); o.value = k; o.textContent = l; oSel.append(o);
+      });
+      oSel.value = db.defaultOpenMode || 'side_peek';
+      oSel.onchange = () => { db.defaultOpenMode = oSel.value as DbOpenMode; persist(false); refreshAllDatabaseViews(); };
+      openRow.append(oSel);
 
       const titleBtn = document.createElement('button');
-      titleBtn.type = 'button';
-      titleBtn.className = 'db-pop-option-btn';
+      titleBtn.type = 'button'; titleBtn.className = 'db-pop-option-btn'; titleBtn.disabled = ro;
       titleBtn.innerHTML = `<span>Show database title</span><span class="db-pop-check">${db.showTitle !== false ? '✓' : ''}</span>`;
-      titleBtn.onclick = () => { db.showTitle = db.showTitle === false ? true : false; persist(false); refreshAllDatabaseViews(); close(); };
-      list.append(titleBtn);
+      titleBtn.onclick = () => { db.showTitle = db.showTitle === false; persist(false); refreshAllDatabaseViews(); pushDetail('page_layout'); };
 
+      const cardsBtn = document.createElement('button');
+      cardsBtn.type = 'button'; cardsBtn.className = 'db-pop-option-btn'; cardsBtn.disabled = ro;
+      cardsBtn.innerHTML = `<span>Show properties on cards</span><span class="db-pop-check">${view.showPropertiesOnCards !== false ? '✓' : ''}</span>`;
+      cardsBtn.onclick = () => { view.showPropertiesOnCards = view.showPropertiesOnCards === false; persist(false); refreshAllDatabaseViews(); pushDetail('page_layout'); };
+      container.append(openRow, titleBtn, cardsBtn);
+    };
+
+    container.replaceChildren();
+    container.append(makePopSubHeader('More settings', close, onBack));
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+    [
+      ['subitems', '↳', 'Sub-items', db.subItemsEnabled ? 'On' : ''],
+      ['dependencies', '⛓', 'Dependencies', db.dependenciesPropertyId ? 'On' : ''],
+      ['linked_events', '📅', 'Linked events', db.linkedEventsEnabled ? 'On' : ''],
+      ['connections', '🔗', 'Connections', String((db.connections || []).filter(c => c.enabled).length || '')],
+      ['page_layout', '◨', 'Customize page layout', '']
+    ].forEach(([key, ico, lbl, badge]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'db-pop-option-btn';
+      btn.innerHTML = `<span><span class="db-prop-type-ico">${ico}</span> ${lbl}</span><span class="db-pop-muted-chev">${escHtml(badge)} ›</span>`;
+      btn.onclick = () => pushDetail(key as any);
+      list.append(btn);
+    });
+    container.append(list);
+  }
+
+  function renderChangeSourcePanel(container: HTMLElement, dbPage: any, close: () => void, onBack: () => void, opts: DbViewSettingsOpts) {
+    const ro = roMode(dbPage);
+    container.replaceChildren();
+    container.append(makePopSubHeader('Source', close, onBack));
+
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'db-pop-search';
+    search.placeholder = 'Search databases…';
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+
+    const draw = () => {
+      list.replaceChildren();
+      const q = search.value.trim().toLowerCase();
+      const dbs = getDatabasePages().filter((d: any) => (!host?.canViewPage || host.canViewPage(d)) && (!q || (d.title || 'Untitled').toLowerCase().includes(q)));
+      dbs.forEach((d: any) => {
+        const isCurrent = d.id === dbPage.id;
+        const rowsCnt = getDatabaseRows(d.id).length;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'db-pop-option-btn';
+        btn.innerHTML = `<span>${dbIconHtml(d.icon, '🗃️')} ${escHtml(d.title || 'Untitled database')}</span><span class="db-pop-muted-chev">${rowsCnt} rows ${isCurrent ? '✓' : '›'}</span>`;
+        btn.onclick = () => {
+          close();
+          if (opts.onChangeSourceDb && !ro) {
+            opts.onChangeSourceDb(d);
+          } else {
+            host?.navigateToPage?.(d.id);
+          }
+        };
+        list.append(btn);
+      });
+    };
+    search.addEventListener('input', draw);
+    draw();
+
+    container.append(search, list);
+    if (opts.onChangeSourceDb && !ro) {
+      const createNew = document.createElement('button');
+      createNew.type = 'button';
+      createNew.className = 'db-pop-create-btn';
+      createNew.textContent = '＋ Create new database source';
+      createNew.onclick = () => {
+        const createdDb = createDatabasePage(undefined, 'New Database');
+        persist(false);
+        close();
+        opts.onChangeSourceDb!(createdDb);
+      };
+      container.append(createNew);
+    }
+    requestAnimationFrame(() => search.focus());
+  }
+
+  function renderManageSourcesPanel(container: HTMLElement, dbPage: any, close: () => void, onBack: () => void, opts: DbViewSettingsOpts) {
+    const db = ensureDatabaseConfig(dbPage);
+    container.replaceChildren();
+    container.append(makePopSubHeader('Manage data sources', close, onBack));
+
+    const summary = document.createElement('div');
+    summary.className = 'db-cond-card';
+    summary.innerHTML = `<div><strong>${dbIconHtml(dbPage.icon, '🗃️')} ${escHtml(dbPage.title || 'Database')}</strong></div><div class="db-pop-muted">${getDatabaseRows(dbPage.id).length} pages · ${db.schema.length} properties · ${db.views.length} views</div>`;
+    container.append(summary);
+
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button'; openBtn.className = 'db-pop-option-btn';
+    openBtn.innerHTML = '<span>⤢ Open source database page</span><span class="db-pop-muted-chev">›</span>';
+    openBtn.onclick = () => { close(); host?.navigateToPage?.(dbPage.id); };
+    list.append(openBtn);
+
+    if (opts.onChangeSourceDb && !roMode(dbPage)) {
+      const chBtn = document.createElement('button');
+      chBtn.type = 'button'; chBtn.className = 'db-pop-option-btn';
+      chBtn.innerHTML = '<span>⇄ Change linked data source…</span><span class="db-pop-muted-chev">›</span>';
+      chBtn.onclick = () => renderChangeSourcePanel(container, dbPage, close, () => renderManageSourcesPanel(container, dbPage, close, onBack, opts), opts);
+      list.append(chBtn);
+    }
+
+    const expCsv = document.createElement('button');
+    expCsv.type = 'button'; expCsv.className = 'db-pop-option-btn';
+    expCsv.innerHTML = '<span>⇩ Export database as CSV</span>';
+    expCsv.onclick = () => {
+      const cols = db.schema;
+      const rows = getDatabaseRows(dbPage.id);
+      const escapeCsv = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
+      const lines = [cols.map(c => escapeCsv(c.name)).join(',')];
+      rows.forEach((r: any) => {
+        lines.push(cols.map(c => escapeCsv(valueAsSearchText(c, r, dbPage))).join(','));
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(dbPage.title || 'database').replace(/[^\w\-]+/g, '_')}.csv`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      host?.toast?.('Exported CSV');
+      close();
+    };
+    list.append(expCsv);
+
+    const expJson = document.createElement('button');
+    expJson.type = 'button'; expJson.className = 'db-pop-option-btn';
+    expJson.innerHTML = '<span>⇩ Export database as JSON</span>';
+    expJson.onclick = () => {
+      const payload = { database: { id: dbPage.id, title: dbPage.title, ...db }, rows: getDatabaseRows(dbPage.id) };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(dbPage.title || 'database').replace(/[^\w\-]+/g, '_')}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      host?.toast?.('Exported JSON');
+      close();
+    };
+    list.append(expJson);
+    container.append(list);
+  }
+
+  function renderTurnIntoPanel(container: HTMLElement, view: DbView, dbPage: any, close: () => void, onBack: () => void, opts: DbViewSettingsOpts) {
+    const db = ensureDatabaseConfig(dbPage);
+    const ro = roMode(dbPage);
+    container.replaceChildren();
+    container.append(makePopSubHeader('Turn into', close, onBack));
+
+    const layoutGrid = document.createElement('div');
+    layoutGrid.className = 'db-layout-grid';
+    DB_VIEW_TYPES.forEach(vt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'db-layout-tile' + (view.type === vt.type ? ' active' : '');
+      btn.disabled = ro;
+      btn.innerHTML = `<span>${vt.icon}</span><small>${vt.label}</small>`;
+      btn.onclick = () => {
+        view.type = vt.type;
+        if (vt.type === 'board' && !view.groupBy) {
+          view.groupBy = db.schema.find(s => ['status', 'select', 'multi_select', 'person', 'checkbox'].includes(s.type))?.id;
+        }
+        if ((vt.type === 'calendar' || vt.type === 'timeline') && !view.datePropertyId) {
+          let dp = db.schema.find(s => s.type === 'date');
+          if (!dp) dp = addSchemaProperty(dbPage, 'Date', 'date');
+          view.datePropertyId = dp.id;
+        }
+        if (vt.type === 'chart' && !view.chartConfig) {
+          view.chartConfig = { chartType: 'vertical_bar', xPropertyId: db.schema[1]?.id || db.schema[0].id, yMode: 'count' };
+        }
+        persist(false); refreshAllDatabaseViews(); close();
+      };
+      layoutGrid.append(btn);
+    });
+    container.append(layoutGrid);
+
+    const list = document.createElement('div');
+    list.className = 'db-pop-list';
+    if (opts.isInline && opts.onTurnIntoFullPage && !ro) {
+      const fullBtn = document.createElement('button');
+      fullBtn.type = 'button'; fullBtn.className = 'db-pop-option-btn';
+      fullBtn.innerHTML = '<span>⤢ Turn into full page</span>';
+      fullBtn.onclick = () => { close(); opts.onTurnIntoFullPage!(); };
+      list.append(fullBtn);
+    }
+    if (!ro) {
       const dupBtn = document.createElement('button');
-      dupBtn.type = 'button';
-      dupBtn.className = 'db-pop-option-btn';
+      dupBtn.type = 'button'; dupBtn.className = 'db-pop-option-btn';
       dupBtn.innerHTML = '<span>⧉ Duplicate view</span>';
       dupBtn.onclick = () => {
         const copy = { ...structuredCloneSafe(view), id: uid(), name: `${view.name} copy` };
@@ -3394,22 +4347,238 @@ const ArchitectDatabase = (() => {
         persist(false); refreshAllDatabaseViews(); close();
       };
       list.append(dupBtn);
+    }
+    if (!ro && db.views.length > 1) {
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button'; delBtn.className = 'db-pop-option-btn is-danger';
+      delBtn.innerHTML = '<span>🗑 Delete view</span>';
+      delBtn.onclick = () => {
+        db.views = db.views.filter(v => v.id !== view.id);
+        db.activeViewId = db.views[0].id;
+        persist(false); refreshAllDatabaseViews(); close();
+      };
+      list.append(delBtn);
+    }
+    container.append(list);
+  }
 
-      if (db.views.length > 1) {
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'db-pop-option-btn is-danger';
-        delBtn.innerHTML = '<span>🗑 Delete view</span>';
-        delBtn.onclick = () => {
-          db.views = db.views.filter(v => v.id !== view.id);
-          db.activeViewId = db.views[0].id;
-          persist(false); refreshAllDatabaseViews(); close();
+  function openGroupPopover(anchor: HTMLElement, view: DbView, dbPage: any) {
+    openDbPopover(anchor, (pop, close) => renderGroupPanel(pop, view, dbPage, close), 265);
+  }
+
+  function openViewSettingsPopover(anchor: HTMLElement, view: DbView, dbPage: any, opts: DbViewSettingsOpts = {}) {
+    const db = ensureDatabaseConfig(dbPage);
+    openDbPopover(anchor, (pop, close) => {
+      const renderLayoutPanel = (onBack: () => void) => {
+        pop.replaceChildren();
+        pop.append(makePopSubHeader('Layout', close, onBack));
+        const ro = roMode(dbPage);
+        const layoutGrid = document.createElement('div');
+        layoutGrid.className = 'db-layout-grid';
+        DB_VIEW_TYPES.forEach(vt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'db-layout-tile' + (view.type === vt.type ? ' active' : '');
+          btn.disabled = ro;
+          btn.innerHTML = `<span>${vt.icon}</span><small>${vt.label}</small>`;
+          btn.onclick = () => {
+            view.type = vt.type;
+            if (vt.type === 'board' && !view.groupBy) {
+              view.groupBy = db.schema.find(s => ['status', 'select', 'multi_select', 'person', 'checkbox'].includes(s.type))?.id;
+            }
+            if ((vt.type === 'calendar' || vt.type === 'timeline') && !view.datePropertyId) {
+              let dp = db.schema.find(s => s.type === 'date');
+              if (!dp) dp = addSchemaProperty(dbPage, 'Date', 'date');
+              view.datePropertyId = dp.id;
+            }
+            if (vt.type === 'chart' && !view.chartConfig) {
+              view.chartConfig = { chartType: 'vertical_bar', xPropertyId: db.schema[1]?.id || db.schema[0].id, yMode: 'count' };
+            }
+            persist(false); refreshAllDatabaseViews(); renderLayoutPanel(onBack);
+          };
+          layoutGrid.append(btn);
+        });
+        pop.append(layoutGrid);
+
+        const list = document.createElement('div');
+        list.className = 'db-pop-list';
+
+        const wrapBtn = document.createElement('button');
+        wrapBtn.type = 'button'; wrapBtn.className = 'db-pop-option-btn'; wrapBtn.disabled = ro;
+        wrapBtn.innerHTML = `<span>Wrap all properties</span><span class="db-pop-check">${view.wrapCells ? '✓' : ''}</span>`;
+        wrapBtn.onclick = () => { view.wrapCells = !view.wrapCells; persist(false); refreshAllDatabaseViews(); renderLayoutPanel(onBack); };
+        list.append(wrapBtn);
+
+        if (view.type === 'gallery' || view.type === 'board') {
+          const prevRow = document.createElement('label');
+          prevRow.className = 'db-pop-field-row';
+          prevRow.innerHTML = '<span>Card preview</span>';
+          const prevSel = document.createElement('select');
+          prevSel.disabled = ro;
+          [['none', 'None'], ['cover', 'Page cover'], ['content', 'Page content'], ['files', 'Files & media']].forEach(([k, l]) => {
+            const o = document.createElement('option'); o.value = k; o.textContent = l; prevSel.append(o);
+          });
+          prevSel.value = view.cardPreview || 'none';
+          prevSel.onchange = () => { view.cardPreview = prevSel.value as any; persist(false); refreshAllDatabaseViews(); };
+          prevRow.append(prevSel);
+          list.append(prevRow);
+        }
+
+        if (view.type === 'gallery') {
+          const sizeRow = document.createElement('label');
+          sizeRow.className = 'db-pop-field-row';
+          sizeRow.innerHTML = '<span>Card size</span>';
+          const sizeSel = document.createElement('select');
+          sizeSel.disabled = ro;
+          [['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']].forEach(([k, l]) => {
+            const o = document.createElement('option'); o.value = k; o.textContent = l; sizeSel.append(o);
+          });
+          sizeSel.value = view.cardSize || 'medium';
+          sizeSel.onchange = () => { view.cardSize = sizeSel.value as any; persist(false); refreshAllDatabaseViews(); };
+          sizeRow.append(sizeSel);
+          list.append(sizeRow);
+        }
+
+        if (view.type === 'calendar' || view.type === 'timeline') {
+          const dateRow = document.createElement('label');
+          dateRow.className = 'db-pop-field-row';
+          dateRow.innerHTML = '<span>Date by</span>';
+          const dateSel = document.createElement('select');
+          dateSel.disabled = ro;
+          db.schema.filter(s => s.type === 'date').forEach(dp => {
+            const o = document.createElement('option'); o.value = dp.id; o.textContent = dp.name; dateSel.append(o);
+          });
+          dateSel.value = view.datePropertyId || '';
+          dateSel.onchange = () => { view.datePropertyId = dateSel.value; persist(false); refreshAllDatabaseViews(); };
+          dateRow.append(dateSel);
+          list.append(dateRow);
+        }
+
+        if (view.type === 'chart') {
+          view.chartConfig = view.chartConfig || { chartType: 'vertical_bar', xPropertyId: db.schema[1]?.id || db.schema[0].id, yMode: 'count' };
+          const ctRow = document.createElement('label');
+          ctRow.className = 'db-pop-field-row';
+          ctRow.innerHTML = '<span>Chart style</span>';
+          const ctSel = document.createElement('select');
+          ctSel.disabled = ro;
+          [['vertical_bar', 'Vertical bar'], ['horizontal_bar', 'Horizontal bar'], ['donut', 'Donut']].forEach(([k, l]) => {
+            const o = document.createElement('option'); o.value = k; o.textContent = l; ctSel.append(o);
+          });
+          ctSel.value = view.chartConfig.chartType;
+          ctSel.onchange = () => { view.chartConfig!.chartType = ctSel.value as any; persist(false); refreshAllDatabaseViews(); };
+          ctRow.append(ctSel);
+          list.append(ctRow);
+
+          const xRow = document.createElement('label');
+          xRow.className = 'db-pop-field-row';
+          xRow.innerHTML = '<span>Group by</span>';
+          const xSel = document.createElement('select');
+          xSel.disabled = ro;
+          db.schema.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; xSel.append(o); });
+          xSel.value = view.chartConfig.xPropertyId;
+          xSel.onchange = () => { view.chartConfig!.xPropertyId = xSel.value; persist(false); refreshAllDatabaseViews(); };
+          xRow.append(xSel);
+          list.append(xRow);
+        }
+        pop.append(list);
+      };
+
+      const renderRoot = () => {
+        const ro = roMode(dbPage);
+        const hostRo = isHostReadOnly(dbPage);
+        const curDb = ensureDatabaseConfig(dbPage);
+        pop.replaceChildren();
+        pop.append(makePopSubHeader('View settings', close));
+
+        const namePill = document.createElement('div');
+        namePill.className = 'db-vs-name-pill';
+        const vIco = document.createElement('span');
+        vIco.className = 'db-vs-name-ico';
+        vIco.textContent = viewMeta(view.type).icon;
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'db-vs-name-input';
+        nameInput.value = view.name;
+        nameInput.placeholder = 'View name';
+        nameInput.disabled = ro;
+        nameInput.oninput = () => { view.name = nameInput.value || 'View'; persist(false); };
+        nameInput.onblur = () => refreshAllDatabaseViews();
+        const infoBadge = document.createElement('span');
+        infoBadge.className = 'db-vs-info-badge';
+        infoBadge.textContent = 'ⓘ';
+        infoBadge.title = `${getDatabaseRows(dbPage.id).length} rows · ${viewMeta(view.type).label}`;
+        namePill.append(vIco, nameInput, infoBadge);
+        pop.append(namePill);
+
+        const menuList = document.createElement('div');
+        menuList.className = 'db-pop-list db-vs-menu-list';
+        const addMenuItem = (icon: string, label: string, rightText: string, onClick: () => void, cls = '', disabled = false) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'db-pop-option-btn' + (cls ? ' ' + cls : '');
+          btn.disabled = disabled;
+          btn.innerHTML = `<span class="db-vs-item-left"><span class="db-prop-type-ico">${icon}</span><span>${escHtml(label)}</span></span><span class="db-pop-muted-chev">${rightText ? escHtml(rightText) + ' ' : ''}${rightText === '__no_chev__' ? '' : '›'}</span>`;
+          if (rightText === '__no_chev__') {
+            btn.querySelector('.db-pop-muted-chev')!.textContent = '';
+          }
+          btn.onclick = onClick;
+          menuList.append(btn);
         };
-        list.append(delBtn);
-      }
 
-      pop.append(header, nameRow, layoutRow, list);
-    }, 300);
+        const visNonTitle = view.visiblePropertyIds.filter(id => curDb.schema.some(s => s.id === id && s.type !== 'title')).length;
+        const filterCnt = countFilterRules(view);
+        const sortCnt = view.sorts.length;
+        const grpName = view.groupBy ? (curDb.schema.find(s => s.id === view.groupBy)?.name || '') : '';
+        const condCnt = (view.conditionalColors || []).filter(r => r && r.enabled !== false).length;
+
+        addMenuItem(viewMeta(view.type).icon, 'Layout', viewMeta(view.type).label, () => renderLayoutPanel(renderRoot));
+        addMenuItem('👁', 'Property visibility', String(visNonTitle), () => renderPropertiesPanel(pop, view, dbPage, close, renderRoot));
+        addMenuItem('☷', 'Filter', filterCnt ? String(filterCnt) : '', () => renderFilterSettingsPanel(pop, view, dbPage, close, renderRoot));
+        addMenuItem('⇅', 'Sort', sortCnt ? String(sortCnt) : '', () => renderSortPanel(pop, view, dbPage, close, renderRoot));
+        addMenuItem('⊞', 'Group', grpName, () => renderGroupPanel(pop, view, dbPage, close, renderRoot));
+        addMenuItem('🖌', 'Conditional color', condCnt ? String(condCnt) : '', () => renderConditionalColorPanel(pop, view, dbPage, close, renderRoot));
+        addMenuItem('🔗', 'Copy link to view', '__no_chev__', () => { copyViewLink(dbPage, view); close(); });
+
+        const sep1 = document.createElement('div');
+        sep1.className = 'db-pop-section-head';
+        sep1.innerHTML = '<span>Data source settings</span>';
+        menuList.append(sep1);
+
+        addMenuItem('⇄', 'Source', dbPage.title || 'Database', () => renderChangeSourcePanel(pop, dbPage, close, renderRoot, opts));
+        addMenuItem('☰', 'Edit properties', '', () => renderEditPropertiesPanel(pop, view, dbPage, close, renderRoot));
+        addMenuItem('⚡', 'Automations', (curDb.automations || []).length ? String(curDb.automations!.length) : '', () => {
+          const rect = pop.getBoundingClientRect();
+          close();
+          openAutomationsPopover(rect as any, dbPage);
+        }, '', ro);
+        addMenuItem('↻', 'Turn into', '', () => renderTurnIntoPanel(pop, view, dbPage, close, renderRoot, opts));
+        addMenuItem('•••', 'More settings', '', () => renderMoreSettingsPanel(pop, view, dbPage, close, renderRoot));
+
+        const sep2 = document.createElement('div');
+        sep2.className = 'db-pop-divider';
+        menuList.append(sep2);
+
+        addMenuItem('🗄', 'Manage data sources', '', () => renderManageSourcesPanel(pop, dbPage, close, renderRoot, opts));
+        addMenuItem(curDb.locked ? '🔓' : '🔒', curDb.locked ? 'Unlock database' : 'Lock database', '__no_chev__', () => {
+          if (hostRo) return;
+          curDb.locked = !curDb.locked;
+          persist(false);
+          refreshAllDatabaseViews();
+          host?.toast?.(curDb.locked ? 'Database locked' : 'Database unlocked');
+          renderRoot();
+        }, curDb.locked ? 'is-locked-toggle' : '', hostRo);
+
+        pop.append(menuList);
+      };
+
+      if (opts.initialPanel === 'properties') renderPropertiesPanel(pop, view, dbPage, close, renderRoot);
+      else if (opts.initialPanel === 'group') renderGroupPanel(pop, view, dbPage, close, renderRoot);
+      else if (opts.initialPanel === 'conditional_color') renderConditionalColorPanel(pop, view, dbPage, close, renderRoot);
+      else if (opts.initialPanel === 'source') renderChangeSourcePanel(pop, dbPage, close, renderRoot, opts);
+      else if (opts.initialPanel === 'more') renderMoreSettingsPanel(pop, view, dbPage, close, renderRoot);
+      else if (opts.initialPanel === 'manage_sources') renderManageSourcesPanel(pop, dbPage, close, renderRoot, opts);
+      else renderRoot();
+    }, 305);
   }
 
   function openAddViewPopover(anchor: HTMLElement, dbPage: any, onSelectView: (v: DbView) => void) {
@@ -3491,7 +4660,7 @@ const ArchitectDatabase = (() => {
     const rowPage = getPageById(activePeek.rowId);
     const dbPage = getPageById(activePeek.dbPageId);
     if (!rowPage || !dbPage) { closeDatabasePeek(); return; }
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const db = ensureDatabaseConfig(dbPage);
     const layer = ensurePeekLayer();
     layer.hidden = false;
@@ -3734,7 +4903,7 @@ const ArchitectDatabase = (() => {
 
   function renderRowDatabaseProperties(rowPage: any, dbPage: any, opts: { inPeek?: boolean } = {}) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const sheet = document.createElement('div');
     sheet.className = 'db-row-prop-sheet';
     const order = db.views[0]?.propertyOrder || db.schema.map(s => s.id);
@@ -3771,7 +4940,13 @@ const ArchitectDatabase = (() => {
   }
 
   // Group builder shared across Table (when groupBy active), Board, and List
-  function buildGroupsForRows(rows: any[], groupProp: DbSchemaProperty | undefined, dbPage: any) {
+  function buildGroupsForRows(
+    rows: any[],
+    groupProp: DbSchemaProperty | undefined,
+    dbPage: any,
+    view?: DbView,
+    opts: { includeHidden?: boolean } = {}
+  ) {
     if (!groupProp) return [{ key: '__all__', label: 'All pages', color: 'default' as DbColorKey, rows }];
     const groups: { key: string; label: string; color: DbColorKey; statusGroup?: DbStatusGroup; rows: any[] }[] = [];
     const byKey = new Map<string, any>();
@@ -3795,10 +4970,23 @@ const ArchitectDatabase = (() => {
         const bucket = opt ? ensureBucket(opt.id, opt.name, opt.color, opt.statusGroup) : byKey.get('__none__');
         bucket.rows.push(r);
       });
-      return groups;
-    }
-
-    if (groupProp.type === 'person') {
+    } else if (groupProp.type === 'multi_select') {
+      (groupProp.options || []).forEach(o => ensureBucket(o.id, o.name, o.color));
+      ensureBucket('__none__', `No ${groupProp.name}`, 'gray');
+      rows.forEach(r => {
+        const raw = getRawValue(groupProp, r, dbPage);
+        const arr = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+        const matchedIds = new Set<string>();
+        arr.forEach((v: any) => {
+          const opt = resolveOption(groupProp, v);
+          if (opt && !matchedIds.has(opt.id)) {
+            matchedIds.add(opt.id);
+            ensureBucket(opt.id, opt.name, opt.color).rows.push(r);
+          }
+        });
+        if (!matchedIds.size) byKey.get('__none__').rows.push(r);
+      });
+    } else if (groupProp.type === 'person') {
       (getState()?.users || []).forEach((u: any) => ensureBucket(u.id, u.name, 'blue'));
       ensureBucket('__none__', `No ${groupProp.name}`, 'gray');
       rows.forEach(r => {
@@ -3810,22 +4998,30 @@ const ArchitectDatabase = (() => {
           ensureBucket(u?.id || uidVal, u?.name || uidVal, 'blue').rows.push(r);
         });
       });
-      return groups;
-    }
-
-    if (groupProp.type === 'checkbox') {
+    } else if (groupProp.type === 'checkbox') {
       ensureBucket('true', 'Checked', 'green');
       ensureBucket('false', 'Unchecked', 'gray');
       rows.forEach(r => ensureBucket(getRawValue(groupProp, r, dbPage) ? 'true' : 'false', '', 'default').rows.push(r));
-      return groups;
+    } else {
+      rows.forEach(r => {
+        const txt = valueAsSearchText(groupProp, r, dbPage) || `No ${groupProp.name}`;
+        ensureBucket(txt, txt, txt.startsWith('No ') ? 'gray' : 'blue').rows.push(r);
+      });
+      if (!groups.length) ensureBucket('__none__', `No ${groupProp.name}`, 'gray');
     }
 
-    rows.forEach(r => {
-      const txt = valueAsSearchText(groupProp, r, dbPage) || `No ${groupProp.name}`;
-      ensureBucket(txt, txt, txt.startsWith('No ') ? 'gray' : 'blue').rows.push(r);
-    });
-    if (!groups.length) ensureBucket('__none__', `No ${groupProp.name}`, 'gray');
-    return groups;
+    if (view?.groupSort === 'asc' || view?.groupSort === 'desc') {
+      const dir = view.groupSort === 'desc' ? -1 : 1;
+      groups.sort((a, b) => {
+        if (a.key === '__none__' && b.key !== '__none__') return 1;
+        if (b.key === '__none__' && a.key !== '__none__') return -1;
+        return a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }) * dir;
+      });
+    }
+
+    if (opts.includeHidden) return groups;
+    const hiddenSet = new Set(view?.hiddenGroups || []);
+    return groups.filter(g => !hiddenSet.has(g.key) && (!view?.hideEmptyGroups || g.rows.length > 0));
   }
 
   function assignGroupValueToRow(rowPage: any, groupProp: DbSchemaProperty, groupKey: string, dbPage: any) {
@@ -3836,7 +5032,7 @@ const ArchitectDatabase = (() => {
     }
     if (groupProp.type === 'status' || groupProp.type === 'select') {
       setRowValue(rowPage, groupProp, groupKey, dbPage, true);
-    } else if (groupProp.type === 'person') {
+    } else if (groupProp.type === 'multi_select' || groupProp.type === 'person') {
       setRowValue(rowPage, groupProp, [groupKey], dbPage, true);
     } else if (groupProp.type === 'checkbox') {
       setRowValue(rowPage, groupProp, groupKey === 'true', dbPage, true);
@@ -3849,7 +5045,7 @@ const ArchitectDatabase = (() => {
 
   function renderTableView(canvas: HTMLElement, rows: any[], view: DbView, dbPage: any) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const cols = view.propertyOrder
       .filter(pid => view.visiblePropertyIds.includes(pid))
       .map(pid => db.schema.find(s => s.id === pid))
@@ -3857,215 +5053,198 @@ const ArchitectDatabase = (() => {
 
     const scroll = document.createElement('div');
     scroll.className = 'db-table-scroll';
-    const table = document.createElement('table');
-    table.className = 'db-table' + (view.wrapCells ? ' is-wrap' : '');
-
-    const colgroup = document.createElement('colgroup');
-    cols.forEach(col => {
-      const c = document.createElement('col');
-      const w = view.columnWidths?.[col.id] || col.width || (col.type === 'title' ? 250 : 155);
-      c.style.width = `${w}px`;
-      colgroup.append(c);
-    });
-    if (!ro) {
-      const addCol = document.createElement('col');
-      addCol.style.width = '42px';
-      colgroup.append(addCol);
-    }
-    table.append(colgroup);
-
-    const thead = document.createElement('thead');
-    const headTr = document.createElement('tr');
-    cols.forEach((col, cIdx) => {
-      const th = document.createElement('th');
-      th.className = 'db-th';
-      const inner = document.createElement('div');
-      inner.className = 'db-th-inner';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'db-th-btn';
-      btn.innerHTML = `<span class="db-prop-type-ico">${escHtml(propMeta(col.type).icon)}</span><span class="db-th-label">${escHtml(col.name)}</span>`;
-      btn.onclick = () => openPropertyHeaderMenu(btn, col, view, dbPage);
-      inner.append(btn);
-
-      if (!ro) {
-        const resizer = document.createElement('div');
-        resizer.className = 'db-col-resizer';
-        resizer.title = 'Drag to resize column';
-        resizer.onpointerdown = e => {
-          e.preventDefault();
-          e.stopPropagation();
-          const startX = e.clientX;
-          const colEl = colgroup.children[cIdx] as HTMLElement;
-          const startW = th.getBoundingClientRect().width;
-          const onMove = (ev: PointerEvent) => {
-            const nextW = Math.max(90, Math.min(540, Math.round(startW + (ev.clientX - startX))));
-            view.columnWidths = view.columnWidths || {};
-            view.columnWidths[col.id] = nextW;
-            if (colEl) colEl.style.width = `${nextW}px`;
-          };
-          const onUp = () => {
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', onUp);
-            persist(false);
-          };
-          window.addEventListener('pointermove', onMove);
-          window.addEventListener('pointerup', onUp, { once: true });
-        };
-        inner.append(resizer);
-      }
-      th.append(inner);
-      headTr.append(th);
-    });
-    if (!ro) {
-      const addTh = document.createElement('th');
-      addTh.className = 'db-th db-th-add';
-      const addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className = 'db-th-add-btn';
-      addBtn.textContent = '+';
-      addBtn.title = 'Add property';
-      addBtn.setAttribute('aria-label', 'Add property');
-      addBtn.onclick = () => openAddPropertyPopover(addBtn, dbPage);
-      addTh.append(addBtn);
-      headTr.append(addTh);
-    }
-    thead.append(headTr);
-    table.append(thead);
-
-    const tbody = document.createElement('tbody');
     const rowOrderIds = rows.map((r: any) => r.id);
     const groupProp = view.groupBy ? db.schema.find(s => s.id === view.groupBy) : undefined;
-    const groups = buildGroupsForRows(rows, groupProp, dbPage);
+    const isGrouped = Boolean(groupProp);
+    const groups = buildGroupsForRows(rows, groupProp, dbPage, view);
 
-    groups.forEach(group => {
-      const collapsed = (view.collapsedGroups || []).includes(group.key);
-      if (groupProp) {
-        const gTr = document.createElement('tr');
-        gTr.className = 'db-table-group-row';
-        const gTd = document.createElement('td');
-        gTd.colSpan = cols.length + (ro ? 0 : 1);
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'db-group-toggle';
-        toggle.textContent = collapsed ? '▸' : '▾';
-        toggle.onclick = () => {
-          view.collapsedGroups = view.collapsedGroups || [];
-          view.collapsedGroups = collapsed ? view.collapsedGroups.filter(x => x !== group.key) : [...view.collapsedGroups, group.key];
-          persist(false); refreshAllDatabaseViews();
-        };
-        const count = document.createElement('span');
-        count.className = 'db-group-count';
-        count.textContent = String(group.rows.length);
-        gTd.append(toggle, createPillEl(group.label, group.color, groupProp.type === 'status', group.statusGroup), count);
-        gTr.append(gTd);
-        tbody.append(gTr);
+    const createColgroup = () => {
+      const cg = document.createElement('colgroup');
+      cols.forEach(col => {
+        const c = document.createElement('col');
+        const w = view.columnWidths?.[col.id] || col.width || (col.type === 'title' ? 250 : 155);
+        c.style.width = `${w}px`;
+        cg.append(c);
+      });
+      if (!ro) {
+        const addCol = document.createElement('col');
+        addCol.style.width = '42px';
+        cg.append(addCol);
       }
+      return cg;
+    };
 
-      if (!collapsed) {
-        const subEnabled = !!db.subItemsEnabled && !!db.parentPropertyId;
-        const parentPropId = db.parentPropertyId || '';
-        const groupIdSet = new Set(group.rows.map((r: any) => r.id));
-        const childrenByParent = new Map<string, any[]>();
-        if (subEnabled) {
-          group.rows.forEach(r => {
-            const pIds: string[] = Array.isArray(r.propertyValues?.[parentPropId]) ? r.propertyValues[parentPropId] : [];
-            const pid = pIds.find(x => groupIdSet.has(x) && x !== r.id);
-            if (pid) {
-              if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
-              childrenByParent.get(pid)!.push(r);
-            }
-          });
+    const createThead = () => {
+      const thead = document.createElement('thead');
+      const headTr = document.createElement('tr');
+      cols.forEach((col, cIdx) => {
+        const th = document.createElement('th');
+        th.className = 'db-th';
+        const inner = document.createElement('div');
+        inner.className = 'db-th-inner';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'db-th-btn';
+        btn.innerHTML = `<span class="db-prop-type-ico">${escHtml(propMeta(col.type).icon)}</span><span class="db-th-label">${escHtml(col.name)}</span>`;
+        btn.onclick = () => openPropertyHeaderMenu(btn, col, view, dbPage);
+        inner.append(btn);
+
+        if (!ro) {
+          const resizer = document.createElement('div');
+          resizer.className = 'db-col-resizer';
+          resizer.title = 'Drag to resize column';
+          resizer.onpointerdown = e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startW = th.getBoundingClientRect().width;
+            const colEls = Array.from(scroll.querySelectorAll('table.db-table colgroup')).map(cg => cg.children[cIdx] as HTMLElement);
+            const onMove = (ev: PointerEvent) => {
+              const nextW = Math.max(90, Math.min(540, Math.round(startW + (ev.clientX - startX))));
+              view.columnWidths = view.columnWidths || {};
+              view.columnWidths[col.id] = nextW;
+              colEls.forEach(colEl => { if (colEl) colEl.style.width = `${nextW}px`; });
+            };
+            const onUp = () => {
+              window.removeEventListener('pointermove', onMove);
+              window.removeEventListener('pointerup', onUp);
+              persist(false);
+            };
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp, { once: true });
+          };
+          inner.append(resizer);
         }
-        const renderRowTree = (rowPage: any, treeDepth: number, seen: Set<string>) => {
-          if (seen.has(rowPage.id)) return;
-          seen.add(rowPage.id);
-          const childRows = subEnabled ? (childrenByParent.get(rowPage.id) || []) : [];
-          const subCollapsed = (view.collapsedSubItems || []).includes(rowPage.id);
-          const tr = document.createElement('tr');
-          tr.className = 'db-tr' + (treeDepth > 0 ? ' is-subitem' : '');
-          tr.dataset.rowId = rowPage.id;
-          cols.forEach(col => {
-            const td = document.createElement('td');
-            td.className = 'db-td' + (col.type === 'title' ? ' is-title-col' : '');
-            const ctrl = renderPropertyValueControl(col, rowPage, dbPage, {
-              compact: true,
-              onOpenRow: col.type === 'title' ? () => openDatabaseRow(rowPage, dbPage, rowOrderIds) : undefined
-            });
-            if (col.type === 'title' && subEnabled) {
-              const titleBox = ctrl.querySelector('.db-title-cell') as HTMLElement | null;
-              if (titleBox) {
-                titleBox.style.paddingLeft = `${treeDepth * 18}px`;
-                const subToggle = document.createElement('button');
-                subToggle.type = 'button';
-                subToggle.className = 'db-subitem-toggle';
-                subToggle.textContent = childRows.length ? (subCollapsed ? '▸' : '▾') : '·';
-                subToggle.disabled = !childRows.length;
-                subToggle.onclick = ev => {
-                  ev.stopPropagation();
-                  view.collapsedSubItems = view.collapsedSubItems || [];
-                  view.collapsedSubItems = subCollapsed
-                    ? view.collapsedSubItems.filter(x => x !== rowPage.id)
-                    : [...view.collapsedSubItems, rowPage.id];
-                  persist(false); refreshAllDatabaseViews();
-                };
-                titleBox.prepend(subToggle);
-                if (!ro) {
-                  const addSub = document.createElement('button');
-                  addSub.type = 'button';
-                  addSub.className = 'db-subitem-add-btn';
-                  addSub.textContent = '+ Sub';
-                  addSub.title = 'Add sub-item';
-                  addSub.onclick = ev => {
-                    ev.stopPropagation();
-                    view.collapsedSubItems = (view.collapsedSubItems || []).filter(x => x !== rowPage.id);
-                    const child = createDatabaseRow(dbPage, { [parentPropId]: [rowPage.id] });
-                    persist(false); refreshAllDatabaseViews();
-                    requestAnimationFrame(() => {
-                      (scroll.querySelector(`tr[data-row-id="${CSS.escape(child.id)}"] .db-title-input`) as HTMLInputElement)?.focus();
-                    });
-                  };
-                  titleBox.append(addSub);
-                }
-              }
-            }
-            if (col.type === 'title' && db.dependenciesPropertyId) {
-              const blockerIds: string[] = Array.isArray(rowPage.propertyValues?.[db.dependenciesPropertyId]) ? rowPage.propertyValues[db.dependenciesPropertyId] : [];
-              if (blockerIds.length) {
-                const depBadge = document.createElement('span');
-                depBadge.className = 'db-dep-badge';
-                depBadge.textContent = `⛔ Blocked (${blockerIds.length})`;
-                depBadge.title = blockerIds.map(idVal => getPageById(idVal)?.title || 'Task').join(', ');
-                ctrl.append(depBadge);
-              }
-            }
-            td.append(ctrl);
-            tr.append(td);
-          });
-          if (!ro) {
-            const blankTd = document.createElement('td');
-            blankTd.className = 'db-td db-td-spacer';
-            tr.append(blankTd);
-          }
-          tbody.append(tr);
-          if (!subCollapsed) {
-            childRows.forEach(cr => renderRowTree(cr, treeDepth + 1, seen));
-          }
-        };
-
-        const seen = new Set<string>();
-        const roots = subEnabled
-          ? group.rows.filter(r => {
-              const pIds: string[] = Array.isArray(r.propertyValues?.[parentPropId]) ? r.propertyValues[parentPropId] : [];
-              return !pIds.some(x => groupIdSet.has(x) && x !== r.id);
-            })
-          : group.rows;
-        roots.forEach(r => renderRowTree(r, 0, seen));
-        group.rows.forEach(r => { if (!seen.has(r.id)) renderRowTree(r, 0, seen); });
+        th.append(inner);
+        headTr.append(th);
+      });
+      if (!ro) {
+        const addTh = document.createElement('th');
+        addTh.className = 'db-th db-th-add';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'db-th-add-btn';
+        addBtn.textContent = '+';
+        addBtn.title = 'Add property';
+        addBtn.setAttribute('aria-label', 'Add property');
+        addBtn.onclick = () => openAddPropertyPopover(addBtn, dbPage);
+        addTh.append(addBtn);
+        headTr.append(addTh);
       }
-    });
+      thead.append(headTr);
+      return thead;
+    };
 
-    if (!ro) {
+    const appendGroupRowsToTbody = (tbody: HTMLElement, groupRows: any[]) => {
+      const subEnabled = !!db.subItemsEnabled && !!db.parentPropertyId;
+      const parentPropId = db.parentPropertyId || '';
+      const groupIdSet = new Set(groupRows.map((r: any) => r.id));
+      const childrenByParent = new Map<string, any[]>();
+      if (subEnabled) {
+        groupRows.forEach(r => {
+          const pIds: string[] = Array.isArray(r.propertyValues?.[parentPropId]) ? r.propertyValues[parentPropId] : [];
+          const pid = pIds.find(x => groupIdSet.has(x) && x !== r.id);
+          if (pid) {
+            if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+            childrenByParent.get(pid)!.push(r);
+          }
+        });
+      }
+      const renderRowTree = (rowPage: any, treeDepth: number, seen: Set<string>) => {
+        if (seen.has(rowPage.id)) return;
+        seen.add(rowPage.id);
+        const childRows = subEnabled ? (childrenByParent.get(rowPage.id) || []) : [];
+        const subCollapsed = (view.collapsedSubItems || []).includes(rowPage.id);
+        const cond = evaluateConditionalColor(view, rowPage, dbPage);
+        const tr = document.createElement('tr');
+        tr.className = 'db-tr' + (treeDepth > 0 ? ' is-subitem' : '');
+        tr.dataset.rowId = rowPage.id;
+        applyConditionalRowColor(tr, cond.rowColor);
+
+        cols.forEach(col => {
+          const td = document.createElement('td');
+          td.className = 'db-td' + (col.type === 'title' ? ' is-title-col' : '');
+          const cellColor = cond.propColors.get(col.id);
+          if (cellColor && cellColor !== 'default') td.dataset.cellColor = cellColor;
+
+          const ctrl = renderPropertyValueControl(col, rowPage, dbPage, {
+            compact: true,
+            onOpenRow: col.type === 'title' ? () => openDatabaseRow(rowPage, dbPage, rowOrderIds) : undefined
+          });
+          if (col.type === 'title' && subEnabled) {
+            const titleBox = ctrl.querySelector('.db-title-cell') as HTMLElement | null;
+            if (titleBox) {
+              titleBox.style.paddingLeft = `${treeDepth * 18}px`;
+              const subToggle = document.createElement('button');
+              subToggle.type = 'button';
+              subToggle.className = 'db-subitem-toggle';
+              subToggle.textContent = childRows.length ? (subCollapsed ? '▸' : '▾') : '·';
+              subToggle.disabled = !childRows.length;
+              subToggle.onclick = ev => {
+                ev.stopPropagation();
+                view.collapsedSubItems = view.collapsedSubItems || [];
+                view.collapsedSubItems = subCollapsed
+                  ? view.collapsedSubItems.filter(x => x !== rowPage.id)
+                  : [...view.collapsedSubItems, rowPage.id];
+                persist(false); refreshAllDatabaseViews();
+              };
+              titleBox.prepend(subToggle);
+              if (!ro) {
+                const addSub = document.createElement('button');
+                addSub.type = 'button';
+                addSub.className = 'db-subitem-add-btn';
+                addSub.textContent = '+ Sub';
+                addSub.title = 'Add sub-item';
+                addSub.onclick = ev => {
+                  ev.stopPropagation();
+                  view.collapsedSubItems = (view.collapsedSubItems || []).filter(x => x !== rowPage.id);
+                  const child = createDatabaseRow(dbPage, { [parentPropId]: [rowPage.id] });
+                  persist(false); refreshAllDatabaseViews();
+                  requestAnimationFrame(() => {
+                    (scroll.querySelector(`tr[data-row-id="${CSS.escape(child.id)}"] .db-title-input`) as HTMLInputElement)?.focus();
+                  });
+                };
+                titleBox.append(addSub);
+              }
+            }
+          }
+          if (col.type === 'title' && db.dependenciesPropertyId) {
+            const blockerIds: string[] = Array.isArray(rowPage.propertyValues?.[db.dependenciesPropertyId]) ? rowPage.propertyValues[db.dependenciesPropertyId] : [];
+            if (blockerIds.length) {
+              const depBadge = document.createElement('span');
+              depBadge.className = 'db-dep-badge';
+              depBadge.textContent = `⛔ Blocked (${blockerIds.length})`;
+              depBadge.title = blockerIds.map(idVal => getPageById(idVal)?.title || 'Task').join(', ');
+              ctrl.append(depBadge);
+            }
+          }
+          td.append(ctrl);
+          tr.append(td);
+        });
+        if (!ro) {
+          const blankTd = document.createElement('td');
+          blankTd.className = 'db-td db-td-spacer';
+          tr.append(blankTd);
+        }
+        tbody.append(tr);
+        if (!subCollapsed) {
+          childRows.forEach(cr => renderRowTree(cr, treeDepth + 1, seen));
+        }
+      };
+
+      const seen = new Set<string>();
+      const roots = subEnabled
+        ? groupRows.filter(r => {
+            const pIds: string[] = Array.isArray(r.propertyValues?.[parentPropId]) ? r.propertyValues[parentPropId] : [];
+            return !pIds.some(x => groupIdSet.has(x) && x !== r.id);
+          })
+        : groupRows;
+      roots.forEach(r => renderRowTree(r, 0, seen));
+      groupRows.forEach(r => { if (!seen.has(r.id)) renderRowTree(r, 0, seen); });
+    };
+
+    const appendNewRowTrigger = (tbody: HTMLElement, presetGroupKey?: string) => {
+      if (ro) return;
       const newTr = document.createElement('tr');
       newTr.className = 'db-new-row';
       const newTd = document.createElement('td');
@@ -4076,6 +5255,9 @@ const ArchitectDatabase = (() => {
       addRowBtn.textContent = '＋ New page';
       addRowBtn.onclick = () => {
         const created = createDatabaseRow(dbPage, {});
+        if (groupProp && presetGroupKey && presetGroupKey !== '__all__') {
+          assignGroupValueToRow(created, groupProp, presetGroupKey, dbPage);
+        }
         persist(false);
         refreshAllDatabaseViews();
         requestAnimationFrame(() => {
@@ -4086,57 +5268,177 @@ const ArchitectDatabase = (() => {
       newTd.append(addRowBtn);
       newTr.append(newTd);
       tbody.append(newTr);
-    }
+    };
 
-    table.append(tbody);
-
-    // Calculation summary footer row
-    const tfoot = document.createElement('tfoot');
-    const footTr = document.createElement('tr');
-    footTr.className = 'db-calc-row';
-    cols.forEach(col => {
-      const td = document.createElement('td');
-      td.className = 'db-calc-td';
-      const calcType = view.calculations?.[col.id] || 'none';
-      const val = calcType !== 'none' ? computeAggregation(col, rows, calcType, dbPage) : '';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'db-calc-btn' + (calcType !== 'none' ? ' has-calc' : '');
-      if (calcType !== 'none') {
-        const label = DB_AGGREGATIONS.find(a => a.key === calcType)?.label || '';
-        btn.innerHTML = `<span class="db-calc-label">${escHtml(label)}</span> <strong>${escHtml(val)}</strong>`;
-      } else {
-        btn.textContent = 'Calculate ▾';
-      }
+    const createCalcTfoot = (targetRows: any[]) => {
+      const tfoot = document.createElement('tfoot');
+      const footTr = document.createElement('tr');
+      footTr.className = 'db-calc-row';
+      cols.forEach(col => {
+        const td = document.createElement('td');
+        td.className = 'db-calc-td';
+        const calcType = view.calculations?.[col.id] || 'none';
+        const val = calcType !== 'none' ? computeAggregation(col, targetRows, calcType, dbPage) : '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'db-calc-btn' + (calcType !== 'none' ? ' has-calc' : '');
+        if (calcType !== 'none') {
+          const label = DB_AGGREGATIONS.find(a => a.key === calcType)?.label || '';
+          btn.innerHTML = `<span class="db-calc-label">${escHtml(label)}</span> <strong>${escHtml(val)}</strong>`;
+        } else {
+          btn.textContent = 'Calculate ▾';
+        }
+        if (!ro) {
+          btn.onclick = () => {
+            openDbPopover(btn, (pop, close) => {
+              DB_AGGREGATIONS.filter(a => !a.numericOnly || col.type === 'number').forEach(agg => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'db-pop-option-btn';
+                b.innerHTML = `<span>${escHtml(agg.label)}</span><span class="db-pop-check">${calcType === agg.key ? '✓' : ''}</span>`;
+                b.onclick = () => {
+                  view.calculations = view.calculations || {};
+                  view.calculations[col.id] = agg.key;
+                  persist(false); refreshAllDatabaseViews(); close();
+                };
+                pop.append(b);
+              });
+            }, 200);
+          };
+        }
+        td.append(btn);
+        footTr.append(td);
+      });
       if (!ro) {
-        btn.onclick = () => {
-          openDbPopover(btn, (pop, close) => {
-            DB_AGGREGATIONS.filter(a => !a.numericOnly || col.type === 'number').forEach(agg => {
-              const b = document.createElement('button');
-              b.type = 'button';
-              b.className = 'db-pop-option-btn';
-              b.innerHTML = `<span>${escHtml(agg.label)}</span><span class="db-pop-check">${calcType === agg.key ? '✓' : ''}</span>`;
-              b.onclick = () => {
-                view.calculations = view.calculations || {};
-                view.calculations[col.id] = agg.key;
+        const spacer = document.createElement('td');
+        footTr.append(spacer);
+      }
+      tfoot.append(footTr);
+      return tfoot;
+    };
+
+    if (!isGrouped) {
+      const table = document.createElement('table');
+      table.className = 'db-table' + (view.wrapCells ? ' is-wrap' : '');
+      table.append(createColgroup(), createThead());
+      const tbody = document.createElement('tbody');
+      appendGroupRowsToTbody(tbody, groups[0]?.rows || []);
+      appendNewRowTrigger(tbody);
+      table.append(tbody, createCalcTfoot(rows));
+      scroll.append(table);
+    } else if (!groups.length) {
+      const empty = document.createElement('div');
+      empty.className = 'db-empty-state';
+      empty.textContent = 'No groups to display in this view.';
+      if (!ro) {
+        const showBtn = document.createElement('button');
+        showBtn.type = 'button';
+        showBtn.className = 'db-toolbar-btn';
+        showBtn.textContent = 'Reset hidden/empty groups';
+        showBtn.onclick = () => {
+          view.hiddenGroups = [];
+          view.hideEmptyGroups = false;
+          persist(false); refreshAllDatabaseViews();
+        };
+        empty.append(showBtn);
+      }
+      scroll.append(empty);
+    } else {
+      let renderedExpandedHeader = false;
+      groups.forEach(group => {
+        const collapsed = (view.collapsedGroups || []).includes(group.key);
+        const gBlock = document.createElement('div');
+        gBlock.className = 'db-table-group-block' + (collapsed ? ' is-collapsed' : '');
+
+        const gHead = document.createElement('div');
+        gHead.className = 'db-table-group-row';
+        const left = document.createElement('div');
+        left.className = 'db-group-head-left';
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'db-group-toggle';
+        toggle.textContent = collapsed ? '▸' : '▾';
+        toggle.onclick = () => {
+          view.collapsedGroups = view.collapsedGroups || [];
+          view.collapsedGroups = collapsed ? view.collapsedGroups.filter(x => x !== group.key) : [...view.collapsedGroups, group.key];
+          persist(false); refreshAllDatabaseViews();
+        };
+        left.append(toggle, createPillEl(group.label, group.color, groupProp!.type === 'status', group.statusGroup));
+        if (view.showGroupCounts !== false) {
+          const count = document.createElement('span');
+          count.className = 'db-group-count';
+          count.textContent = String(group.rows.length);
+          left.append(count);
+        }
+
+        const gActions = document.createElement('div');
+        gActions.className = 'db-group-head-actions';
+        if (!ro) {
+          const moreBtn = document.createElement('button');
+          moreBtn.type = 'button';
+          moreBtn.className = 'db-mini-btn';
+          moreBtn.textContent = '⋯';
+          moreBtn.title = 'Group options';
+          moreBtn.onclick = () => {
+            openDbPopover(moreBtn, (pop, close) => {
+              const tog = document.createElement('button');
+              tog.type = 'button'; tog.className = 'db-pop-option-btn';
+              tog.textContent = collapsed ? 'Expand group' : 'Collapse group';
+              tog.onclick = () => { toggle.click(); close(); };
+              const hide = document.createElement('button');
+              hide.type = 'button'; hide.className = 'db-pop-option-btn';
+              hide.textContent = 'Hide group';
+              hide.onclick = () => {
+                view.hiddenGroups = [...new Set([...(view.hiddenGroups || []), group.key])];
                 persist(false); refreshAllDatabaseViews(); close();
               };
-              pop.append(b);
+              const cfg = document.createElement('button');
+              cfg.type = 'button'; cfg.className = 'db-pop-option-btn';
+              cfg.textContent = 'Group settings…';
+              cfg.onclick = () => { close(); openGroupPopover(moreBtn, view, dbPage); };
+              pop.append(tog, hide, cfg);
+            }, 190);
+          };
+          const plusBtn = document.createElement('button');
+          plusBtn.type = 'button';
+          plusBtn.className = 'db-mini-btn';
+          plusBtn.textContent = '＋';
+          plusBtn.title = `New page in ${group.label}`;
+          plusBtn.onclick = () => {
+            view.collapsedGroups = (view.collapsedGroups || []).filter(x => x !== group.key);
+            const created = createDatabaseRow(dbPage, {});
+            assignGroupValueToRow(created, groupProp!, group.key, dbPage);
+            persist(false); refreshAllDatabaseViews();
+            requestAnimationFrame(() => {
+              (scroll.querySelector(`tr[data-row-id="${CSS.escape(created.id)}"] .db-title-input`) as HTMLInputElement)?.focus();
             });
-          }, 200);
-        };
-      }
-      td.append(btn);
-      footTr.append(td);
-    });
-    if (!ro) {
-      const spacer = document.createElement('td');
-      footTr.append(spacer);
-    }
-    tfoot.append(footTr);
-    table.append(tfoot);
+          };
+          gActions.append(moreBtn, plusBtn);
+        }
+        gHead.append(left, gActions);
+        gBlock.append(gHead);
 
-    scroll.append(table);
+        if (!collapsed) {
+          renderedExpandedHeader = true;
+          const gTable = document.createElement('table');
+          gTable.className = 'db-table db-table-grouped' + (view.wrapCells ? ' is-wrap' : '');
+          gTable.append(createColgroup(), createThead());
+          const gTbody = document.createElement('tbody');
+          appendGroupRowsToTbody(gTbody, group.rows);
+          appendNewRowTrigger(gTbody, group.key);
+          gTable.append(gTbody, createCalcTfoot(group.rows));
+          gBlock.append(gTable);
+        }
+        scroll.append(gBlock);
+      });
+      if (!renderedExpandedHeader) {
+        const hdrTable = document.createElement('table');
+        hdrTable.className = 'db-table db-table-grouped';
+        hdrTable.append(createColgroup(), createThead());
+        scroll.prepend(hdrTable);
+      }
+    }
+
     canvas.append(scroll);
   }
 
@@ -4197,9 +5499,11 @@ const ArchitectDatabase = (() => {
 
   function buildRowCard(rowPage: any, view: DbView, dbPage: any, rowOrderIds: string[], opts: { draggable?: boolean } = {}) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
+    const ro = roMode(dbPage);
+    const cond = evaluateConditionalColor(view, rowPage, dbPage);
     const card = document.createElement('div');
     card.className = 'db-card';
+    applyConditionalRowColor(card, cond.rowColor);
     if (opts.draggable && !ro) {
       card.draggable = true;
       card.ondragstart = e => {
@@ -4238,8 +5542,8 @@ const ArchitectDatabase = (() => {
 
   function renderBoardView(canvas: HTMLElement, rows: any[], view: DbView, dbPage: any) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
-    const groupProp = db.schema.find(s => s.id === view.groupBy) || db.schema.find(s => ['status', 'select', 'person', 'checkbox'].includes(s.type));
+    const ro = roMode(dbPage);
+    const groupProp = db.schema.find(s => s.id === view.groupBy) || db.schema.find(s => ['status', 'select', 'multi_select', 'person', 'checkbox'].includes(s.type));
     if (!groupProp) {
       const empty = document.createElement('div');
       empty.className = 'db-empty-state';
@@ -4247,7 +5551,7 @@ const ArchitectDatabase = (() => {
       canvas.append(empty);
       return;
     }
-    const groups = buildGroupsForRows(rows, groupProp, dbPage);
+    const groups = buildGroupsForRows(rows, groupProp, dbPage, view);
     const rowOrderIds = rows.map((r: any) => r.id);
     const board = document.createElement('div');
     board.className = 'db-board';
@@ -4367,7 +5671,7 @@ const ArchitectDatabase = (() => {
 
   function renderListView(canvas: HTMLElement, rows: any[], view: DbView, dbPage: any) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const listWrap = document.createElement('div');
     listWrap.className = 'db-list-view';
     const rowOrderIds = rows.map((r: any) => r.id);
@@ -4377,20 +5681,23 @@ const ArchitectDatabase = (() => {
       .filter(p => p && p.type !== 'title') as DbSchemaProperty[];
 
     const groupProp = view.groupBy ? db.schema.find(s => s.id === view.groupBy) : undefined;
-    const groups = buildGroupsForRows(rows, groupProp, dbPage);
+    const groups = buildGroupsForRows(rows, groupProp, dbPage, view);
     groups.forEach(group => {
       if (groupProp) {
         const gh = document.createElement('div');
         gh.className = 'db-list-group-head';
         gh.append(createPillEl(group.label, group.color, groupProp.type === 'status', group.statusGroup));
-        const cnt = document.createElement('span'); cnt.className = 'db-group-count'; cnt.textContent = String(group.rows.length);
-        gh.append(cnt);
+        if (view.showGroupCounts !== false) {
+          const cnt = document.createElement('span'); cnt.className = 'db-group-count'; cnt.textContent = String(group.rows.length);
+          gh.append(cnt);
+        }
         listWrap.append(gh);
       }
       group.rows.forEach(r => {
         const row = document.createElement('div');
         row.className = 'db-list-item';
         row.dataset.rowId = r.id;
+        applyConditionalRowColor(row, evaluateConditionalColor(view, r, dbPage).rowColor);
         const left = document.createElement('button');
         left.type = 'button';
         left.className = 'db-list-title';
@@ -4422,7 +5729,7 @@ const ArchitectDatabase = (() => {
   }
 
   function renderGalleryView(canvas: HTMLElement, rows: any[], view: DbView, dbPage: any) {
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const rowOrderIds = rows.map((r: any) => r.id);
     const grid = document.createElement('div');
     grid.className = `db-gallery size-${view.cardSize || 'medium'}`;
@@ -4443,7 +5750,7 @@ const ArchitectDatabase = (() => {
 
   function renderCalendarView(canvas: HTMLElement, rows: any[], view: DbView, dbPage: any, hostKey: string) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
+    const ro = roMode(dbPage);
     let dateProp = db.schema.find(s => s.id === view.datePropertyId && s.type === 'date') || db.schema.find(s => s.type === 'date');
     if (!dateProp) {
       const empty = document.createElement('div');
@@ -4571,6 +5878,7 @@ const ArchitectDatabase = (() => {
         const pill = document.createElement('button');
         pill.type = 'button';
         pill.className = 'db-cal-pill';
+        applyConditionalRowColor(pill, evaluateConditionalColor(view, ev, dbPage).rowColor);
         pill.draggable = !ro;
         pill.ondragstart = e => e.dataTransfer?.setData('application/x-db-row', ev.id);
         pill.textContent = `${ev.icon?.startsWith('data:image') ? '📄' : (ev.icon || '📄')} ${ev.title || 'Untitled'}`;
@@ -4584,7 +5892,7 @@ const ArchitectDatabase = (() => {
 
   function renderTimelineView(canvas: HTMLElement, rows: any[], view: DbView, dbPage: any) {
     const db = ensureDatabaseConfig(dbPage);
-    const ro = roMode();
+    const ro = roMode(dbPage);
     const dateProp = db.schema.find(s => s.id === view.datePropertyId && s.type === 'date') || db.schema.find(s => s.type === 'date');
     if (!dateProp) {
       const empty = document.createElement('div');
@@ -4645,9 +5953,11 @@ const ArchitectDatabase = (() => {
     wrap.append(ruler);
 
     rows.forEach(r => {
+      const cond = evaluateConditionalColor(view, r, dbPage);
       const row = document.createElement('div');
       row.className = 'db-timeline-row';
       row.style.gridTemplateColumns = `190px 1fr`;
+      applyConditionalRowColor(row, cond.rowColor);
       const lbl = document.createElement('button');
       lbl.type = 'button';
       lbl.className = 'db-timeline-row-title';
@@ -4668,6 +5978,7 @@ const ArchitectDatabase = (() => {
           const bar = document.createElement('button');
           bar.type = 'button';
           bar.className = 'db-timeline-bar';
+          applyConditionalRowColor(bar, cond.rowColor);
           bar.style.left = `${leftPct}%`;
           bar.style.width = `${Math.max(4, rightPct - leftPct)}%`;
           bar.textContent = r.title || 'Untitled';
@@ -6073,6 +7384,7 @@ const ArchitectDatabase = (() => {
     parentPage?: any;
     onRemoveBlock?: () => void;
     onChangeSourceDb?: (nextDbPage: any) => void;
+    onTurnIntoFullPage?: () => void;
   } = {}) {
     const isInline = Boolean(options.inlineBlock);
     const hostKey = options.inlineBlock ? `block:${options.inlineBlock.id}` : `page:${dbPage.id}`;
@@ -6106,6 +7418,12 @@ const ArchitectDatabase = (() => {
 
       const db = ensureDatabaseConfig(currentDb);
       const ro = roMode(currentDb);
+      const hostRo = isHostReadOnly(currentDb);
+      const viewSettingsOpts: DbViewSettingsOpts = {
+        isInline,
+        onChangeSourceDb: options.onChangeSourceDb,
+        onTurnIntoFullPage: options.onTurnIntoFullPage
+      };
       const activeId = options.inlineBlock?.viewId || db.activeViewId;
       const view = activeViewFor(currentDb, activeId);
       const searchQ = searchQueriesByKey.get(hostKey) || '';
@@ -6177,7 +7495,7 @@ const ArchitectDatabase = (() => {
         tab.innerHTML = `<span class="db-tab-ico">${viewMeta(v.type).icon}</span><span>${escHtml(v.name)}</span>`;
         tab.onclick = () => {
           if (isCurrent) {
-            if (!ro) openViewSettingsPopover(tab, v, currentDb);
+            if (!hostRo) openViewSettingsPopover(tab, v, currentDb, viewSettingsOpts);
           } else {
             if (options.inlineBlock) options.inlineBlock.viewId = v.id;
             else db.activeViewId = v.id;
@@ -6259,9 +7577,26 @@ const ArchitectDatabase = (() => {
       settingsBtn.textContent = '⚙';
       settingsBtn.title = 'View settings';
       settingsBtn.setAttribute('aria-label', 'Settings');
-      settingsBtn.onclick = () => openViewSettingsPopover(settingsBtn, view, currentDb);
+      settingsBtn.onclick = () => openViewSettingsPopover(settingsBtn, view, currentDb, viewSettingsOpts);
 
-      toolbar.append(filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
+      if (db.locked) {
+        const lockBtn = document.createElement('button');
+        lockBtn.type = 'button';
+        lockBtn.className = 'db-toolbar-btn db-locked-badge';
+        lockBtn.textContent = '🔒 Locked';
+        lockBtn.title = hostRo ? 'Database is locked' : 'Database is locked (click to unlock)';
+        lockBtn.disabled = hostRo;
+        lockBtn.onclick = () => {
+          if (hostRo) return;
+          db.locked = false;
+          persist(false);
+          refreshAllDatabaseViews();
+          host?.toast?.('Database unlocked');
+        };
+        toolbar.append(lockBtn, filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
+      } else {
+        toolbar.append(filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
+      }
 
       if (!ro) {
         const newSplit = document.createElement('div');

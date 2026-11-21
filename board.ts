@@ -55,6 +55,7 @@
     downloadAsset: (asset: any, fallbackUrl?: string, name?: string) => void;
     createAudioPlayer: (asset: any, fallbackUrl?: string, title?: string) => HTMLElement;
     ingestLocalFile: (file: File) => Promise<any>;
+    importPureRef?: (file: File, opts?: { parentPageId?: string }) => Promise<{ page: any; asset: any } | null>;
     findAssetById: (assetId?: string, url?: string) => any | null;
     resolveAssetOriginalUrl: (asset: any) => Promise<string | null>;
     resolveAssetPreviewUrl: (asset: any) => Promise<string | null>;
@@ -187,6 +188,10 @@
 
   function insertAssetNodeIntoBoard(boardPage: any, asset: any, pos?: BoardPoint): BoardNode | null {
     if (!boardPage || !asset) return null;
+    if (asset.category === 'board' && asset.metadata?.boardPageId) {
+      const targetBoardPage = host?.getPages?.().find((pg: any) => pg.id === asset.metadata.boardPageId);
+      if (targetBoardPage) return insertPageLinkNodeIntoBoard(boardPage, targetBoardPage, pos);
+    }
     const data = ensureBoardData(boardPage);
     const kind = classifyAssetNodeKind(asset);
     const dims = defaultDimensionsForKind(kind);
@@ -1274,10 +1279,13 @@
       }
     }, { passive: false });
 
-    // Drag & Drop local files directly onto the Board canvas
+    // Drag & Drop local files or Asset Sidebar references onto the Board canvas
     viewport.addEventListener('dragover', ev => {
       if (ro) return;
+      const types = ev.dataTransfer?.types ? Array.from(ev.dataTransfer.types) : [];
+      if (!types.includes('Files') && !types.includes('application/x-architect-asset')) return;
       ev.preventDefault();
+      if (ev.dataTransfer && types.includes('application/x-architect-asset')) ev.dataTransfer.dropEffect = 'link';
       viewport.classList.add('is-drop-active');
     });
     viewport.addEventListener('dragleave', () => viewport.classList.remove('is-drop-active'));
@@ -1285,11 +1293,33 @@
       if (ro) return;
       ev.preventDefault();
       viewport.classList.remove('is-drop-active');
+      const dropPos = clientToWorld(ev.clientX, ev.clientY);
+      const assetRefId = ev.dataTransfer?.getData('application/x-architect-asset') || '';
+      if (assetRefId) {
+        const existing = host?.findAssetById?.(assetRefId);
+        if (existing) {
+          if (existing.category === 'board' && existing.metadata?.boardPageId) {
+            const linkedPage = host?.getPages?.().find((pg: any) => pg.id === existing.metadata.boardPageId);
+            if (linkedPage) {
+              insertPageLinkNodeIntoBoard(boardPage, linkedPage, dropPos);
+              redraw();
+              return;
+            }
+          }
+          insertAssetNodeIntoBoard(boardPage, existing, dropPos);
+          redraw();
+        }
+        return;
+      }
       const files = ev.dataTransfer?.files ? Array.from(ev.dataTransfer.files) : [];
       if (!files.length) return;
-      const dropPos = clientToWorld(ev.clientX, ev.clientY);
       for (let i = 0; i < files.length; i++) {
         try {
+          if (/\.pur$/i.test(files[i].name) && host?.importPureRef) {
+            const imported = await host.importPureRef(files[i], { parentPageId: boardPage.id });
+            if (imported?.page) insertPageLinkNodeIntoBoard(boardPage, imported.page, { x: dropPos.x + i * 24, y: dropPos.y + i * 20 });
+            continue;
+          }
           const rec = await host!.ingestLocalFile(files[i]);
           insertAssetNodeIntoBoard(boardPage, rec, { x: dropPos.x + i * 24, y: dropPos.y + i * 20 });
         } catch (err: any) {

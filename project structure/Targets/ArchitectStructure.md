@@ -187,6 +187,14 @@ Workspaces can publish selected pages or page trees to the public web **only whe
 - Explicit per-page publish/unpublish toggle, custom URL slug, snapshot publishing (`draft` vs live published snapshot so in-progress edits are not leaked), SEO/OpenGraph metadata, and search-engine indexing toggle.
 - Serve published pages read-only with strict isolation: never expose private workspace pages, draft blocks, internal member lists, chat, or unauthorized drive/server assets on public routes.
 
+## VVD Worldbuilding & shared server publishing integration
+
+When deployed alongside **VVD Worldbuilding** on the same self-hosted server or domain, Architect can publish selected pages, page trees, and world-bible entities directly into VVD Worldbuilding rather than limiting publishing to static standalone web pages.
+
+- **Shared server & identity bridge:** Reuse the team-hosted server authentication, workspace roles, and media/asset proxy endpoints so pages published to VVD resolve linked images, audio, 3D assets, and permissions seamlessly across both apps.
+- **Direct Publish-to-VVD target:** Extend per-page Publish controls (`page.published` / Share & Publish popover) with a target selector (`Web site` vs `VVD Worldbuilding`), preserving stable page IDs, slugs, tags, and bidirectional deep links between Architect docs and VVD world entries.
+- **Structured schema sync:** Map Architect Databases and properties (characters, locations, timelines, factions, items) and page backlinks to VVD Worldbuilding data models with snapshot versioning and incremental sync webhooks.
+
 ## Supporting backend infrastructure
 
 To keep all workspace surfaces consistent, fast, and safe, the backend also needs:

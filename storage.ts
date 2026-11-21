@@ -1,7 +1,7 @@
 type CoordinationMode = 'local' | 'cloud-sync' | 'server';
 type AssetStorageMode = 'local' | 'drive' | 'server';
 type AssetPreviewMode = 'smart-proxy' | 'download-all' | 'original-stream';
-type AssetCategory = 'music' | 'sfx' | '3d model' | 'concept' | 'illustration' | 'video' | 'document' | 'image' | 'other';
+type AssetCategory = 'music' | 'sfx' | '3d model' | 'concept' | 'illustration' | 'video' | 'document' | 'image' | 'board' | 'other';
 
 interface AssetPreviewPolicy {
   mode: AssetPreviewMode;
@@ -206,6 +206,7 @@ const ArchitectBackend = (() => {
       if (/(illus|illustration|sketch|drawing)/i.test(lowerName)) return 'illustration';
       return 'image';
     }
+    if (lowerName.endsWith('.pur') || lowerMime.includes('pureref')) return 'board';
     if (lowerMime.includes('pdf') || /\.(pdf|txt|md|docx?|xlsx?|csv|json)$/.test(lowerName)) return 'document';
     return 'other';
   }
@@ -434,9 +435,11 @@ const ArchitectBackend = (() => {
     if (lower.endsWith('.gltf')) return 'model/gltf+json';
     if (lower.endsWith('.obj') || lower.endsWith('.fbx') || lower.endsWith('.stl') || lower.endsWith('.blend')) return 'model/mesh';
     if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.pur')) return 'application/x-pureref';
     if (lower.endsWith('.png')) return 'image/png';
     if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
     if (lower.endsWith('.webp')) return 'image/webp';
+    if (category === 'board') return 'application/x-pureref';
     if (category === 'music' || category === 'sfx') return 'audio/mpeg';
     if (category === 'video') return 'video/mp4';
     if (category === '3d model') return 'model/gltf-binary';
@@ -454,6 +457,46 @@ const ArchitectBackend = (() => {
     });
   }
 
+  async function computeSha256Hex(file: File): Promise<string | undefined> {
+    try {
+      if (!crypto?.subtle) return undefined;
+      const buf = await file.arrayBuffer();
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      return undefined;
+    }
+  }
+
+  function findDuplicateAsset(cand: {
+    name?: string;
+    sizeBytes?: number;
+    width?: number;
+    height?: number;
+    sha256?: string;
+  }): AssetRecord | null {
+    const all = readAssetCatalog();
+    if (cand.sha256) {
+      const byHash = all.find(a => a.metadata?.sha256 === cand.sha256);
+      if (byHash) return byHash;
+    }
+    const normName = (cand.name || '').trim().toLowerCase();
+    const size = Number(cand.sizeBytes) || 0;
+    if (!normName || size <= 0) return null;
+    if (cand.width && cand.height) {
+      return all.find(a =>
+        (a.name || '').trim().toLowerCase() === normName &&
+        a.width === cand.width &&
+        a.height === cand.height &&
+        (a.sizeBytes || Number(a.metadata?.sizeBytes) || 0) === size
+      ) || null;
+    }
+    return all.find(a =>
+      (a.name || '').trim().toLowerCase() === normName &&
+      (a.sizeBytes || Number(a.metadata?.sizeBytes) || 0) === size
+    ) || null;
+  }
+
   async function ingestLocalFile(file: File, opts: {
     creator?: string;
     category?: AssetCategory;
@@ -462,6 +505,8 @@ const ArchitectBackend = (() => {
     provider?: string;
     metadata?: Record<string, string | number>;
     previewPolicy?: AssetPreviewPolicy;
+    dedupe?: boolean;
+    sha256?: string;
   } = {}): Promise<AssetRecord> {
     const assetId = crypto.randomUUID();
     const mime = file.type || 'application/octet-stream';
@@ -515,6 +560,13 @@ const ArchitectBackend = (() => {
     } else if (mime.startsWith('video/') || category === 'video') {
       durationSec = await inspectMediaDuration(file, 'video');
       if (durationSec !== undefined) meta.durationSec = durationSec;
+    }
+
+    const sha256 = opts.sha256 || (opts.dedupe ? await computeSha256Hex(file) : undefined);
+    if (sha256) meta.sha256 = sha256;
+    if (opts.dedupe) {
+      const existing = findDuplicateAsset({ name: file.name, sizeBytes: file.size, width, height, sha256 });
+      if (existing) return existing;
     }
 
     const desktop = host();
@@ -970,6 +1022,7 @@ const ArchitectBackend = (() => {
     createByteLimitedProxy,
     readAssetCatalog,
     saveAssetCatalog,
+    findDuplicateAsset,
     hydrateAssetsFromHost,
     ingestLocalFile,
     addDriveReference,

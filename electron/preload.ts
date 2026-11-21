@@ -11,7 +11,10 @@ export type ElectronAssetSavePayload = {
 
 contextBridge.exposeInMainWorld('architectHost', {
   isDesktop: true,
-  info: (): Promise<{ dataDir: string; platform: string }> => ipcRenderer.invoke('architect:info'),
+  info: (): Promise<{ dataDir: string; platform: string; version?: string }> => ipcRenderer.invoke('architect:info'),
+  checkUpdate: (feedUrl?: string): Promise<{ currentVersion: string; latestVersion?: string; downloadUrl?: string; notes?: string; updateAvailable: boolean; error?: string }> =>
+    ipcRenderer.invoke('architect:check-update', feedUrl),
+  relaunch: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('architect:relaunch'),
   readWorkspace: (): Promise<string | null> => ipcRenderer.invoke('architect:read-workspace'),
   writeWorkspace: (json: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('architect:write-workspace', json),
   readAssets: (): Promise<string | null> => ipcRenderer.invoke('architect:read-assets'),
