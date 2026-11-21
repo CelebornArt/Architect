@@ -47,6 +47,8 @@
     getCurrentPage?: () => any;
     getCurrentUser: () => string;
     isReadOnlyMirror: () => boolean;
+    canViewPage?: (page: any) => boolean;
+    isPageReadOnly?: (page: any) => boolean;
     commitChange: (page?: any, forceSave?: boolean) => void;
     navigateToPage: (pageId: string, newTab?: boolean) => void;
     openLightbox: (asset: any, fallbackUrl?: string, name?: string) => void;
@@ -286,8 +288,16 @@
       return;
     }
 
+    if (host?.canViewPage && !host.canViewPage(boardPage)) {
+      const denied = document.createElement('div');
+      denied.className = 'board-missing';
+      denied.innerHTML = '<span>🔒 You do not have permission to view this linked board.</span>';
+      containerEl.append(denied);
+      return;
+    }
+
     const isInline = !!options.inlineBlock;
-    const ro = !!host?.isReadOnlyMirror?.();
+    const ro = !!(host?.isPageReadOnly ? host.isPageReadOnly(boardPage) : host?.isReadOnlyMirror?.());
     const data = ensureBoardData(boardPage);
     const widgetId = makeId('bw');
 

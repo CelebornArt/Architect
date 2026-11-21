@@ -17,6 +17,7 @@ const ArchitectToolbar = (() => {
       items: string[];
     };
     defaultFont?: string;
+    timeZone?: string;
     customFonts: CustomFontDef[];
     appearance?: {
       theme: 'obsidian' | 'warm';
@@ -40,10 +41,9 @@ const ArchitectToolbar = (() => {
     { id: 'toggle-sidebar', label: 'Workspace: Toggle left file explorer sidebar', category: 'View', defaultBinding: 'Ctrl + \\' },
     { id: 'toggle-fullscreen', label: 'Editor: Toggle fullscreen writing mode', category: 'View', defaultBinding: '' },
     { id: 'add-comment', label: 'Comments: Add comment on selection or block', category: 'Editor', defaultBinding: 'Ctrl + Shift + M' },
-    { id: 'mode-notion', label: 'Modes: Switch to Notion / Pages view', category: 'Navigation', defaultBinding: '' },
-    { id: 'mode-dashboard', label: 'Modes: Switch to Dashboard', category: 'Navigation', defaultBinding: '' },
-    { id: 'mode-boards', label: 'Modes: Switch to Boards gallery', category: 'Navigation', defaultBinding: '' },
-    { id: 'mode-inbox', label: 'Modes: Switch to Inbox notifications', category: 'Navigation', defaultBinding: '' },
+    { id: 'mode-notion', label: 'Modes: Switch to Docs view', category: 'Navigation', defaultBinding: '' },
+    { id: 'mode-dashboard', label: 'Modes: Switch to Dashboards', category: 'Navigation', defaultBinding: '' },
+    { id: 'mode-inbox', label: 'Modes: Switch to Notifications', category: 'Navigation', defaultBinding: '' },
     { id: 'open-assets', label: 'Tools: Open Asset library', category: 'Tools', defaultBinding: '' },
     { id: 'user-settings', label: 'Settings: Open client settings', category: 'Settings', defaultBinding: 'Ctrl + ,' }
   ];
@@ -77,16 +77,7 @@ const ArchitectToolbar = (() => {
 
   const CALLOUT_VARIANTS = [
     { key: 'quote', label: 'Quote (accent bar)', icon: '❝', kind: 'quote', accent: '#7c5cff', bg: '#f6f4ff' },
-    { key: 'default', label: 'Callout box', icon: '💡', kind: 'callout', accent: '#686761', bg: '#f7f6f3' },
-    { key: 'note', label: 'Note', icon: '✏', kind: 'callout', accent: '#2383e2', bg: '#eff6ff' },
-    { key: 'info', label: 'Info', icon: 'ℹ', kind: 'callout', accent: '#0b76b7', bg: '#edf6fc' },
-    { key: 'tip', label: 'Tip / Hint', icon: '✦', kind: 'callout', accent: '#0f8b6d', bg: '#ebf8f5' },
-    { key: 'success', label: 'Success', icon: '✓', kind: 'callout', accent: '#2e8540', bg: '#eef7f0' },
-    { key: 'warning', label: 'Warning', icon: '⚠', kind: 'callout', accent: '#c77d0a', bg: '#fef8eb' },
-    { key: 'important', label: 'Important', icon: '★', kind: 'callout', accent: '#7b5cd6', bg: '#f5f1fc' },
-    { key: 'danger', label: 'Caution / Danger', icon: '⛔', kind: 'callout', accent: '#cf3a3a', bg: '#fdf0f0' },
-    { key: 'question', label: 'Question', icon: '?', kind: 'callout', accent: '#c95d16', bg: '#fdf3ec' },
-    { key: 'example', label: 'Example', icon: '≣', kind: 'callout', accent: '#5c6573', bg: '#f4f5f7' }
+    { key: 'callout', label: 'Callout', icon: '💡', kind: 'callout', accent: '#686761', bg: '#f7f6f3' }
   ];
 
   const ICONS = {
@@ -149,7 +140,7 @@ const ArchitectToolbar = (() => {
   let lastSelectedTextColorKey: string | null = null;
   let lastSelectedBgColorKey: string | null = null;
   let lastToolbarRenderKey = '';
-  let activeSettingsTab: 'general' | 'appearance' | 'toolbar' | 'hotkeys' | 'plugins' = 'general';
+  let activeSettingsTab: 'general' | 'appearance' | 'toolbar' | 'hotkeys' = 'general';
   let hotkeyFilterMode: 'all' | 'assigned' | 'unassigned' = 'all';
   let recordingHotkeyId: string | null = null;
 
@@ -172,6 +163,7 @@ const ArchitectToolbar = (() => {
     tb.position = pos;
     tb.items = items.length ? items : [...DEFAULT_TOOLBAR_ITEMS];
     if (typeof up.defaultFont !== 'string') up.defaultFont = 'default';
+    if (typeof up.timeZone !== 'string' || !up.timeZone.trim()) up.timeZone = 'auto';
     if (!Array.isArray(up.customFonts)) up.customFonts = [];
     up.appearance = {
       theme: up.appearance?.theme === 'warm' ? 'warm' : 'obsidian',
@@ -326,7 +318,7 @@ const ArchitectToolbar = (() => {
       if (typeof ArchitectBackend !== 'undefined') {
         const state = host?.getState?.();
         const rec = await ArchitectBackend.ingestLocalFile(file, {
-          creator: state?.users?.[0]?.name || 'Jordan Davis',
+          creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Jordan Davis',
           category: 'other',
           storageMode: state?.assetStorageMode || 'local',
           previewPolicy: state?.assetPreviewPolicy
@@ -555,12 +547,12 @@ const ArchitectToolbar = (() => {
       addItem('Align right', '⫸', () => host?.setBlockAlignment?.('right'), { active: ctxState.align === 'right' });
       addItem('Justify', '▤', () => host?.setBlockAlignment?.('justify'), { active: ctxState.align === 'justify' });
     } else if (toolId === 'callouts') {
-      addHeader('Quotes & Callout boxes');
+      addHeader('Quote & Callout');
       CALLOUT_VARIANTS.forEach((v, idx) => {
         if (idx === 1) addDivider();
         const isActive = v.kind === 'quote'
           ? ctxState.blockType === 'quote'
-          : ctxState.blockType === 'callout' && (ctxState.calloutType || 'default') === v.key;
+          : ctxState.blockType === 'callout';
         const pill = `<span class="tb-callout-pill" style="color:${v.accent};background:${v.bg}">${v.icon}</span>`;
         addItem(v.label, pill, () => host?.applyCalloutOrQuote?.(v), { active: isActive });
       });
@@ -632,6 +624,16 @@ const ArchitectToolbar = (() => {
 
     const orientation = (prefs.toolbar.position === 'left' || prefs.toolbar.position === 'right') ? 'vertical' : 'horizontal';
     const isCollapsed = !!prefs.toolbar.collapsed;
+    dock?.classList.toggle('has-collapsed-toolbar', isCollapsed);
+    if (isCollapsed && dock) {
+      const storedX = Number(dock.dataset.collapsedX);
+      const storedY = Number(dock.dataset.collapsedY);
+      dock.style.setProperty('--tb-collapsed-x', orientation === 'horizontal' && Number.isFinite(storedX) ? `${storedX}px` : '0px');
+      dock.style.setProperty('--tb-collapsed-y', orientation === 'vertical' && Number.isFinite(storedY) ? `${storedY}px` : '0px');
+    } else if (dock) {
+      dock.style.removeProperty('--tb-collapsed-x');
+      dock.style.removeProperty('--tb-collapsed-y');
+    }
     const renderKey = `${orientation}:${isCollapsed ? 'min' : 'full'}:${prefs.toolbar.items.join(',')}`;
     bar.dataset.orientation = orientation;
     bar.classList.toggle('is-collapsed', isCollapsed);
@@ -662,7 +664,16 @@ const ArchitectToolbar = (() => {
       e.preventDefault();
       e.stopPropagation();
       const curPrefs = getPrefs();
-      curPrefs.toolbar.collapsed = !curPrefs.toolbar.collapsed;
+      const willCollapse = !curPrefs.toolbar.collapsed;
+      if (willCollapse && dock) {
+        const dockRect = dock.getBoundingClientRect();
+        const barRect = bar.getBoundingClientRect();
+        const padLeft = parseFloat(getComputedStyle(dock).paddingLeft) || 0;
+        const padTop = parseFloat(getComputedStyle(dock).paddingTop) || 0;
+        dock.dataset.collapsedX = String(Math.max(0, Math.round(barRect.left - dockRect.left - padLeft)));
+        dock.dataset.collapsedY = String(Math.max(0, Math.round(barRect.top - dockRect.top - padTop)));
+      }
+      curPrefs.toolbar.collapsed = willCollapse;
       closeDropdown();
       host?.save?.();
       renderToolbar();
@@ -981,7 +992,7 @@ const ArchitectToolbar = (() => {
     };
   }
 
-  function setUserSettingsTab(tab: 'general' | 'appearance' | 'toolbar' | 'hotkeys' | 'plugins') {
+  function setUserSettingsTab(tab: 'general' | 'appearance' | 'toolbar' | 'hotkeys') {
     activeSettingsTab = tab;
     recordingHotkeyId = null;
     document.querySelectorAll('#user-settings-dialog [data-settings-tab]').forEach(btn => {
@@ -1083,12 +1094,47 @@ const ArchitectToolbar = (() => {
     });
   }
 
+  function getSystemTimeZone(): string {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
+  }
+  const TIMEZONE_PRESETS = [
+    'UTC',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'America/Toronto',
+    'America/Sao_Paulo',
+    'Europe/London',
+    'Europe/Berlin',
+    'Europe/Paris',
+    'Europe/Warsaw',
+    'Europe/Athens',
+    'Asia/Dubai',
+    'Asia/Kolkata',
+    'Asia/Singapore',
+    'Asia/Tokyo',
+    'Asia/Seoul',
+    'Australia/Sydney',
+    'Pacific/Auckland'
+  ];
+  function syncTimeZoneSelect(selected: string) {
+    const tzSel = document.getElementById('user-local-timezone') as HTMLSelectElement | null;
+    if (!tzSel) return;
+    const sys = getSystemTimeZone();
+    const list = [...new Set([sys, ...TIMEZONE_PRESETS, ...(selected && selected !== 'auto' ? [selected] : [])])];
+    tzSel.innerHTML = `<option value="auto">Automatic (${esc(sys)})</option>`
+      + list.map(z => `<option value="${esc(z)}">${esc(z.replace(/_/g, ' '))}</option>`).join('');
+    tzSel.value = selected || 'auto';
+  }
+
   function syncUserSettingsUi() {
     const state = host?.getState?.();
     const prefs = getPrefs();
     applyAppearanceStyles();
     const nameInput = document.getElementById('user-display-name-input') as HTMLInputElement | null;
-    if (nameInput) nameInput.value = state?.users?.[0]?.name || 'Jordan Davis';
+    if (nameInput) nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Jordan Davis';
+    syncTimeZoneSelect(prefs.timeZone || 'auto');
     const themeSel = document.getElementById('user-appearance-theme') as HTMLSelectElement | null;
     if (themeSel) themeSel.value = prefs.appearance?.theme || 'obsidian';
     const scaleSel = document.getElementById('user-appearance-scale') as HTMLSelectElement | null;
@@ -1110,7 +1156,7 @@ const ArchitectToolbar = (() => {
     setUserSettingsTab(activeSettingsTab);
   }
 
-  function openUserSettings(tab?: 'general' | 'appearance' | 'toolbar' | 'hotkeys' | 'plugins') {
+  function openUserSettings(tab?: 'general' | 'appearance' | 'toolbar' | 'hotkeys') {
     const dlg = document.getElementById('user-settings-dialog') as HTMLDialogElement | null;
     if (!dlg) return;
     if (tab) activeSettingsTab = tab;
@@ -1171,6 +1217,13 @@ const ArchitectToolbar = (() => {
       const val = (e.target as HTMLInputElement).value.trim();
       if (!val) return;
       host?.updateUserName?.(val);
+    });
+    document.getElementById('user-local-timezone')?.addEventListener('change', e => {
+      const prefs = getPrefs();
+      prefs.timeZone = (e.target as HTMLSelectElement).value || 'auto';
+      host?.save?.(true);
+      host?.render?.();
+      host?.toast?.(`Local time zone set to ${prefs.timeZone === 'auto' ? `Automatic (${getSystemTimeZone()})` : prefs.timeZone}`);
     });
     document.getElementById('user-default-font')?.addEventListener('change', e => {
       const prefs = getPrefs();

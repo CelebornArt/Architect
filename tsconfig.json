@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "noEmitOnError": true
   },
-  "include": ["storage.ts", "icons.ts", "database.ts", "toolbar.ts", "board.ts", "workspace.ts"]
+  "include": ["storage.ts", "icons.ts", "richrender.ts", "database.ts", "toolbar.ts", "board.ts", "workspace.ts"]
 }
