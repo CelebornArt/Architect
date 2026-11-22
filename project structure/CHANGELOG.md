@@ -4,7 +4,11 @@ Project releases follow Semantic Versioning. Every release gets an entry here.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-22
+
 ### Added
+
+- **Static GitHub Pages Web Preview**: Updated `.gitignore` to track compiled browser `dist/*.js` scripts alongside `.nojekyll` and an inline SVG favicon so subpath static hosting runs directly in Local browser mode (`localStorage` + `IndexedDB`).
 
 - **Page Backlinks (`↙ N backlinks`)**: Added live backlinks pill inside `.page-toolbar` (beside `Add comment`) opening `"Linked to this page"` (`#backlinks-popover`) across `page_link`, inline `@page`/`[[` mentions, `#page=` links, button page targets, and database `relation` values with shortened ancestor breadcrumbs and click/Ctrl+click navigation.
 - **Obsidian-Style Global Docs Graph View**: Added `[data-action="graph-view"]` in `.obsidian-explorer-tabs` toggling `#docs-graph-view` inside the main workspace (keeping `#sidebar-docs-panel` visible, hiding formatting chrome) with an interactive force-directed Canvas graph, `Hierarchy`/`Links & @mentions`/`DB relations`/`Orphans` filters, node search, hover neighbor highlighting, zoom/pan, dragging, and click-to-open navigation.

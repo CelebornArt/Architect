@@ -7500,7 +7500,7 @@ function renderWorkspaceGraphView(host: HTMLElement) {
     graphAnimFrame = requestAnimationFrame(stepAndDraw);
 }
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 const UPDATE_DISMISSED_SESSION_KEY = 'architect-update-dismissed-v1';
 let currentRuntimeVersion = APP_VERSION;
 let pendingUpdateInfo: { currentVersion: string; availableVersion: string; notes?: string; downloadUrl?: string } | null = null;
