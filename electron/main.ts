@@ -36,11 +36,16 @@ function remoteCacheDir(): string {
   return path.join(dataRoot(), 'remote-cache');
 }
 
+function formUploadsBaseDir(): string {
+  return path.join(dataRoot(), 'form-uploads');
+}
+
 async function ensureStorageDirs(): Promise<void> {
   await fs.mkdir(dataRoot(), { recursive: true });
   await fs.mkdir(assetsDir(), { recursive: true });
   await fs.mkdir(previewsDir(), { recursive: true });
   await fs.mkdir(remoteCacheDir(), { recursive: true });
+  await fs.mkdir(formUploadsBaseDir(), { recursive: true });
 }
 
 function atomicWriteFile(filePath: string, data: string | Buffer): Promise<void> {
@@ -196,14 +201,49 @@ function registerStorageIpc(): void {
   ipcMain.handle('architect:read-workspace', async () => {
     await ensureStorageDirs();
     const target = path.join(dataRoot(), 'workspace.json');
-    if (!existsSync(target)) return null;
-    return fs.readFile(target, 'utf8');
+    const backup = path.join(dataRoot(), 'workspace.bak.json');
+    const tryReadValid = async (p: string) => {
+      if (!existsSync(p)) return null;
+      const raw = await fs.readFile(p, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.version === 2 && Array.isArray(parsed.pages) && parsed.pages.length > 0) return raw;
+      return null;
+    };
+    try {
+      const primary = await tryReadValid(target);
+      if (primary) return primary;
+    } catch {}
+    try {
+      const bak = await tryReadValid(backup);
+      if (bak) return bak;
+    } catch {}
+    return existsSync(target) ? fs.readFile(target, 'utf8').catch(() => null) : null;
   });
 
   ipcMain.handle('architect:write-workspace', async (_event, json: string) => {
     if (typeof json !== 'string' || json.length > 50_000_000) throw new Error('Invalid workspace payload');
+    let parsedNew: any;
+    try {
+      parsedNew = JSON.parse(json);
+    } catch {
+      throw new Error('Malformed workspace JSON');
+    }
+    if (!parsedNew || parsedNew.version !== 2 || !Array.isArray(parsedNew.pages) || parsedNew.pages.length === 0) {
+      throw new Error('Refusing to persist empty workspace payload');
+    }
     await ensureStorageDirs();
-    await atomicWriteFile(path.join(dataRoot(), 'workspace.json'), json);
+    const target = path.join(dataRoot(), 'workspace.json');
+    const backup = path.join(dataRoot(), 'workspace.bak.json');
+    if (existsSync(target)) {
+      try {
+        const prevRaw = await fs.readFile(target, 'utf8');
+        const prev = JSON.parse(prevRaw);
+        if (prev?.version === 2 && Array.isArray(prev.pages) && prev.pages.length > 0) {
+          await atomicWriteFile(backup, prevRaw);
+        }
+      } catch {}
+    }
+    await atomicWriteFile(target, json);
     return { ok: true };
   });
 
@@ -252,6 +292,35 @@ function registerStorageIpc(): void {
       sizeBytes: bytes.byteLength,
       originalUrl: `architect-asset://files/${encodeURIComponent(fileName)}`,
       previewUrl: previewName ? `architect-asset://previews/${encodeURIComponent(previewName)}` : undefined
+    };
+  });
+
+  ipcMain.handle('architect:save-form-upload', async (_event, payload: {
+    id: string;
+    folder?: string;
+    name: string;
+    mimeType: string;
+    base64: string;
+  }) => {
+    await ensureStorageDirs();
+    const folderSeg = safeIdSegment(payload.folder || 'default');
+    const targetDir = resolveInside(formUploadsBaseDir(), folderSeg);
+    if (!targetDir) throw new Error('Invalid form upload folder');
+    await fs.mkdir(targetDir, { recursive: true });
+    const cleanId = safeIdSegment(payload.id);
+    const rawExt = path.extname(payload.name || '').replace(/[^a-zA-Z0-9.]/g, '').slice(0, 12);
+    const ext = rawExt || fallbackExtForMime(payload.mimeType);
+    const fileName = `${cleanId}${ext}`;
+    const fullPath = resolveInside(targetDir, fileName);
+    if (!fullPath) throw new Error('Invalid form upload path');
+    const bytes = Buffer.from(payload.base64, 'base64');
+    await atomicWriteFile(fullPath, bytes);
+    return {
+      ok: true,
+      folder: folderSeg,
+      fileName,
+      sizeBytes: bytes.byteLength,
+      url: `architect-asset://form-uploads/${encodeURIComponent(folderSeg)}/${encodeURIComponent(fileName)}`
     };
   });
 
@@ -382,7 +451,17 @@ app.whenReady().then(async () => {
   protocol.handle('architect-asset', req => {
     const parsed = new URL(req.url);
     const kind = parsed.hostname;
-    const rawName = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
+    const rawParts = parsed.pathname.replace(/^\/+/, '').split('/').filter(Boolean);
+    if (kind === 'form-uploads') {
+      if (rawParts.length < 2) return new Response('Not found', { status: 404 });
+      const folderSeg = safeIdSegment(decodeURIComponent(rawParts[0]));
+      const targetDir = resolveInside(formUploadsBaseDir(), folderSeg);
+      const rawFile = decodeURIComponent(rawParts.slice(1).join('/'));
+      const resolved = targetDir ? resolveInside(targetDir, rawFile) : null;
+      if (!resolved || !existsSync(resolved)) return new Response('Not found', { status: 404 });
+      return net.fetch(pathToFileURL(resolved).href, { headers: req.headers });
+    }
+    const rawName = decodeURIComponent(rawParts.join('/'));
     const baseDir = kind === 'previews' ? previewsDir() : kind === 'files' ? assetsDir() : null;
     if (!baseDir || !rawName) return new Response('Not found', { status: 404 });
     const resolved = resolveInside(baseDir, rawName);

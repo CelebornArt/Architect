@@ -19,6 +19,7 @@ The user or team chooses between workspace coordination modes, with asset storag
 
 - **Local only (default):** run Architect on a computer, keeping workspace data on that device (app-owned desktop data directory or browser profile). Works offline without an account or server.
 - **Cloud-drive file sync (solo cross-device + view-only mirrors, NOT co-op):** an optional file-sync mode for **local solo usage across multiple devices** (like Joplin or Obsidian sync)—not a multi-user co-op editing mode. Also supports **view-only sharing** where viewers' clients auto-sync *from* the shared cloud source (one-way pull only, **never** writing back to the source, with the editor strictly read-only) configurable either **on startup only** or every **`X` minutes**.
+- **Single-user mode UI simplification (Local & solo Cloud Sync):** when `coordinationMode` is `'local'` or solo `'cloud-sync'`, multi-user and server-only controls (role management, member invites, team-only permissions/overrides, live server fields, multi-member team affordances) should later be progressively hidden or simplified for better single-user usability.
 - **Team collaboration server (required for live co-working):** connect to a self-hosted or team-hosted collaboration server (including one hosted on the team's own domain). The server authenticates accounts/profiles, enforces Discord-style role permissions, routes/persists live edits via WebSockets, runs databases/search/chat/notifications, and optionally publishes sites. A future Architect-hosted server could be optional, but must not be the only way to collaborate.
 - **Asset storage:**
   - **In local mode:** choose between a **local folder/storage** (default) or a connected **cloud drive**.
@@ -185,6 +186,7 @@ Workspaces can publish selected pages or page trees to the public web **only whe
 
 - Domain verification on the Admin Dashboard (DNS CNAME/TXT check and HTTPS/TLS termination) before enabling public publishing controls.
 - Explicit per-page publish/unpublish toggle, custom URL slug, snapshot publishing (`draft` vs live published snapshot so in-progress edits are not leaked), SEO/OpenGraph metadata, and search-engine indexing toggle.
+- **Published Forms experience (docs-based forms):** forms author as true Markdown/block pages with inline question blocks and customizable action button blocks (`Submit`, `Download`, `Send to mail`, custom buttons), plus published styling controls (custom subdomain binding on the connected server/website, custom page background image/color, background Asset Library music track with a top-of-page mute button, outlined card container vs loose floating layout over the background, and optional backend email delivery for `"Send response to my mail"`).
 - Serve published pages read-only with strict isolation: never expose private workspace pages, draft blocks, internal member lists, chat, or unauthorized drive/server assets on public routes.
 
 ## VVD Worldbuilding & shared server publishing integration

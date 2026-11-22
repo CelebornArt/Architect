@@ -12,6 +12,26 @@ type VectorIconDef = {
   body: string;
 };
 
+type UiIconSlotDef = {
+  id: string;
+  group: string;
+  label: string;
+  aliases?: string[];
+};
+
+type UiIconEntry = {
+  markup?: string;
+  dataUrl?: string;
+  filename: string;
+};
+
+type UiIconPackData = {
+  id: string;
+  name: string;
+  createdAt: number;
+  icons: Record<string, UiIconEntry>;
+};
+
 (() => {
   const ICON_COLORS: IconColorDef[] = [
     { key: 'default', label: 'Charcoal', hex: '#474540', swatchHex: '#d5d3ce' },
@@ -169,15 +189,293 @@ type VectorIconDef = {
     return escHtml(raw);
   }
 
+  const UI_ICON_SLOTS: UiIconSlotDef[] = [
+    // Feature Rail / App Ribbon
+    { id: 'rail-sidebar-toggle', group: 'Feature Rail', label: 'Toggle Sidebar', aliases: ['sidebar-toggle', 'rail/sidebar-toggle'] },
+    { id: 'rail-docs', group: 'Feature Rail', label: 'Docs Mode', aliases: ['rail-notion', 'notion', 'docs', 'rail/docs', 'rail/notion'] },
+    { id: 'rail-dashboard', group: 'Feature Rail', label: 'Dashboards Mode', aliases: ['dashboard', 'rail/dashboard'] },
+    { id: 'rail-assets', group: 'Feature Rail', label: 'Asset Library', aliases: ['assets', 'asset-library', 'rail/assets'] },
+    { id: 'rail-sync', group: 'Feature Rail', label: 'Sync Workspace', aliases: ['sync', 'sync-now', 'rail/sync'] },
+    { id: 'rail-trash', group: 'Feature Rail', label: 'Trash Bin', aliases: ['trash', 'rail/trash'] },
+    { id: 'rail-user-settings', group: 'Feature Rail', label: 'Client Settings', aliases: ['user-settings', 'settings', 'rail/user-settings'] },
+
+    // Explorer & Sidebar Chrome
+    { id: 'explorer-files', group: 'Sidebar & Explorer', label: 'Files Tab', aliases: ['explorer/files'] },
+    { id: 'explorer-search', group: 'Sidebar & Explorer', label: 'Search Tab', aliases: ['search', 'explorer/search'] },
+    { id: 'explorer-graph', group: 'Sidebar & Explorer', label: 'Graph View Tab', aliases: ['graph', 'graph-view', 'explorer/graph'] },
+    { id: 'explorer-inbox', group: 'Sidebar & Explorer', label: 'Inbox Tab', aliases: ['updates', 'explorer/inbox'] },
+    { id: 'sidebar-new-hub', group: 'Sidebar & Explorer', label: 'New Hub Button', aliases: ['new-hub', 'sidebar/new-hub'] },
+    { id: 'sidebar-collapse-handle', group: 'Sidebar & Explorer', label: 'Sidebar Collapse Handle', aliases: ['collapse-handle', 'sidebar/collapse'] },
+
+    // Dashboards Sidebar & Navigation
+    { id: 'dash-notifications', group: 'Dashboards Nav', label: 'Notifications', aliases: ['notifications', 'dash/notifications'] },
+    { id: 'dash-chat', group: 'Dashboards Nav', label: 'Chat', aliases: ['chat', 'dash/chat'] },
+    { id: 'dash-user', group: 'Dashboards Nav', label: 'My Dashboard', aliases: ['user-dash', 'my-dashboard', 'dash/user'] },
+    { id: 'dash-team', group: 'Dashboards Nav', label: 'Team Overview', aliases: ['team-overview', 'team', 'dash/team'] },
+    { id: 'dash-admin', group: 'Dashboards Nav', label: 'Admin Dashboard', aliases: ['admin-dash', 'admin', 'dash/admin'] },
+    { id: 'dash-time-tracking', group: 'Dashboards Nav', label: 'Time Tracking', aliases: ['time-tracking', 'dash/time-tracking'] },
+    { id: 'dash-calendar', group: 'Dashboards Nav', label: 'Calendar', aliases: ['dash/calendar'] },
+    { id: 'dash-taskboard', group: 'Dashboards Nav', label: 'Taskboard', aliases: ['taskboard', 'dash/taskboard'] },
+    { id: 'dash-scratchpad', group: 'Dashboards Nav', label: 'Scratchpad', aliases: ['scratchpad', 'dash/scratchpad'] },
+    { id: 'dash-history-back', group: 'Dashboards Nav', label: 'Dashboard Previous', aliases: ['dash-back', 'dash/back'] },
+    { id: 'dash-history-forward', group: 'Dashboards Nav', label: 'Dashboard Next', aliases: ['dash-forward', 'dash/forward'] },
+
+    // Topbar Chrome
+    { id: 'topbar-back', group: 'Topbar', label: 'Previous Page', aliases: ['history-back', 'topbar/back'] },
+    { id: 'topbar-forward', group: 'Topbar', label: 'Next Page', aliases: ['history-forward', 'topbar/forward'] },
+    { id: 'topbar-comments', group: 'Topbar', label: 'Comments Drawer', aliases: ['comments', 'toggle-comments', 'topbar/comments'] },
+    { id: 'topbar-more', group: 'Topbar', label: 'Page Options (More)', aliases: ['page-options', 'topbar/more'] },
+    { id: 'topbar-assets-sidebar', group: 'Topbar', label: 'Assets Sidebar Toggle', aliases: ['assets-sidebar', 'asset-sidebar', 'topbar/assets-sidebar'] },
+
+    // Docs Editor Toolbar
+    { id: 'toolbar-undo', group: 'Editor Toolbar', label: 'Undo', aliases: ['undo', 'toolbar/undo'] },
+    { id: 'toolbar-redo', group: 'Editor Toolbar', label: 'Redo', aliases: ['redo', 'toolbar/redo'] },
+    { id: 'toolbar-heading', group: 'Editor Toolbar', label: 'Headings', aliases: ['heading', 'toolbar/heading'] },
+    { id: 'toolbar-bold', group: 'Editor Toolbar', label: 'Bold', aliases: ['bold', 'toolbar/bold'] },
+    { id: 'toolbar-italic', group: 'Editor Toolbar', label: 'Italic', aliases: ['italic', 'toolbar/italic'] },
+    { id: 'toolbar-strikethrough', group: 'Editor Toolbar', label: 'Strikethrough', aliases: ['strikethrough', 'toolbar/strikethrough'] },
+    { id: 'toolbar-underline', group: 'Editor Toolbar', label: 'Underline', aliases: ['underline', 'toolbar/underline'] },
+    { id: 'toolbar-text-options', group: 'Editor Toolbar', label: 'Text Options', aliases: ['text-options', 'toolbar/text-options'] },
+    { id: 'toolbar-font', group: 'Editor Toolbar', label: 'Font Family', aliases: ['font', 'toolbar/font'] },
+    { id: 'toolbar-font-size', group: 'Editor Toolbar', label: 'Font Size', aliases: ['font-size', 'toolbar/font-size'] },
+    { id: 'toolbar-text-color', group: 'Editor Toolbar', label: 'Text Color', aliases: ['text-color', 'toolbar/text-color'] },
+    { id: 'toolbar-highlight-color', group: 'Editor Toolbar', label: 'Highlight Color', aliases: ['highlight-color', 'toolbar/highlight-color'] },
+    { id: 'toolbar-format-tools', group: 'Editor Toolbar', label: 'Format Tools', aliases: ['format-tools', 'toolbar/format-tools'] },
+    { id: 'toolbar-clear-format', group: 'Editor Toolbar', label: 'Clear Format', aliases: ['clear-format', 'toolbar/clear-format'] },
+    { id: 'toolbar-lists', group: 'Editor Toolbar', label: 'Lists', aliases: ['lists', 'toolbar/lists'] },
+    { id: 'toolbar-align', group: 'Editor Toolbar', label: 'Alignment', aliases: ['align', 'toolbar/align'] },
+    { id: 'toolbar-callouts', group: 'Editor Toolbar', label: 'Callouts & Quote', aliases: ['callouts', 'toolbar/callouts'] },
+    { id: 'toolbar-insert-table', group: 'Editor Toolbar', label: 'Insert Table', aliases: ['insert-table', 'toolbar/insert-table'] },
+    { id: 'toolbar-link-attach', group: 'Editor Toolbar', label: 'Insert Link', aliases: ['link-attach', 'toolbar/link-attach'] },
+    { id: 'toolbar-todo-toggle', group: 'Editor Toolbar', label: 'To-do Toggle', aliases: ['todo-toggle', 'toolbar/todo-toggle'] },
+    { id: 'toolbar-fullscreen', group: 'Editor Toolbar', label: 'Fullscreen Enter', aliases: ['fullscreen', 'toolbar/fullscreen'] },
+    { id: 'toolbar-fullscreen-exit', group: 'Editor Toolbar', label: 'Fullscreen Exit', aliases: ['fullscreen-exit', 'toolbar/fullscreen-exit'] },
+    { id: 'toolbar-form-question', group: 'Editor Toolbar', label: 'Form + Question', aliases: ['form-question', 'toolbar/form-question'] },
+    { id: 'toolbar-form-button', group: 'Editor Toolbar', label: 'Form + Button', aliases: ['form-button', 'toolbar/form-button'] },
+    { id: 'toolbar-form-design', group: 'Editor Toolbar', label: 'Form Design', aliases: ['form-design', 'toolbar/form-design'] },
+
+    // Database Views Tabs
+    { id: 'db-view-table', group: 'Database Views', label: 'Table View Tab', aliases: ['db/table', 'view-table'] },
+    { id: 'db-view-board', group: 'Database Views', label: 'Board View Tab', aliases: ['db/board', 'view-board'] },
+    { id: 'db-view-list', group: 'Database Views', label: 'List View Tab', aliases: ['db/list', 'view-list'] },
+    { id: 'db-view-gallery', group: 'Database Views', label: 'Gallery View Tab', aliases: ['db/gallery', 'view-gallery'] },
+    { id: 'db-view-calendar', group: 'Database Views', label: 'Calendar View Tab', aliases: ['db/calendar', 'view-calendar'] },
+    { id: 'db-view-timeline', group: 'Database Views', label: 'Timeline View Tab', aliases: ['db/timeline', 'view-timeline'] },
+    { id: 'db-view-chart', group: 'Database Views', label: 'Chart View Tab', aliases: ['db/chart', 'view-chart'] },
+    { id: 'db-view-feed', group: 'Database Views', label: 'Feed View Tab', aliases: ['db/feed', 'view-feed'] },
+    { id: 'db-view-form', group: 'Database Views', label: 'Form View Tab', aliases: ['db/form', 'view-form'] }
+  ];
+
+  const slotKeyIndex = new Map<string, string>();
+  const normSlotKey = (raw: string) => String(raw || '').toLowerCase().trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').replace(/[_\s]+/g, '-');
+  UI_ICON_SLOTS.forEach(s => {
+    slotKeyIndex.set(normSlotKey(s.id), s.id);
+    (s.aliases || []).forEach(a => slotKeyIndex.set(normSlotKey(a), s.id));
+  });
+
+  let activeUiIconPack: UiIconPackData | null = null;
+
+  function setActiveUiPack(pack: UiIconPackData | null) {
+    activeUiIconPack = pack && pack.icons ? pack : null;
+  }
+
+  function getActiveUiPackId(): string {
+    return activeUiIconPack?.id || '';
+  }
+
+  function matchUiIconSlot(filenameOrPath: string): string | null {
+    const clean = String(filenameOrPath || '').replace(/\\/g, '/');
+    const noExt = clean.replace(/\.[^./]+$/, '');
+    const baseName = noExt.split('/').pop() || '';
+    const parts = noExt.split('/').filter(Boolean);
+    const parentPlusBase = parts.length >= 2 ? `${parts[parts.length - 2]}/${baseName}` : '';
+    const parentDashBase = parts.length >= 2 ? `${parts[parts.length - 2]}-${baseName}` : '';
+    for (const candidate of [noExt, parentDashBase, parentPlusBase, baseName]) {
+      if (!candidate) continue;
+      const hit = slotKeyIndex.get(normSlotKey(candidate));
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  function sanitizeUiSvg(rawSvg: string): string {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(String(rawSvg || ''), 'image/svg+xml');
+      const svg = doc.querySelector('svg');
+      if (!svg) return '';
+      svg.querySelectorAll('script,foreignObject,iframe,object,embed').forEach(n => n.remove());
+      svg.querySelectorAll('*').forEach(node => {
+        Array.from(node.attributes).forEach(attr => {
+          const n = attr.name.toLowerCase();
+          const v = String(attr.value || '').trim();
+          if (n.startsWith('on') || /^(javascript|data:text\/html):/i.test(v)) {
+            node.removeAttribute(attr.name);
+          }
+        });
+      });
+      if (!svg.getAttribute('viewBox')) {
+        const w = parseFloat(svg.getAttribute('width') || '24') || 24;
+        const h = parseFloat(svg.getAttribute('height') || '24') || 24;
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      }
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.setAttribute('aria-hidden', 'true');
+      return new XMLSerializer().serializeToString(svg);
+    } catch {
+      return '';
+    }
+  }
+
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ''));
+      fr.onerror = () => reject(fr.error || new Error('Failed to read file'));
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function buildUiIconPackFromFiles(
+    fileList: File[],
+    requestedName?: string
+  ): Promise<{ pack: UiIconPackData; matchedCount: number; unmatchedFiles: string[] }> {
+    const icons: Record<string, UiIconEntry> = {};
+    const unmatchedFiles: string[] = [];
+    let inferredName = (requestedName || '').trim();
+    const rawFilesByKey = new Map<string, File>();
+    let manifestJson: any = null;
+
+    for (const f of fileList) {
+      const rel = ((f as any).webkitRelativePath || f.name).replace(/\\/g, '/');
+      if (!inferredName && rel.includes('/')) {
+        const top = rel.split('/')[0]?.trim();
+        if (top) inferredName = top;
+      }
+      const lower = f.name.toLowerCase();
+      if (lower.endsWith('.json')) {
+        try {
+          const parsed = JSON.parse(await f.text());
+          if (parsed && parsed.icons && typeof parsed.icons === 'object') {
+            manifestJson = parsed;
+            if (!inferredName && parsed.name) inferredName = String(parsed.name).trim();
+            continue;
+          }
+        } catch {}
+      }
+      rawFilesByKey.set(rel.toLowerCase(), f);
+      rawFilesByKey.set(f.name.toLowerCase(), f);
+    }
+
+    const ingestMediaFile = async (slotId: string, f: File) => {
+      const lower = f.name.toLowerCase();
+      if (lower.endsWith('.svg') || f.type === 'image/svg+xml') {
+        const cleaned = sanitizeUiSvg(await f.text());
+        if (cleaned) {
+          icons[slotId] = { markup: cleaned, filename: f.name };
+          return true;
+        }
+        return false;
+      }
+      if (/\.(png|webp|jpg|jpeg|gif|ico)$/i.test(lower) || f.type.startsWith('image/')) {
+        const dataUrl = await readFileAsDataUrl(f);
+        if (dataUrl) {
+          icons[slotId] = { dataUrl, filename: f.name };
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (manifestJson && manifestJson.icons && typeof manifestJson.icons === 'object') {
+      for (const [k, val] of Object.entries(manifestJson.icons)) {
+        const slotId = matchUiIconSlot(k);
+        if (!slotId) continue;
+        if (typeof val === 'string') {
+          const targetFile = rawFilesByKey.get(val.toLowerCase()) || rawFilesByKey.get((val.split('/').pop() || '').toLowerCase());
+          if (targetFile) await ingestMediaFile(slotId, targetFile);
+          else if (val.trim().startsWith('<svg')) {
+            const cleaned = sanitizeUiSvg(val);
+            if (cleaned) icons[slotId] = { markup: cleaned, filename: `${slotId}.svg` };
+          } else if (/^data:image\//i.test(val.trim())) {
+            icons[slotId] = { dataUrl: val.trim(), filename: `${slotId}.png` };
+          }
+        } else if (val && typeof val === 'object') {
+          const entry = val as UiIconEntry;
+          if (entry.markup && entry.markup.includes('<svg')) {
+            const cleaned = sanitizeUiSvg(entry.markup);
+            if (cleaned) icons[slotId] = { markup: cleaned, filename: entry.filename || `${slotId}.svg` };
+          } else if (entry.dataUrl && /^data:image\//i.test(entry.dataUrl)) {
+            icons[slotId] = { dataUrl: entry.dataUrl, filename: entry.filename || `${slotId}.png` };
+          }
+        }
+      }
+    }
+
+    for (const f of fileList) {
+      if (f.name.toLowerCase().endsWith('.json')) continue;
+      const rel = ((f as any).webkitRelativePath || f.name).replace(/\\/g, '/');
+      const slotId = matchUiIconSlot(rel);
+      if (!slotId) {
+        unmatchedFiles.push(f.name);
+        continue;
+      }
+      if (!icons[slotId]) {
+        const ok = await ingestMediaFile(slotId, f);
+        if (!ok) unmatchedFiles.push(f.name);
+      }
+    }
+
+    const pack: UiIconPackData = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uipack_${Date.now()}`,
+      name: inferredName || `Custom Pack (${new Date().toLocaleDateString()})`,
+      createdAt: Date.now(),
+      icons
+    };
+    return { pack, matchedCount: Object.keys(icons).length, unmatchedFiles };
+  }
+
+  function resolveUiSlotMarkup(slotId: string, fallbackMarkup: string): string {
+    const entry = activeUiIconPack?.icons?.[slotId];
+    if (!entry) return fallbackMarkup;
+    if (entry.markup) {
+      return `<span class="ui-pack-svg" data-ui-slot="${escHtml(slotId)}">${entry.markup}</span>`;
+    }
+    if (entry.dataUrl) {
+      return `<img class="ui-pack-icon-img" data-ui-slot="${escHtml(slotId)}" src="${escHtml(entry.dataUrl)}" alt="">`;
+    }
+    return fallbackMarkup;
+  }
+
+  function generateNamingTemplateJson(): string {
+    const icons: Record<string, string> = {};
+    UI_ICON_SLOTS.forEach(s => { icons[s.id] = `${s.id}.svg`; });
+    return JSON.stringify({
+      format: 'architect-ui-icon-pack-template',
+      name: 'My Custom UI Icon Pack',
+      notes: 'Name icon files as <slot-id>.svg or .png/.webp (or place in folders like rail/docs.svg, toolbar/bold.svg). JSON manifest mapping is optional.',
+      icons
+    }, null, 2);
+  }
+
   (window as any).ArchitectIcons = {
     ICON_COLORS,
     VECTOR_ICONS,
     RAIL_ICONS,
+    UI_ICON_SLOTS,
     getColorDef,
     isSvgIconValue,
     parseSvgIconValue,
     makeSvgIconValue,
     getSvgMarkupById,
-    renderIconHtml
+    renderIconHtml,
+    matchUiIconSlot,
+    sanitizeUiSvg,
+    buildUiIconPackFromFiles,
+    setActiveUiPack,
+    getActiveUiPackId,
+    resolveUiSlotMarkup,
+    generateNamingTemplateJson
   };
 })();

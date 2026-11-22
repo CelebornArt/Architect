@@ -15,4 +15,4 @@
 - Double-check Notion-parity features against the signed-in Notion session with REA before implementing and again when verifying the result, unless `Targets/ArchitectStructure.md` intentionally specifies different behavior. Record scope or expectation changes in `Targets/NotionStructure.md`.
 - Preserve the signed-in Notion browser session used by REA. Prefer passive inspection; do not change its login, profile, or page data.
 - Build with `npm.cmd run build`. In PowerShell, use `npm.cmd` to avoid the restricted `npm.ps1` shim.
-- Always spawn a subagent in Argon (`Gemini 4 Argon`) for testing.
+- Only spawn a subagent in Hydrogen (`Gemini 4 Hydrogen`) for testing when implementing completely new features (new features only, not minor details, bug fixes, or polish; run targeted checks directly for those).

@@ -1,5 +1,5 @@
 // @ts-nocheck
-type BlockType = 'text'|'h1'|'h2'|'h3'|'h4'|'h5'|'h6'|'bullet'|'numbered'|'todo'|'toggle'|'quote'|'callout'|'divider'|'page_link'|'mention'|'code'|'image'|'file'|'pdf'|'bookmark'|'video'|'audio'|'embed'|'equation'|'columns'|'table'|'database_view'|'board_view'|'toc'|'breadcrumb'|'button'|'date';
+type BlockType = 'text'|'h1'|'h2'|'h3'|'h4'|'h5'|'h6'|'bullet'|'numbered'|'todo'|'toggle'|'quote'|'callout'|'divider'|'page_link'|'mention'|'code'|'image'|'file'|'pdf'|'bookmark'|'video'|'audio'|'embed'|'equation'|'columns'|'table'|'database_view'|'board_view'|'toc'|'breadcrumb'|'button'|'date'|'form_question'|'form_button';
 type BlockButtonBranch = { id:string; label:string; style?:'primary'|'default'|'danger'; mode:'continue'|'stop'|'branch'; actions?:BlockButtonStep[] };
 type BlockButtonVariable = { id:string; name:string; mode?:'text'|'formula'; value:string };
 type BlockButtonStep = {
@@ -31,7 +31,7 @@ type BlockButtonStep = {
 };
 type BlockButtonConfig = { label?:string; icon?:string; confirm?:boolean; confirmText?:string; steps:BlockButtonStep[] };
 type SimpleTableData = { headers:string[]; headerHtml?:string[]; rows:string[][]; rowHtml?:string[][]; hasHeaderRow?:boolean; hasHeaderColumn?:boolean; fullWidth?:boolean; colColors?:string[]; rowColors?:string[]; cellColors?:Record<string, string> };
-type Block = { id:string; type:BlockType; text:string; html?:string; indent?:number; align?:'left'|'center'|'right'|'justify'; font?:string; calloutType?:string; calloutTitle?:string; icon?:string; color?:string; bgColor?:string; assetId?:string; mimeType?:string; category?:AssetCategory; creator?:string; tags?:string[]; toggle?:boolean; open?:boolean; checked?:boolean; targetId?:string; viewId?:string; boardHeight?:number; boardWidthPct?:number; url?:string; linkUrl?:string; linkDisplayMode?:'url'|'mention'|'bookmark'|'embed'; embedHeight?:number; mermaidMode?:'code'|'split'|'preview'; buttonConfig?:BlockButtonConfig; language?:string; children?:Block[]; columnWidths?:number[]; tableData?:SimpleTableData; widthPx?:number; caption?:string; altText?:string; cropRect?:{ x:number; y:number; w:number; h:number }; roundedCorners?:boolean; editedBy?:string; editedAt?:number; remindDate?:string; remindTime?:string; remindOffset?:string; remindAt?:number; remindFired?:boolean; mentions?:{kind:'page'|'person'|'reminder';id:string;label:string}[] };
+type Block = { id:string; type:BlockType; text:string; html?:string; indent?:number; align?:'left'|'center'|'right'|'justify'; font?:string; fontSize?:string; calloutType?:string; calloutTitle?:string; icon?:string; color?:string; bgColor?:string; outlineColor?:string; questionId?:string; propertyId?:string; formButtonConfig?:any; columnLinkRule?:{ mode:'none'|'all_if_any'|'at_least_one'|'at_least_n'; count?:number }; assetId?:string; mimeType?:string; category?:AssetCategory; creator?:string; tags?:string[]; toggle?:boolean; open?:boolean; checked?:boolean; targetId?:string; viewId?:string; boardHeight?:number; boardWidthPct?:number; url?:string; linkUrl?:string; linkDisplayMode?:'url'|'mention'|'bookmark'|'embed'; embedHeight?:number; mermaidMode?:'code'|'split'|'preview'; buttonConfig?:BlockButtonConfig; language?:string; children?:Block[]; columnWidths?:number[]; tableData?:SimpleTableData; widthPx?:number; caption?:string; altText?:string; cropRect?:{ x:number; y:number; w:number; h:number }; roundedCorners?:boolean; editedBy?:string; editedAt?:number; remindDate?:string; remindTime?:string; remindOffset?:string; remindAt?:number; remindFired?:boolean; mentions?:{kind:'page'|'person'|'reminder';id:string;label:string}[] };
 type CommentMessage = { id:string; authorId:string; authorName:string; text:string; createdAt:number; updatedAt?:number; edited?:boolean };
 type CommentThread = { id:string; scope:'page'|'block'|'text'; blockId?:string; quote?:string; resolved?:boolean; resolvedAt?:number; resolvedBy?:string; createdAt:number; updatedAt:number; comments:CommentMessage[] };
 type NotificationButtonAction = 'confirm_read'|'read_later'|'custom';
@@ -40,7 +40,8 @@ type NotificationButtonClick = { buttonId:string; buttonLabel:string; userId:str
 type NotificationReadReceipt = { userId:string; userName:string; readAt:number };
 type InboxNotification = { id:string; kind:'comment'|'reply'|'resolve'|'reopen'|'page'|'board'|'database'|'system'; title:string; body:string; markdown?:string; displayMode?:'inbox'|'popup'|'both'; pageId?:string; blockId?:string; commentThreadId?:string; actor?:string; targetAccount?:string; read?:boolean; createdAt:number; status?:'sent'|'scheduled'; scheduledFor?:number; scheduledTz?:string; sentAt?:number; buttons?:NotificationButtonDef[]; readBy?:NotificationReadReceipt[]; confirmedBy?:NotificationReadReceipt[]; buttonClicks?:NotificationButtonClick[] };
 type DashboardSubMode = 'notifications'|'chat'|'user'|'team'|'admin'|'time-tracking'|'calendar'|'taskboard'|'scratchpad';
-type ChatMessage = { id:string; senderName:string; senderAccount?:string; text:string; createdAt:number; fromAutomation?:string };
+type ChatCommentRef = { pageId:string; pageTitle:string; threadId:string; commentMsgId:string; authorName:string; excerpt:string; quote?:string; resolved?:boolean };
+type ChatMessage = { id:string; senderName:string; senderAccount?:string; text:string; createdAt:number; fromAutomation?:string; commentRef?:ChatCommentRef };
 type ChatChannel = { id:string; kind:'dm'|'group'; name:string; topic?:string; icon?:string; memberAccounts:string[]; messages:ChatMessage[]; updatedAt:number; unreadCount?:number };
 type PageVersionSnapshot = { id:string; savedAt:number; authorName:string; title:string; icon:string; wordCount:number; blocks:Block[]; note?:string };
 type PageAnalytics = { totalViews:number; uniqueViewers:string[]; viewLog:{ userName:string; viewedAt:number }[] };
@@ -53,17 +54,61 @@ type RoleDef = { id:string; name:string; builtIn?:boolean; rank:number; color?:s
 type TriOverride = 'allow'|'inherit'|'deny';
 type PermissionSetOverride = { view?:TriOverride; edit?:TriOverride; comment?:TriOverride };
 type PagePermissionConfig = { inheritParent?:boolean; noOneAccess?:boolean; roleOverrides?:Record<string,PermissionSetOverride>; userOverrides?:Record<string,PermissionSetOverride> };
-type WorkspaceUser = { id:string; name:string; email?:string; roleId?:string; roleIds?:string[]; linkedAccount?:string; accountUnlinked?:boolean; blocked?:boolean; inviteCode?:string };
+type TeamMemberStatus = 'On Project'|'Standby'|'At Large'|'On Leave (defined)'|'On Leave (undefined)'|'Interested But No Role Available'|'No Return'|'Returnable'|'Limited Availability';
+const TEAM_STATUS_OPTIONS: { label: TeamMemberStatus; color: string; bg: string }[] = [
+    { label: 'On Project', color: '#166534', bg: '#dcfce7' },
+    { label: 'Standby', color: '#854d0e', bg: '#fef9c3' },
+    { label: 'At Large', color: '#475569', bg: '#f1f5f9' },
+    { label: 'Limited Availability', color: '#9a3412', bg: '#ffedd5' },
+    { label: 'On Leave (defined)', color: '#1e40af', bg: '#dbeafe' },
+    { label: 'On Leave (undefined)', color: '#6b21a8', bg: '#f3e8ff' },
+    { label: 'Returnable', color: '#0f766e', bg: '#ccfbf1' },
+    { label: 'Interested But No Role Available', color: '#71717a', bg: '#f4f4f5' },
+    { label: 'No Return', color: '#991b1b', bg: '#fee2e2' }
+];
+const TEAM_SPECIALTY_ROLES = [
+    'Producer', 'Art Director', 'Head of Department', 'Lead Fashion', 'Costume Designer',
+    'Concept', 'Concept Char', 'Concept Env', 'Concept Prop', 'Concept Creature',
+    'Illustrator', '3D', 'HS Modeling', 'Sculpting', 'Texturing', 'VFX Artist',
+    'Animation', 'Graphic Design', 'Graphic Design Lead', 'Layout', 'UX/UI',
+    'Letterer', 'Content Creation', 'Recruiter', 'Merch', 'Background Painting'
+];
+const TEAM_DEPARTMENT_OPTIONS = [
+    'Animation', 'Art', 'Comics', 'Community', 'Content Creation',
+    'Digital Marketing | Mail/Web', 'Documentary', 'Editing', 'Fashion', 'Featurettes', 'Production'
+];
+const TEAM_PROJECT_OPTIONS = ['Grimhald', 'Trials of Akash', 'Edany EP', 'Anomaly', 'Leilani', 'Soul Atlas'];
+type WorkspaceUser = {
+    id:string;
+    name:string;
+    email?:string;
+    roleId?:string;
+    roleIds?:string[];
+    linkedAccount?:string;
+    accountUnlinked?:boolean;
+    blocked?:boolean;
+    inviteCode?:string;
+    presenceStatus?: 'online' | 'unavailable' | 'offline';
+    memberStatus?: TeamMemberStatus;
+    activeTaskNote?: string;
+    portfolioUrl?: string;
+    country?: string;
+    specialtyRoles?: string[];
+    currentProjects?: string[];
+    availabilityNotes?: string;
+    departments?: string[];
+};
 type WorkspaceInvite = { code:string; userId:string; roleIds:string[]; createdAt:number; createdBy?:string; redeemedBy?:string; redeemedAt?:number };
-type Page = { id:string; title:string; icon:string; parentId?:string; pageKind?:'page'|'database'|'board'; databaseId?:string; database?:any; board?:any; propertyValues?:Record<string,any>; createdBy?:string; lastEditedBy?:string; favorite?:boolean; cover?:string; coverX?:number; coverY?:number; coverZoom?:number; fullWidth?:boolean; showWordCount?:boolean; description?:string; properties?:DatabaseProperty[]; propertiesOpen?:boolean; comments?:CommentThread[]; permissions?:PagePermissionConfig; published?:boolean; publishedAt?:number; history?:PageVersionSnapshot[]; analytics?:PageAnalytics; blocks:Block[]; createdAt:number; updatedAt:number };
+type Page = { id:string; title:string; icon:string; parentId?:string; pageKind?:'page'|'database'|'board'|'form'; databaseId?:string; hiddenFromDocs?:boolean; database?:any; board?:any; boardExpanded?:boolean; smallText?:boolean; propertyValues?:Record<string,any>; createdBy?:string; lastEditedBy?:string; favorite?:boolean; cover?:string; coverX?:number; coverY?:number; coverZoom?:number; fullWidth?:boolean; showWordCount?:boolean; description?:string; properties?:DatabaseProperty[]; propertiesOpen?:boolean; comments?:CommentThread[]; permissions?:PagePermissionConfig; published?:boolean; publishedAt?:number; history?:PageVersionSnapshot[]; analytics?:PageAnalytics; blocks:Block[]; createdAt:number; updatedAt:number };
 type WorkspaceTab = { id:string; pageId:string; history:string[]; historyIndex:number; pinned?:boolean };
-type Workspace = { version:2; workspaceName:string; activePageId:string; activeTabId?:string; tabs?:WorkspaceTab[]; pages:Page[]; users:WorkspaceUser[]; roles?:RoleDef[]; invites?:WorkspaceInvite[]; loggedInAccount?:string; coordinationMode?:CoordinationMode; assetStorageMode?:AssetStorageMode; syncConfig?:SyncConfig; actingAsAdmin?:boolean; roundedImageCorners?:boolean; userPreferences?:any; notifications?:InboxNotification[]; chats?:ChatChannel[]; dashboardData?:DashboardData; updateFeedUrl?:string };
+type Workspace = { version:2; workspaceName:string; activePageId:string; activeTabId?:string; tabs?:WorkspaceTab[]; pages:Page[]; users:WorkspaceUser[]; roles?:RoleDef[]; invites?:WorkspaceInvite[]; loggedInAccount?:string; coordinationMode?:CoordinationMode; assetStorageMode?:AssetStorageMode; syncConfig?:SyncConfig; actingAsAdmin?:boolean; roundedImageCorners?:boolean; uiIconPacks?:any[]; activeUiIconPackId?:string|null; customFonts?:any[]; userPreferences?:any; notifications?:InboxNotification[]; chats?:ChatChannel[]; dashboardData?:DashboardData; officialTaskboardId?:string; updateFeedUrl?:string };
 type PropertyType = 'text'|'status'|'select'|'date'|'number'|'person'|'url'|'email'|'phone'|'checkbox'|'files';
 type DatabaseProperty = { id:string; name:string; type:PropertyType; value:string|number|boolean; options?:string[] };
 const STORE = 'notion-clone-workspace-v2';
 const oldStore = 'notion-clone-pages';
 const RESET_MARKER = 'architect-fresh-workspace-reset-v1';
 const RESET_BACKUP = 'architect-pre-fresh-reset-v1';
+const LAST_RICH_BACKUP = 'architect-workspace-last-rich-v1';
 const WORKSPACES_INDEX_KEY = 'architect-workspaces-v1';
 const ACTIVE_WS_STORE_KEY = 'architect-active-workspace-key-v1';
 type WorkspaceEntry = { id: string; name: string; storeKey: string; updatedAt?: number };
@@ -168,6 +213,9 @@ function ensureWorkspaceDefaults(w) {
     w.assetStorageMode = w.assetStorageMode || 'local';
     w.actingAsAdmin = w.actingAsAdmin !== false;
     w.roundedImageCorners = !!w.roundedImageCorners;
+    w.uiIconPacks = Array.isArray(w.uiIconPacks) ? w.uiIconPacks : [];
+    if (w.activeUiIconPackId && !w.uiIconPacks.some((p: any) => p?.id === w.activeUiIconPackId)) w.activeUiIconPackId = null;
+    if (w.activeUiIconPackId === undefined) w.activeUiIconPackId = null;
     w.notifications = Array.isArray(w.notifications) ? w.notifications : [];
     w.invites = Array.isArray(w.invites) ? w.invites : [];
     const defaultRoles: RoleDef[] = [
@@ -203,6 +251,28 @@ function ensureWorkspaceDefaults(w) {
             u.roleIds = cleaned;
             u.roleId = cleaned[0] || undefined;
             if (idx === 0 && u.linkedAccount === undefined && !u.accountUnlinked) u.linkedAccount = u.name;
+            if (!u.memberStatus) {
+                const defaultDepts = [['Production', 'Art'], ['Documentary', 'Animation'], ['Comics', 'Fashion']];
+                const defaultRoles = [['Producer', 'Art Director'], ['Animation', 'Layout'], ['Concept', 'Graphic Design']];
+                const defaultProjs = [['Grimhald', 'Trials of Akash'], ['Anomaly', 'Trials of Akash'], ['Leilani', 'Soul Atlas']];
+                const defaultCountries = ['United States', 'Germany', 'Canada'];
+                u.memberStatus = idx === 2 ? 'Standby' : 'On Project';
+                if (!Array.isArray(u.departments)) u.departments = defaultDepts[idx] || [];
+                if (!Array.isArray(u.specialtyRoles)) u.specialtyRoles = defaultRoles[idx] || [];
+                if (!Array.isArray(u.currentProjects)) u.currentProjects = defaultProjs[idx] || [];
+                if (u.country === undefined && idx < 3) u.country = defaultCountries[idx];
+                if (u.email === undefined && idx < 3) u.email = `${u.name.toLowerCase().replace(/[^a-z0-9]+/g, '.')}@architect.studio`;
+                if (u.availabilityNotes === undefined && idx === 0) u.availabilityNotes = 'Full-time studio hours';
+            }
+            u.departments = Array.isArray(u.departments) ? u.departments.filter(Boolean) : [];
+            u.specialtyRoles = Array.isArray(u.specialtyRoles) ? u.specialtyRoles.filter(Boolean) : [];
+            u.currentProjects = Array.isArray(u.currentProjects) ? u.currentProjects.filter(Boolean) : [];
+            if (!u.presenceStatus || !['online', 'unavailable', 'offline'].includes(u.presenceStatus)) {
+                if (u.memberStatus === 'No Return') u.presenceStatus = 'offline';
+                else if (idx === 1 && w.users.length >= 2) u.presenceStatus = 'unavailable';
+                else if (idx === 2 || u.memberStatus === 'Standby' || u.memberStatus === 'Limited Availability') u.presenceStatus = idx === 2 ? 'offline' : 'unavailable';
+                else u.presenceStatus = 'online';
+            }
             delete u.blocked;
         });
     }
@@ -251,21 +321,48 @@ function ensureWorkspaceDefaults(w) {
         c.unreadCount = Number(c.unreadCount) || 0;
     });
     flushScheduledNotifications(w, false);
+    if (!w._migratedRaphaelV1) {
+        w._migratedRaphaelV1 = true;
+        if (Array.isArray(w.users)) {
+            const hasRaphael = w.users.some((u: any) => String(u?.name || '').trim().toLowerCase() === 'raphael');
+            if (!hasRaphael) {
+                const target = w.users.find((u: any) => u?.id === 'jordan.davis' || String(u?.name || '').trim() === 'Jordan Davis');
+                if (target) {
+                    target.name = 'Raphael';
+                    if (!target.linkedAccount || target.linkedAccount === 'Jordan Davis') target.linkedAccount = 'Raphael';
+                    if (target.email === 'jordan.davis@architect.studio') target.email = 'raphael@architect.studio';
+                    if (w.loggedInAccount === 'Jordan Davis') w.loggedInAccount = 'Raphael';
+                    try {
+                        if (localStorage.getItem(LOGGED_IN_ACCOUNT_KEY) === 'Jordan Davis') {
+                            localStorage.setItem(LOGGED_IN_ACCOUNT_KEY, 'Raphael');
+                        }
+                    } catch {}
+                }
+            }
+        }
+    }
     if (typeof ArchitectBackend !== 'undefined') ArchitectBackend.setPreviewPolicy(w.assetPreviewPolicy);
     if (typeof ArchitectToolbar !== 'undefined') ArchitectToolbar.ensureUserPreferences(w);
     return w;
 }
 const LOGGED_IN_ACCOUNT_KEY = 'architect-logged-in-account-v1';
+let cachedLoggedInAccount: string | null | undefined = undefined;
 function getLoggedInAccountName(ws = state): string {
-    try {
-        const stored = localStorage.getItem(LOGGED_IN_ACCOUNT_KEY);
-        if (stored && stored.trim()) return stored.trim();
-    } catch {}
+    if (cachedLoggedInAccount === undefined) {
+        try {
+            const stored = localStorage.getItem(LOGGED_IN_ACCOUNT_KEY);
+            cachedLoggedInAccount = stored && stored.trim() ? stored.trim() : null;
+        } catch {
+            cachedLoggedInAccount = null;
+        }
+    }
+    if (cachedLoggedInAccount) return cachedLoggedInAccount;
     if (ws?.loggedInAccount && String(ws.loggedInAccount).trim()) return String(ws.loggedInAccount).trim();
-    return ws?.users?.[0]?.linkedAccount || ws?.users?.[0]?.name || 'Jordan Davis';
+    return ws?.users?.[0]?.linkedAccount || ws?.users?.[0]?.name || 'Raphael';
 }
 function setLoggedInAccountName(accountName: string, ws = state) {
     const clean = accountName.trim();
+    cachedLoggedInAccount = clean || null;
     if (ws) ws.loggedInAccount = clean || undefined;
     try {
         if (clean) localStorage.setItem(LOGGED_IN_ACCOUNT_KEY, clean);
@@ -462,8 +559,20 @@ function importExternalPages(incomingPages: Partial<Page>[], parentId?: string, 
     for (const pg of created) {
         const existingIdx = state.pages.findIndex(p => p.id === pg.id);
         if (existingIdx >= 0) {
-            if (opts.replaceExisting) state.pages[existingIdx] = pg;
-            else continue;
+            const cur = state.pages[existingIdx];
+            if (opts.replaceExisting) {
+                const incomingCommentIds = new Set((pg.comments || []).map(c => c.id));
+                const keptLocalComments = (cur.comments || []).filter(c => c.id && !incomingCommentIds.has(c.id));
+                const mergedComments = [...(pg.comments || []), ...keptLocalComments];
+                state.pages[existingIdx] = {
+                    ...pg,
+                    ...(mergedComments.length ? { comments: mergedComments } : {})
+                };
+            } else {
+                const existingCommentIds = new Set((cur.comments || []).map(c => c.id));
+                const newComments = (pg.comments || []).filter(c => c.id && !existingCommentIds.has(c.id));
+                if (newComments.length) cur.comments = [...(cur.comments || []), ...newComments];
+            }
         } else {
             state.pages.push(pg);
         }
@@ -688,7 +797,7 @@ async function importNotionBundle(
     });
 
     const created = importExternalPages(preparedPages, opts.parentId, { replaceExisting: !!opts.replaceExisting });
-    const firstRoot = created.find(p => !p.databaseId && !p.parentId) || created.find(p => !p.databaseId) || created[0];
+    const firstRoot = created.find(p => isVisibleDocsPage(p) && !p.parentId) || created.find(p => isVisibleDocsPage(p)) || created[0];
     if (firstRoot) {
         navigateToPage(firstRoot.id);
     } else {
@@ -704,8 +813,22 @@ async function importNotionBundle(
     };
 }
 function isReadOnlyMirror() { return state?.coordinationMode === 'cloud-sync' && !!state?.syncConfig?.readOnlyMirror; }
+function isHiddenBaseDocsPage(pg?: Page | null, ws = state): boolean {
+    if (!pg) return false;
+    if (pg.hiddenFromDocs === true) return true;
+    if (pg.hiddenFromDocs === false) return false;
+    return !!(
+        !pg.parentId
+        && !pg.databaseId
+        && (pg.id === ws?.officialTaskboardId || pg.database?.isOfficialTaskboard)
+        && /master questboard/i.test(String(pg.title || ''))
+    );
+}
+function isVisibleDocsPage(pg?: Page | null, requireViewPerm = false): boolean {
+    return Boolean(pg && !pg.databaseId && !isHiddenBaseDocsPage(pg) && (!requireViewPerm || resolvePagePermissions(pg).view));
+}
 function getActorDisplayName(ws = state): string {
-    return getCurrentActorUser(ws)?.name || ws?.users?.[0]?.name || 'Jordan Davis';
+    return getCurrentActorUser(ws)?.name || ws?.users?.[0]?.name || 'Raphael';
 }
 function effectivePageReadOnly(page = current()): boolean {
     if (isReadOnlyMirror()) return true;
@@ -764,22 +887,52 @@ function redeemWorkspaceInvite(codeRaw: string, accountNameRaw: string): { ok: b
     render();
     return { ok: true, user: targetUser };
 }
-function freshWorkspace(name = 'Acme Studio', users) { return ensureWorkspaceDefaults({ version: 2, workspaceName: name || 'Acme Studio', activePageId: 'home', pages: [{ id: 'home', title: 'New hub', icon: '📄', blocks: [block('text')], createdAt: Date.now(), updatedAt: Date.now() }], users: users || [{ id: 'jordan.davis', name: 'Jordan Davis' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }); }
-function applyFreshReset(workspace, originalRaw) { if (localStorage.getItem(RESET_MARKER) === 'done') return ensureWorkspaceDefaults(workspace); const existing = originalRaw || (workspace.pages.length > 1 || (workspace.pages[0]?.blocks || []).some(b => b.text) ? JSON.stringify(workspace) : null); try { if (existing) localStorage.setItem(RESET_BACKUP, existing); const fresh = freshWorkspace(workspace.workspaceName, workspace.users); localStorage.setItem(STORE, JSON.stringify(fresh)); localStorage.setItem(RESET_MARKER, 'done'); return fresh; } catch { return ensureWorkspaceDefaults(workspace); } }
+function freshWorkspace(name = 'Acme Studio', users) { return ensureWorkspaceDefaults({ version: 2, workspaceName: name || 'Acme Studio', activePageId: 'home', pages: [{ id: 'home', title: 'New hub', icon: '📄', blocks: [block('text')], createdAt: Date.now(), updatedAt: Date.now() }], users: users || [{ id: 'raphael', name: 'Raphael' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }); }
+function isRichWorkspace(w: any): boolean {
+    if (!w || !Array.isArray(w.pages) || !w.pages.length) return false;
+    if (w.pages.length > 1) return true;
+    const first = w.pages[0];
+    if (!first) return false;
+    if (first.title && first.title !== 'New hub') return true;
+    if (first.pageKind && first.pageKind !== 'page') return true;
+    return Array.isArray(first.blocks) && first.blocks.some((b: any) => (b?.text && String(b.text).trim()) || (b?.type && b.type !== 'text'));
+}
+function applyFreshReset(workspace, originalRaw) {
+    // Never wipe existing user pages; normalize safely and mark initialized so reloads/upgrades preserve all docs.
+    try {
+        if (localStorage.getItem(RESET_MARKER) !== 'done') {
+            localStorage.setItem(RESET_MARKER, 'done');
+        }
+    } catch {}
+    if (originalRaw && Array.isArray(workspace?.pages) && workspace.pages.length) {
+        return ensureWorkspaceDefaults(workspace);
+    }
+    try {
+        const backupRaw = localStorage.getItem(LAST_RICH_BACKUP);
+        if (backupRaw) {
+            const parsedBackup = JSON.parse(backupRaw);
+            if (parsedBackup?.version === 2 && isRichWorkspace(parsedBackup)) {
+                localStorage.setItem(STORE, backupRaw);
+                return ensureWorkspaceDefaults(parsedBackup);
+            }
+        }
+    } catch {}
+    return ensureWorkspaceDefaults(workspace);
+}
 function loadWorkspace(storeKeyOverride?: string) {
     const storeKey = storeKeyOverride || getActiveStoreKey();
     try {
         const raw = localStorage.getItem(storeKey);
         if (raw) {
             const w = JSON.parse(raw);
-            if (w.version === 2 && Array.isArray(w.pages))
+            if (w.version === 2 && Array.isArray(w.pages) && w.pages.length)
                 return storeKey === STORE ? applyFreshReset(w, raw) : ensureWorkspaceDefaults(w);
         }
         if (storeKey === STORE) {
             const old = JSON.parse(localStorage.getItem(oldStore) || 'null');
-            if (Array.isArray(old)) {
+            if (Array.isArray(old) && old.length) {
                 const pages = old.map((p) => ({ id: p.id || id(), title: p.title || 'Untitled', icon: p.icon || '📄', parentId: p.parent || undefined, blocks: (p.blocks || []).map((b) => ({ id: id(), type: { paragraph: 'text' }[b.type] || b.type, text: b.text || '', checked: b.checked })), createdAt: Date.now(), updatedAt: Date.now() }));
-                return applyFreshReset({ version: 2, workspaceName: 'Acme Studio', activePageId: localStorage.getItem('notion-clone-active') || pages[0]?.id, pages, users: [{ id: 'jordan.davis', name: 'Jordan Davis' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }, JSON.stringify(old));
+                return applyFreshReset({ version: 2, workspaceName: 'Acme Studio', activePageId: localStorage.getItem('notion-clone-active') || pages[0]?.id, pages, users: [{ id: 'raphael', name: 'Raphael' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }, JSON.stringify(old));
             }
         }
     } catch { }
@@ -787,7 +940,7 @@ function loadWorkspace(storeKeyOverride?: string) {
         setActiveStoreKey(STORE);
         if (storeKeyOverride !== STORE) return loadWorkspace(STORE);
     }
-    return applyFreshReset({ version: 2, workspaceName: 'Acme Studio', activePageId: 'home', pages: starter, users: [{ id: 'jordan.davis', name: 'Jordan Davis' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }, null);
+    return applyFreshReset(freshWorkspace('Acme Studio', [{ id: 'raphael', name: 'Raphael' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }]), null);
 }
 let state = loadWorkspace();
 let pageHistory = [state.activePageId];
@@ -805,11 +958,20 @@ function collectBlockText(blocks, out = []) { (blocks || []).forEach(item => { i
 function countWords(page) { return [page.title, page.description || '', ...collectBlockText(page.blocks)].join(' ').trim().split(/\s+/).filter(Boolean).length; }
 function updatePageOptions() {
     const page = current();
+    const isBoard = typeof ArchitectBoard !== 'undefined' && ArchitectBoard.isBoardPage(page);
+    const smallBtn = $('[data-action="toggle-small-text"]') as HTMLButtonElement | null;
     const width = $('[data-action="toggle-width"]'), count = $('[data-action="toggle-word-count"]');
+    const boardExp = $('[data-action="toggle-board-expand"]') as HTMLButtonElement | null;
     const pubBtn = $('[data-action="toggle-publish"]'), anaBtn = $('[data-action="page-analytics"]');
     const pubPill = $('#published-status-pill');
+    if (smallBtn) { smallBtn.textContent = `${page?.smallText ? '✓ ' : ''}Small text`; smallBtn.setAttribute('aria-pressed', String(!!page?.smallText)); smallBtn.hidden = isBoard; }
     if (width) { width.textContent = `${page.fullWidth ? '✓ ' : ''}Full page width`; width.setAttribute('aria-pressed', String(!!page.fullWidth)); }
     if (count) { count.textContent = `${page.showWordCount ? '✓ ' : ''}Show word count`; count.setAttribute('aria-pressed', String(!!page.showWordCount)); }
+    if (boardExp) {
+        boardExp.hidden = !isBoard;
+        boardExp.textContent = `${page?.boardExpanded ? '✓ ' : ''}Expand board view`;
+        boardExp.setAttribute('aria-pressed', String(!!page?.boardExpanded));
+    }
     if (pubBtn) { pubBtn.textContent = page?.published ? '✓ 🌐 Published to workspace' : '🌐 Publish page'; pubBtn.setAttribute('aria-pressed', String(!!page?.published)); }
     if (anaBtn) anaBtn.hidden = !page?.published;
     if (pubPill) pubPill.hidden = !page?.published;
@@ -932,7 +1094,7 @@ function openPageInNewTab(pageId, options = {}) {
 }
 function createNewBlankTab() {
     if (isReadOnlyMirror()) {
-        const home = state.pages.find(pg => !pg.parentId && !pg.databaseId) || state.pages[0];
+        const home = state.pages.find(pg => !pg.parentId && isVisibleDocsPage(pg)) || state.pages[0];
         if (home) openPageInNewTab(home.id);
         return;
     }
@@ -959,7 +1121,7 @@ function closeTab(tabId) {
     if (idx < 0) return;
     if (tabs.length === 1) {
         const only = tabs[0];
-        const home = state.pages.find(pg => !pg.parentId && !pg.databaseId) || state.pages[0];
+        const home = state.pages.find(pg => !pg.parentId && isVisibleDocsPage(pg)) || state.pages[0];
         if (home && only.pageId !== home.id) {
             only.pageId = home.id;
             only.history = [home.id];
@@ -1046,10 +1208,94 @@ function findWorkspaceUser(ref: string | { id?: string; name?: string } | null |
         (u.linkedAccount && u.linkedAccount.trim().toLowerCase() === clean)
     );
 }
+function getUserPresence(u?: WorkspaceUser | null): 'online' | 'unavailable' | 'offline' {
+    if (u?.presenceStatus && ['online', 'unavailable', 'offline'].includes(u.presenceStatus)) return u.presenceStatus;
+    if (u?.memberStatus === 'No Return') return 'offline';
+    if (u?.memberStatus === 'Standby' || u?.memberStatus === 'Limited Availability' || u?.memberStatus?.startsWith('On Leave')) return 'unavailable';
+    return 'online';
+}
+function getUserPresenceMeta(p: 'online' | 'unavailable' | 'offline') {
+    if (p === 'unavailable') return { key: 'unavailable' as const, label: 'Unavailable (In meeting / Standby)', shortLabel: 'Unavailable', color: '#f59e0b' };
+    if (p === 'offline') return { key: 'offline' as const, label: 'Offline', shortLabel: 'Offline', color: '#9ca3af' };
+    return { key: 'online' as const, label: 'Online', shortLabel: 'Online', color: '#22c55e' };
+}
+let activeQuickProfilePopover: HTMLElement | null = null;
+function closeUserQuickProfilePopover() {
+    if (activeQuickProfilePopover) {
+        activeQuickProfilePopover.remove();
+        activeQuickProfilePopover = null;
+    }
+}
+document.addEventListener('pointerdown', ev => {
+    if (!activeQuickProfilePopover) return;
+    if (activeQuickProfilePopover.contains(ev.target as Node)) return;
+    closeUserQuickProfilePopover();
+}, true);
+document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && activeQuickProfilePopover) {
+        closeUserQuickProfilePopover();
+    }
+}, true);
+
+type UnifiedNavEntry =
+    | { mode: 'notion'; pageId: string }
+    | { mode: 'dashboard'; subMode: DashboardSubMode; userId?: string | null };
+let unifiedNavHistory: UnifiedNavEntry[] = [];
+let unifiedNavIndex = -1;
+let isReplayingUnifiedNav = false;
+function sameUnifiedEntry(a?: UnifiedNavEntry, b?: UnifiedNavEntry): boolean {
+    if (!a || !b || a.mode !== b.mode) return false;
+    if (a.mode === 'notion' && b.mode === 'notion') return a.pageId === b.pageId;
+    if (a.mode === 'dashboard' && b.mode === 'dashboard') {
+        return a.subMode === b.subMode && (a.subMode !== 'user' || (a.userId || null) === (b.userId || null));
+    }
+    return false;
+}
+function recordUnifiedNav(entry: UnifiedNavEntry) {
+    if (isReplayingUnifiedNav) return;
+    if (!unifiedNavHistory.length && typeof state !== 'undefined' && state?.activePageId) {
+        unifiedNavHistory.push({ mode: 'notion', pageId: state.activePageId });
+        unifiedNavIndex = 0;
+    }
+    const cur = unifiedNavHistory[unifiedNavIndex];
+    if (sameUnifiedEntry(cur, entry)) return;
+    unifiedNavHistory = unifiedNavHistory.slice(0, unifiedNavIndex + 1);
+    unifiedNavHistory.push(entry);
+    if (unifiedNavHistory.length > 60) unifiedNavHistory = unifiedNavHistory.slice(-60);
+    unifiedNavIndex = unifiedNavHistory.length - 1;
+}
+function canNavigateUnifiedHistory(delta: number): boolean {
+    if (delta < 0 && unifiedNavIndex > 0) return true;
+    if (delta > 0 && unifiedNavIndex >= 0 && unifiedNavIndex < unifiedNavHistory.length - 1) return true;
+    return false;
+}
+function navigateUnifiedHistory(delta: number) {
+    const nextIdx = unifiedNavIndex + delta;
+    if (nextIdx < 0 || nextIdx >= unifiedNavHistory.length) return;
+    unifiedNavIndex = nextIdx;
+    const target = unifiedNavHistory[nextIdx];
+    isReplayingUnifiedNav = true;
+    try {
+        if (target.mode === 'notion') {
+            if (target.pageId && state.pages.some(pg => pg.id === target.pageId)) {
+                navigateToPage(target.pageId, false);
+            } else {
+                setAppMode('notion');
+            }
+        } else {
+            if (target.subMode === 'user') inspectedDashboardUserId = target.userId ?? null;
+            setAppMode('dashboard', { subMode: target.subMode });
+        }
+    } finally {
+        isReplayingUnifiedNav = false;
+    }
+}
+
 function openUserDashboard(ref: string) {
     const u = findWorkspaceUser(ref);
     inspectedDashboardUserId = u ? u.id : null;
     closeMenu();
+    closeUserQuickProfilePopover();
     closeDocsNotificationsPopover();
     closeBacklinksPopover();
     if (typeof ArchitectDatabase !== 'undefined') {
@@ -1063,6 +1309,7 @@ function openUserDirectMessage(ref: string) {
     const key = u?.linkedAccount || u?.name || String(ref || '').trim().replace(/^@/, '');
     if (!key || key.toLowerCase() === 'everyone') return;
     closeMenu();
+    closeUserQuickProfilePopover();
     closeDocsNotificationsPopover();
     if (typeof ArchitectDatabase !== 'undefined') {
         ArchitectDatabase.closeDatabasePeek?.();
@@ -1073,22 +1320,105 @@ function openUserDirectMessage(ref: string) {
     save();
     setDashboardSubMode('chat');
 }
-function openUserContextMenu(event: any, ref: string) {
+function openUserContextMenu(event: any, ref: string, commentCtx?: { page: Page; thread: CommentThread; msg: CommentMessage }) {
     const u = findWorkspaceUser(ref);
     const displayName = u?.name || String(ref || '').trim().replace(/^@/, '');
     if (!displayName || displayName.toLowerCase() === 'everyone') return;
     const resolvedRef = u?.id || displayName;
-    showCustomContextMenu(event, [{
-        items: [
-            { label: 'Open dashboard', run: () => openUserDashboard(resolvedRef) },
-            { label: 'Send message', run: () => openUserDirectMessage(resolvedRef) },
-            { label: 'Copy user name', run: async () => {
-                internalClipboardText = displayName;
-                try { await navigator.clipboard?.writeText(displayName); } catch {}
-                toast(`Copied “${displayName}”`);
-            } }
-        ]
-    }], { title: displayName });
+    closeMenu();
+    closeUserQuickProfilePopover();
+
+    const pres = getUserPresence(u);
+    const pMeta = getUserPresenceMeta(pres);
+    const roles = u ? getUserRoles(u) : [];
+    const stVal = u?.memberStatus || 'On Project';
+    const stMeta = TEAM_STATUS_OPTIONS.find(s => s.label === stVal) || TEAM_STATUS_OPTIONS[0];
+    const qb = typeof ArchitectDatabase !== 'undefined' ? ArchitectDatabase.getOfficialQuestboardPage() : null;
+    const liveTitles = u && qb ? getQuestTrackerForUser(qb, u, false).actual.slice(0, 2).map(x => `${x.issueKey ? `${x.issueKey} ` : ''}${x.row.title || 'Untitled'}`) : [];
+    const activeSummary = [u?.activeTaskNote, ...liveTitles].filter(Boolean).join(' · ') || 'No active tasks assigned';
+
+    const pop = document.createElement('div');
+    pop.id = 'user-quick-profile-popover';
+    pop.className = 'user-quick-profile-popover';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', `${displayName} profile overview`);
+    pop.dataset.userRef = resolvedRef;
+
+    const head = document.createElement('div');
+    head.className = 'uqp-head';
+    head.innerHTML = `
+      <span class="team-member-avatar uqp-avatar">${esc(commentUserInitials(displayName))}<span class="user-presence-dot is-${pMeta.key}" title="${esc(pMeta.label)}"></span></span>
+      <div class="uqp-title-wrap">
+        <div class="uqp-name-row"><strong>${esc(displayName)}</strong><span class="user-presence-label is-${pMeta.key}">${esc(pMeta.shortLabel)}</span></div>
+        <div class="uqp-badges">${roles.map(r => `<span class="dash-role-pill" style="background:${esc(r.color || '#eef0f4')}22;color:${esc(r.color || '#4a4d55')}">${esc(r.name)}</span>`).join('') || '<span class="dash-role-pill">Member</span>'}<span class="team-status-pill" style="background:${stMeta.bg};color:${stMeta.color}">${esc(stVal)}</span></div>
+      </div>`;
+
+    const details = document.createElement('div');
+    details.className = 'uqp-details';
+    const metaRows: Array<[string, string]> = [];
+    if (u?.email) metaRows.push(['Email', u.email]);
+    if (u?.country) metaRows.push(['Country', u.country]);
+    metaRows.push(['Active', activeSummary]);
+    if (u?.departments?.length) metaRows.push(['Departments', u.departments.join(', ')]);
+    if (u?.availabilityNotes) metaRows.push(['Notes', u.availabilityNotes]);
+    details.innerHTML = metaRows.map(([k, v]) => `<div class="uqp-row"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
+
+    const actions = document.createElement('div');
+    actions.className = 'uqp-actions';
+
+    const profBtn = document.createElement('button');
+    profBtn.type = 'button';
+    profBtn.className = 'share-button';
+    profBtn.dataset.quickProfileAction = 'open-profile';
+    profBtn.textContent = '👤 Open profile';
+    profBtn.onclick = () => openUserDashboard(resolvedRef);
+
+    const msgBtn = document.createElement('button');
+    msgBtn.type = 'button';
+    msgBtn.className = 'secondary-button';
+    msgBtn.dataset.quickProfileAction = 'message';
+    msgBtn.textContent = '💬 Message';
+    msgBtn.onclick = () => openUserDirectMessage(resolvedRef);
+    actions.append(profBtn, msgBtn);
+
+    if (commentCtx) {
+        const privBtn = document.createElement('button');
+        privBtn.type = 'button';
+        privBtn.className = 'secondary-button';
+        privBtn.dataset.quickProfileAction = 'reply-private';
+        privBtn.textContent = '🔒 Reply in private';
+        privBtn.onclick = () => {
+            closeUserQuickProfilePopover();
+            openPrivateCommentReply(commentCtx.page, commentCtx.thread, commentCtx.msg);
+        };
+        actions.append(privBtn);
+    }
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'icon-button';
+    copyBtn.title = `Copy "${displayName}"`;
+    copyBtn.setAttribute('aria-label', 'Copy user name');
+    copyBtn.textContent = '⧉';
+    copyBtn.onclick = async () => {
+        internalClipboardText = displayName;
+        try { await navigator.clipboard?.writeText(displayName); } catch {}
+        toast(`Copied “${displayName}”`);
+        closeUserQuickProfilePopover();
+    };
+    actions.append(copyBtn);
+
+    pop.append(head, details, actions);
+    document.body.append(pop);
+    activeQuickProfilePopover = pop;
+
+    const clickX = typeof event?.clientX === 'number' ? event.clientX : 280;
+    const clickY = typeof event?.clientY === 'number' ? event.clientY : 200;
+    const box = pop.getBoundingClientRect();
+    const left = Math.max(12, Math.min(window.innerWidth - box.width - 12, clickX + 6));
+    const top = Math.max(12, Math.min(window.innerHeight - box.height - 12, clickY + 6));
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
 }
 function setAppMode(mode: 'notion' | 'dashboard' | 'inbox', opts: { skipRender?: boolean; subMode?: DashboardSubMode } = {}) {
     if (mode === 'inbox') {
@@ -1102,7 +1432,18 @@ function setAppMode(mode: 'notion' | 'dashboard' | 'inbox', opts: { skipRender?:
     } else {
         currentAppMode = 'notion';
     }
+    if (currentAppMode === 'dashboard') {
+        recordUnifiedNav({
+            mode: 'dashboard',
+            subMode: currentDashboardSubMode,
+            userId: currentDashboardSubMode === 'user' ? inspectedDashboardUserId : null
+        });
+    } else if (!opts.skipRender && current()?.id) {
+        recordUnifiedNav({ mode: 'notion', pageId: current().id });
+    }
     if (currentAppMode !== 'notion') {
+        closeMenu();
+        closeUserQuickProfilePopover();
         stopAllAudioPlayers();
         closeDocsNotificationsPopover();
         closeBacklinksPopover();
@@ -1144,6 +1485,11 @@ function setDashboardSubMode(subMode: DashboardSubMode) {
         setAppMode('dashboard', { subMode: normalized });
         return;
     }
+    recordUnifiedNav({
+        mode: 'dashboard',
+        subMode: normalized,
+        userId: normalized === 'user' ? inspectedDashboardUserId : null
+    });
     document.body.dataset.dashboardSubmode = normalized;
     syncAppModeUi();
 }
@@ -1218,7 +1564,7 @@ function trimNotificationsList(ws = state) {
 }
 function getNotificationActorIdentity() {
     const actor = getCurrentActorUser();
-    const userName = actor?.name || getLoggedInAccountName() || 'Jordan Davis';
+    const userName = actor?.name || getLoggedInAccountName() || 'Raphael';
     const userId = actor?.id || userName.toLowerCase().replace(/[^a-z0-9]+/g, '.') || 'user';
     return { userId, userName };
 }
@@ -1339,7 +1685,7 @@ function pushInboxNotification(item: Omit<InboxNotification, 'id' | 'createdAt' 
         pageId: item.pageId,
         blockId: item.blockId,
         commentThreadId: item.commentThreadId,
-        actor: item.actor || getCurrentActorUser()?.name || state.users?.[0]?.name || 'Jordan Davis',
+        actor: item.actor || getCurrentActorUser()?.name || state.users?.[0]?.name || 'Raphael',
         targetAccount: item.targetAccount,
         read: isScheduled ? false : !!item.read,
         createdAt: item.createdAt || now,
@@ -1519,39 +1865,55 @@ function syncInboxBadges() {
         dashTasks.hidden = openTasks <= 0;
     }
 }
+function syncActiveUiIconPack() {
+    if (typeof ArchitectIcons === 'undefined') return;
+    const activePack = (state.uiIconPacks || []).find((pk: any) => pk && pk.id === state.activeUiIconPackId) || null;
+    ArchitectIcons.setActiveUiPack?.(activePack);
+}
 function initFeatureRailIcons() {
     if (typeof ArchitectIcons === 'undefined') return;
+    syncActiveUiIconPack();
     const r = ArchitectIcons.RAIL_ICONS;
-    const setBtn = (sel: string, svg: string) => {
+    const uiSlot = (slotId: string, fallback: string) =>
+        ArchitectIcons.resolveUiSlotMarkup ? ArchitectIcons.resolveUiSlotMarkup(slotId, fallback) : fallback;
+    const setBtn = (sel: string, slotId: string, svg: string) => {
         const el = document.querySelector(sel);
         if (!el) return;
-        const inner = el.querySelector('.rail-ico, .obs-tab-ico, .dash-subnav-ico');
-        if (inner) inner.innerHTML = svg;
-        else el.innerHTML = svg;
+        const html = uiSlot(slotId, svg);
+        const inner = el.querySelector('.rail-ico, .obs-tab-ico, .dash-subnav-ico, .ui-ico-slot');
+        if (inner) inner.innerHTML = html;
+        else el.innerHTML = html;
     };
-    setBtn('#feature-rail [data-action="minimize-sidebar"]', r.sidebarToggle);
-    setBtn('#feature-rail [data-app-mode="notion"]', r.notion);
-    setBtn('#feature-rail [data-app-mode="dashboard"]', r.dashboard);
-    setBtn('#feature-rail [data-action="asset-library"]', r.assets);
-    setBtn('#feature-rail [data-action="sync-now"]', r.sync);
-    setBtn('#feature-rail [data-action="trash"]', r.trash);
-    setBtn('#feature-rail [data-action="user-settings"]', r.userSettings);
-    setBtn('.topbar [data-action="toggle-assets-sidebar"]', (r as any).assetSidebar || r.assets);
+    setBtn('#feature-rail [data-action="minimize-sidebar"]', 'rail-sidebar-toggle', r.sidebarToggle);
+    setBtn('#feature-rail [data-app-mode="notion"]', 'rail-docs', r.notion);
+    setBtn('#feature-rail [data-app-mode="dashboard"]', 'rail-dashboard', r.dashboard);
+    setBtn('#feature-rail [data-action="asset-library"]', 'rail-assets', r.assets);
+    setBtn('#feature-rail [data-action="sync-now"]', 'rail-sync', r.sync);
+    setBtn('#feature-rail [data-action="trash"]', 'rail-trash', r.trash);
+    setBtn('#feature-rail [data-action="user-settings"]', 'rail-user-settings', r.userSettings);
+    setBtn('.topbar [data-action="toggle-assets-sidebar"]', 'topbar-assets-sidebar', (r as any).assetSidebar || r.assets);
+    setBtn('.topbar [data-action="history-back"]', 'topbar-back', '←');
+    setBtn('.topbar [data-action="history-forward"]', 'topbar-forward', '→');
+    setBtn('.topbar [data-action="toggle-comments"]', 'topbar-comments', '💬');
+    setBtn('.topbar [data-action="page-options"]', 'topbar-more', '•••');
+    setBtn('#sidebar [data-action="new-page"]', 'sidebar-new-hub', '＋');
+    const collapseFallback = document.body.classList.contains('sidebar-collapsed') ? '›' : '‹';
+    setBtn('#sidebar-collapse-handle', 'sidebar-collapse-handle', collapseFallback);
 
-    setBtn('.obsidian-explorer-tabs [data-app-mode="notion"]', r.assets);
-    setBtn('.obsidian-explorer-tabs [data-action="search"]', r.search);
-    setBtn('.obsidian-explorer-tabs [data-action="graph-view"]', (r as any).graph || r.assets);
-    setBtn('.obsidian-explorer-tabs [data-action="updates"]', r.inbox);
+    setBtn('.obsidian-explorer-tabs [data-app-mode="notion"]', 'explorer-files', r.assets);
+    setBtn('.obsidian-explorer-tabs [data-action="search"]', 'explorer-search', r.search);
+    setBtn('.obsidian-explorer-tabs [data-action="graph-view"]', 'explorer-graph', (r as any).graph || r.assets);
+    setBtn('.obsidian-explorer-tabs [data-action="updates"]', 'explorer-inbox', r.inbox);
 
-    setBtn('#dashboard-subnav [data-dashboard-submode="notifications"]', r.inbox);
-    setBtn('#dashboard-subnav [data-dashboard-submode="chat"]', (r as any).chat || r.inbox);
-    setBtn('#dashboard-subnav [data-dashboard-submode="user"]', r.userDash);
-    setBtn('#dashboard-subnav [data-dashboard-submode="team"]', (r as any).teamOverview || r.userDash);
-    setBtn('#dashboard-subnav [data-dashboard-submode="admin"]', r.adminDash);
-    setBtn('#dashboard-subnav [data-dashboard-submode="time-tracking"]', (r as any).timeTracking || r.calendarTime);
-    setBtn('#dashboard-subnav [data-dashboard-submode="calendar"]', (r as any).calendar || r.calendarTime);
-    setBtn('#dashboard-subnav [data-dashboard-submode="taskboard"]', (r as any).taskboard || r.tasks);
-    setBtn('#dashboard-subnav [data-dashboard-submode="scratchpad"]', r.scratchpad);
+    setBtn('#dashboard-subnav [data-dashboard-submode="notifications"]', 'dash-notifications', r.inbox);
+    setBtn('#dashboard-subnav [data-dashboard-submode="chat"]', 'dash-chat', (r as any).chat || r.inbox);
+    setBtn('#dashboard-subnav [data-dashboard-submode="user"]', 'dash-user', r.userDash);
+    setBtn('#dashboard-subnav [data-dashboard-submode="team"]', 'dash-team', (r as any).teamOverview || r.userDash);
+    setBtn('#dashboard-subnav [data-dashboard-submode="admin"]', 'dash-admin', r.adminDash);
+    setBtn('#dashboard-subnav [data-dashboard-submode="time-tracking"]', 'dash-time-tracking', (r as any).timeTracking || r.calendarTime);
+    setBtn('#dashboard-subnav [data-dashboard-submode="calendar"]', 'dash-calendar', (r as any).calendar || r.calendarTime);
+    setBtn('#dashboard-subnav [data-dashboard-submode="taskboard"]', 'dash-taskboard', (r as any).taskboard || r.tasks);
+    setBtn('#dashboard-subnav [data-dashboard-submode="scratchpad"]', 'dash-scratchpad', r.scratchpad);
 }
 function formatInboxRelative(ts: number): string {
     const delta = Math.max(0, Math.floor((Date.now() - (ts || 0)) / 1000));
@@ -1594,6 +1956,42 @@ function renderDashboardView() {
         default:
             renderUserDashboardView(view);
             break;
+    }
+    // Inject unified Previous / Next page navigation in top right across ALL dashboards
+    ensureDashboardHistoryNav(view);
+}
+function ensureDashboardHistoryNav(view: HTMLElement) {
+    if (!view) return;
+    view.querySelectorAll('.dash-history-nav').forEach(el => el.remove());
+    const navBar = document.createElement('div');
+    navBar.className = 'dash-history-nav';
+    navBar.setAttribute('aria-label', 'Dashboard history navigation');
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'dash-history-btn';
+    backBtn.dataset.dashHistory = 'back';
+    backBtn.title = 'Previous page / view (Alt+←)';
+    backBtn.setAttribute('aria-label', 'Previous page');
+    backBtn.innerHTML = typeof ArchitectIcons !== 'undefined' && ArchitectIcons.resolveUiSlotMarkup ? ArchitectIcons.resolveUiSlotMarkup('dash-history-back', '←') : '←';
+    backBtn.disabled = !canNavigateUnifiedHistory(-1);
+    backBtn.onclick = () => navigateUnifiedHistory(-1);
+
+    const fwdBtn = document.createElement('button');
+    fwdBtn.type = 'button';
+    fwdBtn.className = 'dash-history-btn';
+    fwdBtn.dataset.dashHistory = 'forward';
+    fwdBtn.title = 'Next page / view (Alt+→)';
+    fwdBtn.setAttribute('aria-label', 'Next page');
+    fwdBtn.innerHTML = typeof ArchitectIcons !== 'undefined' && ArchitectIcons.resolveUiSlotMarkup ? ArchitectIcons.resolveUiSlotMarkup('dash-history-forward', '→') : '→';
+    fwdBtn.disabled = !canNavigateUnifiedHistory(1);
+    fwdBtn.onclick = () => navigateUnifiedHistory(1);
+
+    navBar.append(backBtn, fwdBtn);
+    const shell = view.querySelector('.mode-page-shell');
+    if (shell) {
+        shell.prepend(navBar);
+    } else {
+        view.prepend(navBar);
     }
 }
 const TIMEZONE_PRESETS = [
@@ -1680,10 +2078,695 @@ function formatDiscordTimestamp(unixRaw: number, style = 'f', timeZone = getEffe
     return new Intl.DateTimeFormat('en-US', { timeZone, ...(opts[style] || opts.f) }).format(d);
 }
 let userDashClockTimer: any = 0;
+let questTrackerShowCompleted = false;
+let questExpandedSubtaskRows = new Set<string>();
+let teamOverviewMode: 'status'|'department'|'table'|'all' = 'status';
+let teamOverviewSearch = '';
+let teamOverviewFilterStatus = 'all';
+let teamOverviewFilterDept = 'all';
+let teamOverviewFilterProj = 'all';
+
+function userMatchesDbPerson(rawVal: any, u: WorkspaceUser | undefined): boolean {
+    if (!u || rawVal == null || rawVal === '') return false;
+    const arr = Array.isArray(rawVal) ? rawVal : [rawVal];
+    const keys = [u.id, u.name, u.linkedAccount].filter(Boolean).map(s => String(s).trim().toLowerCase());
+    return arr.some(v => keys.includes(String(v || '').trim().toLowerCase()));
+}
+
+function parseQuestIsoMs(rawDate: any): { startMs: number | null; endMs: number | null; startStr: string; endStr: string } {
+    if (!rawDate) return { startMs: null, endMs: null, startStr: '', endStr: '' };
+    const startStr = typeof rawDate === 'string' ? rawDate : String(rawDate.start || '');
+    const endStr = typeof rawDate === 'object' ? String(rawDate.end || '') : '';
+    const toLocalMs = (s: string): number | null => {
+        const m = String(s || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) {
+            const parsed = Date.parse(s);
+            return Number.isNaN(parsed) ? null : parsed;
+        }
+        return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+    };
+    const startMs = startStr ? toLocalMs(startStr) : null;
+    const endMs = endStr ? toLocalMs(endStr) : null;
+    return { startMs, endMs, startStr, endStr };
+}
+
+type QuestTrackerEntry = {
+    row: any;
+    bucket: 'actual' | 'check';
+    checkReason: string;
+    issueKey: string;
+    priority: string;
+    priorityColor: string;
+    phase: string;
+    phaseColor: string;
+    health: string;
+    healthColor: string;
+    scope: string;
+    projects: string[];
+    departments: string[];
+    startMs: number | null;
+    endMs: number | null;
+    startStr: string;
+    endStr: string;
+    targetMs: number | null;
+    urgencyLabel: string;
+    urgencyTone: 'overdue' | 'today' | 'soon' | 'scheduled' | 'unscheduled' | 'done';
+    importanceScore: number;
+    rank: number;
+    isDone: boolean;
+    responsibleIds: string[];
+    accountableIds: string[];
+    consultedIds: string[];
+    subtasks: any[];
+    parentId: string;
+};
+
+function getQuestTrackerForUser(qb: any, targetUser: WorkspaceUser | undefined, includeCompleted = true): { actual: QuestTrackerEntry[]; check: QuestTrackerEntry[]; allRanked: QuestTrackerEntry[]; counts: { actualOpen: number; checkOpen: number; done: number } } {
+    if (!qb || !targetUser || typeof ArchitectDatabase === 'undefined') {
+        return { actual: [], check: [], allRanked: [], counts: { actualOpen: 0, checkOpen: 0, done: 0 } };
+    }
+    const db = ArchitectDatabase.ensureDatabaseConfig(qb);
+    const findProp = (pred: (s: any) => boolean) => db.schema.find(pred);
+    const keyProp = findProp((s: any) => s.type === 'unique_id');
+    const prioProp = findProp((s: any) => /priority/i.test(s.name || ''));
+    const timeProp = findProp((s: any) => /timeframe|date|deadline/i.test(s.name || '') && s.type === 'date') || findProp((s: any) => s.type === 'date');
+    const phaseProp = findProp((s: any) => s.type === 'status') || findProp((s: any) => /phase|status/i.test(s.name || ''));
+    const respProp = findProp((s: any) => s.type === 'person' && /responsible|assignee|owner/i.test(s.name || '')) || findProp((s: any) => s.type === 'person');
+    const acctProp = findProp((s: any) => s.type === 'person' && /accountable/i.test(s.name || ''));
+    const consProp = findProp((s: any) => s.type === 'person' && /consulted|review/i.test(s.name || ''));
+    const scopeProp = findProp((s: any) => /scope|kind/i.test(s.name || ''));
+    const projProp = findProp((s: any) => /^project/i.test(s.name || ''));
+    const deptProp = findProp((s: any) => /^department/i.test(s.name || ''));
+    const healthProp = findProp((s: any) => /^health/i.test(s.name || ''));
+    const parentProp = db.parentPropertyId ? db.schema.find((s: any) => s.id === db.parentPropertyId) : db.schema.find((s: any) => s.type === 'relation' && /parent/i.test(s.name || ''));
+
+    const rows = ArchitectDatabase.getDatabaseRows(qb.id) || [];
+    const now = new Date();
+    const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const DAY_MS = 86400000;
+
+    const prioWeights: Record<string, number> = { 'super high': 400, 'high': 300, 'medium': 200, 'low': 100 };
+    const matchedIds = new Set<string>();
+    const rawEntries: QuestTrackerEntry[] = [];
+
+    rows.forEach((r: any) => {
+        const respRaw = respProp ? ArchitectDatabase.getRawValue(respProp, r, qb) : [];
+        const acctRaw = acctProp ? ArchitectDatabase.getRawValue(acctProp, r, qb) : [];
+        const consRaw = consProp ? ArchitectDatabase.getRawValue(consProp, r, qb) : [];
+        const isResp = userMatchesDbPerson(respRaw, targetUser);
+        const isAcct = userMatchesDbPerson(acctRaw, targetUser);
+        const isCons = userMatchesDbPerson(consRaw, targetUser);
+        if (!isResp && !isAcct && !isCons) return;
+
+        const scopeOpt = scopeProp ? ArchitectDatabase.resolveOption(scopeProp, ArchitectDatabase.getRawValue(scopeProp, r, qb)) : null;
+        const scope = scopeOpt?.name || (scopeProp ? String(ArchitectDatabase.getRawValue(scopeProp, r, qb) || '') : '');
+        const isExplicitCheckin = /check|review/i.test(scope);
+        const bucket: 'actual' | 'check' = isExplicitCheckin ? 'check' : (isResp ? 'actual' : 'check');
+        const checkReasons: string[] = [];
+        if (isExplicitCheckin) checkReasons.push('Check-in');
+        if (isAcct) checkReasons.push('Accountable');
+        if (isCons) checkReasons.push('Consulted');
+        const checkReason = checkReasons.join(' · ') || 'Check-in';
+
+        const prioOpt = prioProp ? ArchitectDatabase.resolveOption(prioProp, ArchitectDatabase.getRawValue(prioProp, r, qb)) : null;
+        const prioName = prioOpt?.name || (prioProp ? String(ArchitectDatabase.getRawValue(prioProp, r, qb) || '') : '');
+        const phaseOpt = phaseProp ? ArchitectDatabase.resolveOption(phaseProp, ArchitectDatabase.getRawValue(phaseProp, r, qb)) : null;
+        const phaseName = phaseOpt?.name || (phaseProp ? String(ArchitectDatabase.getRawValue(phaseProp, r, qb) || '') : '');
+        const healthOpt = healthProp ? ArchitectDatabase.resolveOption(healthProp, ArchitectDatabase.getRawValue(healthProp, r, qb)) : null;
+        const healthName = healthOpt?.name || (healthProp ? String(ArchitectDatabase.getRawValue(healthProp, r, qb) || '') : '');
+        const isDone = ArchitectDatabase.isRowComplete(r, qb);
+
+        const timeRaw = timeProp ? ArchitectDatabase.getRawValue(timeProp, r, qb) : null;
+        const { startMs, endMs, startStr, endStr } = parseQuestIsoMs(timeRaw);
+        const targetMs = endMs ?? startMs;
+        let urgencyWeight = 0;
+        let urgencyLabel = 'No date';
+        let urgencyTone: QuestTrackerEntry['urgencyTone'] = isDone ? 'done' : 'unscheduled';
+
+        if (isDone) {
+            urgencyLabel = phaseName || 'Done';
+            urgencyTone = 'done';
+        } else if (targetMs !== null) {
+            const diffDays = Math.round((targetMs - todayMs) / DAY_MS);
+            if (diffDays < 0) {
+                urgencyWeight = 280 + Math.min(60, Math.abs(diffDays) * 5);
+                urgencyLabel = `Overdue ${Math.abs(diffDays)}d`;
+                urgencyTone = 'overdue';
+            } else if (diffDays === 0) {
+                urgencyWeight = 240;
+                urgencyLabel = 'Due today';
+                urgencyTone = 'today';
+            } else if (diffDays <= 3) {
+                urgencyWeight = 200 - diffDays * 10;
+                urgencyLabel = `Due in ${diffDays}d`;
+                urgencyTone = 'soon';
+            } else if (diffDays <= 7) {
+                urgencyWeight = 150 - diffDays * 5;
+                urgencyLabel = `Due in ${diffDays}d`;
+                urgencyTone = 'soon';
+            } else {
+                urgencyWeight = Math.max(10, 120 - diffDays);
+                urgencyLabel = `In ${diffDays}d`;
+                urgencyTone = 'scheduled';
+            }
+        }
+
+        const pW = prioWeights[prioName.toLowerCase()] ?? 120;
+        const hW = /delay/i.test(healthName) ? 45 : /risk/i.test(healthName) ? 30 : /unclear/i.test(healthName) ? 15 : 0;
+        const phaseW = /in progress/i.test(phaseName) ? 15 : /hold/i.test(phaseName) ? -10 : 0;
+        const importanceScore = isDone ? -1000 : (pW + urgencyWeight + hW + phaseW);
+
+        const rawProjs = projProp ? ArchitectDatabase.getRawValue(projProp, r, qb) : [];
+        const projects = (Array.isArray(rawProjs) ? rawProjs : []).map(v => ArchitectDatabase.resolveOption(projProp, v)?.name || String(v)).filter(Boolean);
+        const rawDepts = deptProp ? ArchitectDatabase.getRawValue(deptProp, r, qb) : [];
+        const departments = (Array.isArray(rawDepts) ? rawDepts : []).map(v => ArchitectDatabase.resolveOption(deptProp, v)?.name || String(v)).filter(Boolean);
+
+        const parentArr = parentProp && Array.isArray(r.propertyValues?.[parentProp.id]) ? r.propertyValues[parentProp.id] : [];
+        const parentId = parentArr[0] || '';
+        const toIds = (v: any) => Array.isArray(v) ? v.map(String) : (v ? [String(v)] : []);
+
+        matchedIds.add(r.id);
+        rawEntries.push({
+            row: r,
+            bucket,
+            checkReason,
+            issueKey: keyProp ? String(r.propertyValues?.[keyProp.id] || '') : '',
+            priority: prioName,
+            priorityColor: prioOpt?.color || 'default',
+            phase: phaseName,
+            phaseColor: phaseOpt?.color || 'default',
+            health: healthName,
+            healthColor: healthOpt?.color || 'default',
+            scope,
+            projects,
+            departments,
+            startMs,
+            endMs,
+            startStr,
+            endStr,
+            targetMs,
+            urgencyLabel,
+            urgencyTone,
+            importanceScore,
+            rank: 0,
+            isDone,
+            responsibleIds: toIds(respRaw),
+            accountableIds: toIds(acctRaw),
+            consultedIds: toIds(consRaw),
+            subtasks: ArchitectDatabase.getSubtasksForRow(r, qb),
+            parentId
+        });
+    });
+
+    // Nest child subtasks inside their matched parent card instead of duplicating top-level queue clutter
+    const entryById = new Map(rawEntries.map(e => [e.row.id, e]));
+    const topLevelEntries = rawEntries.filter(e => !e.parentId || !entryById.has(e.parentId) || entryById.get(e.parentId)!.bucket !== e.bucket);
+
+    const sortByImportance = (a: QuestTrackerEntry, b: QuestTrackerEntry) => {
+        if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
+        if (b.importanceScore !== a.importanceScore) return b.importanceScore - a.importanceScore;
+        const aDate = a.targetMs ?? Number.MAX_SAFE_INTEGER;
+        const bDate = b.targetMs ?? Number.MAX_SAFE_INTEGER;
+        if (aDate !== bDate) return aDate - bDate;
+        return (a.row.createdAt || 0) - (b.row.createdAt || 0);
+    };
+
+    const allSorted = topLevelEntries.slice().sort(sortByImportance);
+    allSorted.forEach((e, i) => { e.rank = i + 1; });
+
+    const counts = {
+        actualOpen: allSorted.filter(e => e.bucket === 'actual' && !e.isDone).length,
+        checkOpen: allSorted.filter(e => e.bucket === 'check' && !e.isDone).length,
+        done: allSorted.filter(e => e.isDone).length
+    };
+
+    const filtered = includeCompleted ? allSorted : allSorted.filter(e => !e.isDone);
+    return {
+        actual: filtered.filter(e => e.bucket === 'actual'),
+        check: filtered.filter(e => e.bucket === 'check'),
+        allRanked: filtered,
+        counts
+    };
+}
+
+function renderTeamMemberProfileStrip(targetUser: WorkspaceUser, onSaved: () => void): HTMLElement {
+    const box = document.createElement('section');
+    box.className = 'team-member-profile-strip';
+    const statusOpt = TEAM_STATUS_OPTIONS.find(s => s.label === (targetUser.memberStatus || 'On Project')) || TEAM_STATUS_OPTIONS[0];
+    const rolesText = (targetUser.specialtyRoles || []).join(', ') || 'General contributor';
+    const deptText = (targetUser.departments || []).join(', ') || 'Unassigned';
+    const projText = (targetUser.currentProjects || []).join(', ') || 'None specified';
+
+    const details = document.createElement('div');
+    details.className = 'team-profile-strip-grid';
+    details.innerHTML = `
+      <div class="team-profile-kv"><span>Status</span><span class="team-status-pill" style="background:${statusOpt.bg};color:${statusOpt.color}">${esc(statusOpt.label)}</span></div>
+      <div class="team-profile-kv"><span>Country</span><strong>${esc(targetUser.country || '—')}</strong></div>
+      <div class="team-profile-kv"><span>Email</span><strong>${esc(targetUser.email || '—')}</strong></div>
+      <div class="team-profile-kv"><span>Portfolio</span>${targetUser.portfolioUrl ? `<a class="team-portfolio-link" href="${esc(targetUser.portfolioUrl)}" target="_blank" rel="noopener noreferrer">${esc(targetUser.portfolioUrl)}</a>` : '<strong>—</strong>'}</div>
+      <div class="team-profile-kv"><span>Department</span><strong>${esc(deptText)}</strong></div>
+      <div class="team-profile-kv"><span>Current Proj</span><strong>${esc(projText)}</strong></div>
+      <div class="team-profile-kv"><span>Roles</span><strong>${esc(rolesText)}</strong></div>
+      <div class="team-profile-kv"><span>Availability / Absence</span><strong>${esc(targetUser.availabilityNotes || '—')}</strong></div>
+    `;
+    const actions = document.createElement('div');
+    actions.className = 'team-profile-strip-actions';
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'secondary-button';
+    editBtn.textContent = '✎ Edit Team Profile';
+    editBtn.onclick = () => openTeamMemberProfileModal(targetUser.id, onSaved);
+    actions.append(editBtn);
+
+    box.append(details, actions);
+    return box;
+}
+
+function renderPersonalQuestTrackerSection(targetUser: WorkspaceUser | undefined, onRefresh: () => void): HTMLElement {
+    const sec = document.createElement('section');
+    sec.className = 'quest-tracker-section';
+    const qb = typeof ArchitectDatabase !== 'undefined' ? ArchitectDatabase.ensureOfficialQuestboardPage() : null;
+    if (!qb || !targetUser) return sec;
+
+    const db = ArchitectDatabase.ensureDatabaseConfig(qb);
+    const ro = effectivePageReadOnly(qb) || !!db.locked;
+    const { actual, check, allRanked, counts } = getQuestTrackerForUser(qb, targetUser, questTrackerShowCompleted);
+    const phaseProp = db.schema.find((s: any) => s.type === 'status') || db.schema.find((s: any) => /phase|status/i.test(s.name || ''));
+    const prioProp = db.schema.find((s: any) => /priority/i.test(s.name || ''));
+    const timeProp = db.schema.find((s: any) => s.type === 'date');
+    const respProp = db.schema.find((s: any) => s.type === 'person' && /responsible/i.test(s.name || '')) || db.schema.find((s: any) => s.type === 'person');
+    const consProp = db.schema.find((s: any) => s.type === 'person' && /consulted/i.test(s.name || ''));
+    const scopeProp = db.schema.find((s: any) => /scope/i.test(s.name || ''));
+
+    // Header
+    const head = document.createElement('div');
+    head.className = 'quest-tracker-header';
+    head.innerHTML = `
+      <div>
+        <div class="quest-tracker-kicker-row">
+          <span class="quest-tracker-kicker">PERSONAL TASK TRACKER</span>
+          <span class="quest-board-ref-pill">⚔️ Linked to ${esc(qb.title || 'Master Questboard | OS')}</span>
+        </div>
+        <h2>${esc(targetUser.name)}'s Priority &amp; Timeline Queue</h2>
+        <p>${counts.actualOpen} actual tasks · ${counts.checkOpen} check-ins / reviews · ${counts.done} completed · Ranked by priority, deadline urgency &amp; health</p>
+      </div>`;
+
+    const headBtns = document.createElement('div');
+    headBtns.className = 'quest-tracker-actions';
+
+    const doneToggle = document.createElement('button');
+    doneToggle.type = 'button';
+    doneToggle.className = `secondary-button${questTrackerShowCompleted ? ' is-active' : ''}`;
+    doneToggle.textContent = questTrackerShowCompleted ? 'Hide completed' : `Show completed (${counts.done})`;
+    doneToggle.onclick = () => { questTrackerShowCompleted = !questTrackerShowCompleted; onRefresh(); };
+
+    const openTaskboardBtn = document.createElement('button');
+    openTaskboardBtn.type = 'button';
+    openTaskboardBtn.className = 'secondary-button';
+    openTaskboardBtn.textContent = '⊞ Taskboard Hub';
+    openTaskboardBtn.onclick = () => setDashboardSubMode('taskboard');
+
+    const openDbBtn = document.createElement('button');
+    openDbBtn.type = 'button';
+    openDbBtn.className = 'secondary-button';
+    openDbBtn.textContent = `↗ Open ${qb.title || 'Questboard'}`;
+    openDbBtn.onclick = () => navigateToPage(qb.id);
+
+    headBtns.append(doneToggle, openTaskboardBtn, openDbBtn);
+    head.append(headBtns);
+    sec.append(head);
+
+    // Quick Add Bar (Actual task OR Check-in)
+    if (!ro) {
+        const quickForm = document.createElement('form');
+        quickForm.className = 'quest-quick-add-bar';
+        const titleInp = document.createElement('input');
+        titleInp.type = 'text';
+        titleInp.className = 'quest-quick-input';
+        titleInp.placeholder = `＋ Add quest or check-in for ${targetUser.name}…`;
+        const bucketSel = document.createElement('select');
+        bucketSel.className = 'quest-quick-select';
+        bucketSel.innerHTML = `<option value="actual">Actual Task (Responsible)</option><option value="check">Check On (Review / Consulted)</option>`;
+        const prioSel = document.createElement('select');
+        prioSel.className = 'quest-quick-select';
+        (prioProp?.options || []).forEach((o: any) => {
+            const opt = document.createElement('option');
+            opt.value = o.id;
+            opt.textContent = o.name;
+            if (/high/i.test(o.name) && !/super/i.test(o.name)) opt.selected = true;
+            prioSel.append(opt);
+        });
+        const dueInp = document.createElement('input');
+        dueInp.type = 'date';
+        dueInp.className = 'quest-quick-date';
+        const defDue = new Date(); defDue.setDate(defDue.getDate() + 3);
+        dueInp.value = defDue.toISOString().slice(0, 10);
+        const submitBtn = document.createElement('button');
+        submitBtn.type = 'submit';
+        submitBtn.className = 'share-button';
+        submitBtn.textContent = '＋ Add Quest';
+
+        quickForm.onsubmit = ev => {
+            ev.preventDefault();
+            const txt = titleInp.value.trim();
+            if (!txt) { titleInp.focus(); return; }
+            const props: Record<string, any> = {};
+            const todayStr = new Date().toISOString().slice(0, 10);
+            if (prioProp && prioSel.value) props[prioProp.id] = prioSel.value;
+            if (timeProp) props[timeProp.id] = { start: todayStr, end: dueInp.value || todayStr };
+            if (phaseProp?.options?.length) {
+                const activeOpt = phaseProp.options.find((o: any) => /in progress/i.test(o.name)) || phaseProp.options[0];
+                if (activeOpt) props[phaseProp.id] = activeOpt.id;
+            }
+            if (bucketSel.value === 'check') {
+                const checkOpt = scopeProp?.options?.find((o: any) => /check/i.test(o.name));
+                if (scopeProp && checkOpt) props[scopeProp.id] = checkOpt.id;
+                if (consProp) props[consProp.id] = [targetUser.id];
+            } else {
+                const taskOpt = scopeProp?.options?.find((o: any) => /project|task/i.test(o.name));
+                if (scopeProp && taskOpt) props[scopeProp.id] = taskOpt.id;
+                if (respProp) props[respProp.id] = [targetUser.id];
+            }
+            const created = ArchitectDatabase.createDatabaseRow(qb, props, [], '📌');
+            created.title = txt;
+            save();
+            onRefresh();
+        };
+        quickForm.append(titleInp, bucketSel, prioSel, dueInp, submitBtn);
+        sec.append(quickForm);
+    }
+
+    // Importance Timeline Chart (ordered #1 -> #N by Importance Score across dates!)
+    const timelineCard = document.createElement('div');
+    timelineCard.className = 'quest-timeline-card';
+    const nowD = new Date();
+    const todayMidnight = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime();
+    const DAY_MS = 86400000;
+    let minMs = todayMidnight - 5 * DAY_MS;
+    let maxMs = todayMidnight + 14 * DAY_MS;
+    allRanked.forEach(item => {
+        if (item.startMs !== null) minMs = Math.min(minMs, item.startMs - DAY_MS);
+        if (item.endMs !== null) maxMs = Math.max(maxMs, item.endMs + 2 * DAY_MS);
+        else if (item.startMs !== null) maxMs = Math.max(maxMs, item.startMs + 2 * DAY_MS);
+    });
+    minMs = Math.max(minMs, todayMidnight - 35 * DAY_MS);
+    maxMs = Math.min(Math.max(maxMs, minMs + 10 * DAY_MS), todayMidnight + 45 * DAY_MS);
+    const totalSpan = Math.max(DAY_MS, maxMs - minMs);
+    const todayPct = Math.max(0, Math.min(100, ((todayMidnight - minMs) / totalSpan) * 100));
+    const fmtShort = (ms: number) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+    const tlHead = document.createElement('div');
+    tlHead.className = 'quest-timeline-head';
+    tlHead.innerHTML = `
+      <div class="quest-tl-head-left">
+        <strong>Importance Timeline</strong>
+        <span>Top = highest urgency &amp; priority</span>
+      </div>
+      <div class="quest-tl-scale">
+        <span>${esc(fmtShort(minMs))}</span>
+        <span class="quest-tl-today-lbl" style="left:${todayPct.toFixed(2)}%">Today</span>
+        <span>${esc(fmtShort(maxMs))}</span>
+      </div>`;
+    timelineCard.append(tlHead);
+
+    if (!allRanked.length) {
+        const emptyTl = document.createElement('p');
+        emptyTl.className = 'dash-muted';
+        emptyTl.style.margin = '8px 0 0';
+        emptyTl.textContent = 'No quests matching this filter on the Official Taskboard.';
+        timelineCard.append(emptyTl);
+    } else {
+        const tlBody = document.createElement('div');
+        tlBody.className = 'quest-timeline-rows';
+        allRanked.forEach(item => {
+            const tr = document.createElement('div');
+            tr.className = `quest-tl-row${item.isDone ? ' is-done' : ''}`;
+            tr.dataset.questRowId = item.row.id;
+
+            const left = document.createElement('button');
+            left.type = 'button';
+            left.className = 'quest-tl-label';
+            left.innerHTML = `
+              <span class="quest-rank-num">#${item.rank}</span>
+              <span class="quest-split-badge is-${item.bucket}">${item.bucket === 'actual' ? 'TASK' : 'CHECK'}</span>
+              ${item.issueKey ? `<code class="db-issue-key-chip">${esc(item.issueKey)}</code>` : ''}
+              <span class="quest-tl-title">${esc(item.row.title || 'Untitled')}</span>
+              <span class="quest-tl-urgency tone-${item.urgencyTone}">${esc(item.urgencyLabel)}</span>`;
+            left.onclick = () => ArchitectDatabase.openDatabaseRow(item.row, qb, allRanked.map(x => x.row.id));
+
+            const track = document.createElement('div');
+            track.className = 'quest-tl-track';
+            const todayLine = document.createElement('div');
+            todayLine.className = 'quest-tl-today-line';
+            todayLine.style.left = `${todayPct.toFixed(2)}%`;
+            track.append(todayLine);
+
+            if (item.startMs !== null || item.endMs !== null) {
+                const sMs = Math.max(minMs, item.startMs ?? (item.endMs! - DAY_MS));
+                const eMs = Math.min(maxMs, Math.max(sMs + DAY_MS, (item.endMs ?? item.startMs!) + DAY_MS));
+                const leftPct = Math.max(0, Math.min(89, ((sMs - minMs) / totalSpan) * 100));
+                const widthPct = Math.max(11, Math.min(100 - leftPct, ((eMs - sMs) / totalSpan) * 100));
+                const bar = document.createElement('button');
+                bar.type = 'button';
+                bar.className = `quest-tl-bar tone-${item.urgencyTone}`;
+                bar.style.left = `${leftPct.toFixed(2)}%`;
+                bar.style.width = `${widthPct.toFixed(2)}%`;
+                bar.innerHTML = `<span class="quest-tl-bar-txt">${esc(item.priority || item.scope || 'Quest')}</span>`;
+                bar.title = `${item.row.title} · ${item.urgencyLabel} (${item.startStr}${item.endStr ? ` -> ${item.endStr}` : ''})`;
+                bar.onclick = () => ArchitectDatabase.openDatabaseRow(item.row, qb, allRanked.map(x => x.row.id));
+                track.append(bar);
+            } else if (!ro && timeProp) {
+                const sched = document.createElement('button');
+                sched.type = 'button';
+                sched.className = 'quest-tl-schedule-btn';
+                sched.textContent = '+ Schedule on timeline';
+                sched.onclick = () => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    const d2 = new Date(); d2.setDate(d2.getDate() + 3);
+                    ArchitectDatabase.setRowValue(item.row, timeProp, { start: todayStr, end: d2.toISOString().slice(0, 10) }, qb, true);
+                    save();
+                    onRefresh();
+                };
+                track.append(sched);
+            }
+            tr.append(left, track);
+            tlBody.append(tr);
+        });
+        timelineCard.append(tlBody);
+    }
+    sec.append(timelineCard);
+
+    // Card Builder for Actual Tasks & Things to Check On
+    const renderQuestCard = (entry: QuestTrackerEntry) => {
+        const card = document.createElement('article');
+        card.className = `quest-item-card is-${entry.bucket}${entry.isDone ? ' is-done' : ''}`;
+        card.dataset.questRowId = entry.row.id;
+
+        const topRow = document.createElement('div');
+        topRow.className = 'quest-card-top';
+        const badges = document.createElement('div');
+        badges.className = 'quest-card-badges';
+        badges.innerHTML = `
+          <span class="quest-rank-num">#${entry.rank}</span>
+          ${entry.issueKey ? `<code class="db-issue-key-chip">${esc(entry.issueKey)}</code>` : ''}
+          ${entry.priority ? `<span class="quest-badge prio-${esc(entry.priority.toLowerCase().replace(/\s+/g, '-'))}">${esc(entry.priority)}</span>` : ''}
+          ${entry.health ? `<span class="quest-badge health-${esc(entry.health.toLowerCase().replace(/\s+/g, '-'))}">${esc(entry.health)}</span>` : ''}
+          <span class="quest-badge tone-${entry.urgencyTone}">${esc(entry.urgencyLabel)}</span>
+          ${entry.bucket === 'check' ? `<span class="quest-badge is-raci">${esc(entry.checkReason)}</span>` : ''}`;
+
+        const controls = document.createElement('div');
+        controls.className = 'quest-card-controls';
+        if (phaseProp?.options?.length && !ro) {
+            const pSel = document.createElement('select');
+            pSel.className = 'quest-phase-select';
+            pSel.setAttribute('aria-label', `Phase for ${entry.row.title || 'Quest'}`);
+            phaseProp.options.forEach((o: any) => {
+                const opt = document.createElement('option');
+                opt.value = o.id;
+                opt.textContent = o.name;
+                if (o.name === entry.phase) opt.selected = true;
+                pSel.append(opt);
+            });
+            pSel.onclick = ev => ev.stopPropagation();
+            pSel.onchange = () => {
+                ArchitectDatabase.setRowValue(entry.row, phaseProp, pSel.value, qb, true);
+                save();
+                onRefresh();
+            };
+            controls.append(pSel);
+        }
+        const peekBtn = document.createElement('button');
+        peekBtn.type = 'button';
+        peekBtn.className = 'quest-peek-btn';
+        peekBtn.textContent = 'Open';
+        peekBtn.onclick = () => ArchitectDatabase.openDatabaseRow(entry.row, qb, allRanked.map(x => x.row.id));
+        controls.append(peekBtn);
+        topRow.append(badges, controls);
+
+        const titleBtn = document.createElement('button');
+        titleBtn.type = 'button';
+        titleBtn.className = 'quest-card-title-btn';
+        titleBtn.innerHTML = `${pageIconMarkup(entry.row.icon || '📌')}<span>${esc(entry.row.title || 'Untitled quest')}</span>`;
+        titleBtn.onclick = () => ArchitectDatabase.openDatabaseRow(entry.row, qb, allRanked.map(x => x.row.id));
+
+        const metaRow = document.createElement('div');
+        metaRow.className = 'quest-card-meta';
+        if (entry.startStr || entry.endStr) {
+            const dSpan = document.createElement('span');
+            dSpan.className = 'quest-meta-item';
+            dSpan.textContent = `📅 ${entry.startStr}${entry.endStr ? ` → ${entry.endStr}` : ''}`;
+            metaRow.append(dSpan);
+        }
+        entry.projects.forEach(pr => {
+            const pPill = document.createElement('span');
+            pPill.className = 'quest-tag-pill is-proj';
+            pPill.textContent = pr;
+            metaRow.append(pPill);
+        });
+        entry.departments.forEach(dp => {
+            const dPill = document.createElement('span');
+            dPill.className = 'quest-tag-pill is-dept';
+            dPill.textContent = dp;
+            metaRow.append(dPill);
+        });
+
+        // For "Things to Check On", highlight who is actually Responsible so the user knows who to check in with!
+        if (entry.bucket === 'check' && entry.responsibleIds.length) {
+            const respWrap = document.createElement('div');
+            respWrap.className = 'quest-check-owners';
+            respWrap.innerHTML = '<span class="quest-check-owners-lbl">Checking in on:</span>';
+            entry.responsibleIds.forEach(rid => {
+                const owner = findWorkspaceUser(rid);
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'quest-owner-chip';
+                chip.innerHTML = `<span class="quest-owner-av">${esc(commentUserInitials(owner?.name || rid))}</span><span>${esc(owner?.name || rid)}</span>`;
+                chip.onclick = () => openUserDashboard(owner?.id || rid);
+                respWrap.append(chip);
+            });
+            card.append(topRow, titleBtn, respWrap, metaRow);
+        } else {
+            card.append(topRow, titleBtn, metaRow);
+        }
+
+        // Inline Jira-ready Subtasks drawer directly on Quest card
+        const subCount = entry.subtasks.length;
+        const subDone = entry.subtasks.filter((st: any) => ArchitectDatabase.isRowComplete(st, qb)).length;
+        const isOpen = subCount > 0 || questExpandedSubtaskRows.has(entry.row.id);
+
+        const subWrap = document.createElement('div');
+        subWrap.className = 'quest-subtasks-wrap';
+        const subHead = document.createElement('div');
+        subHead.className = 'quest-subtasks-head';
+        const togBtn = document.createElement('button');
+        togBtn.type = 'button';
+        togBtn.className = 'quest-subtasks-toggle';
+        togBtn.textContent = subCount ? `↳ Subtasks (${subDone}/${subCount})` : '↳ + Subtasks';
+        togBtn.onclick = () => {
+            if (questExpandedSubtaskRows.has(entry.row.id)) questExpandedSubtaskRows.delete(entry.row.id);
+            else questExpandedSubtaskRows.add(entry.row.id);
+            onRefresh();
+        };
+        subHead.append(togBtn);
+        subWrap.append(subHead);
+
+        if (isOpen) {
+            const subList = document.createElement('div');
+            subList.className = 'quest-subtasks-list';
+            entry.subtasks.forEach((st: any) => {
+                const stRow = document.createElement('div');
+                const stDone = ArchitectDatabase.isRowComplete(st, qb);
+                stRow.className = `quest-subtask-item${stDone ? ' is-done' : ''}`;
+                const chk = document.createElement('input');
+                chk.type = 'checkbox';
+                chk.checked = stDone;
+                chk.disabled = ro;
+                chk.onchange = () => {
+                    ArchitectDatabase.toggleRowComplete(st, qb, chk.checked);
+                    save();
+                    onRefresh();
+                };
+                const stBtn = document.createElement('button');
+                stBtn.type = 'button';
+                stBtn.className = 'quest-subtask-title';
+                const keyP = db.schema.find((s: any) => s.type === 'unique_id');
+                const stKey = keyP ? String(st.propertyValues?.[keyP.id] || '') : '';
+                stBtn.innerHTML = `${stKey ? `<code class="db-issue-key-chip">${esc(stKey)}</code>` : ''}<span>${esc(st.title || 'Untitled subtask')}</span>`;
+                stBtn.onclick = () => ArchitectDatabase.openDatabaseRow(st, qb);
+                stRow.append(chk, stBtn);
+                subList.append(stRow);
+            });
+            if (!ro) {
+                const subAdd = document.createElement('form');
+                subAdd.className = 'quest-subtask-add-form';
+                const sInp = document.createElement('input');
+                sInp.type = 'text';
+                sInp.className = 'quest-subtask-add-input';
+                sInp.placeholder = 'Add subtask…';
+                const sBtn = document.createElement('button');
+                sBtn.type = 'submit';
+                sBtn.className = 'quest-subtask-add-btn';
+                sBtn.textContent = '＋';
+                subAdd.onsubmit = ev => {
+                    ev.preventDefault();
+                    const v = sInp.value.trim();
+                    if (!v) return;
+                    questExpandedSubtaskRows.add(entry.row.id);
+                    ArchitectDatabase.createSubtaskForRow(entry.row, qb, v, respProp ? { [respProp.id]: [targetUser.id] } : {});
+                    save();
+                    onRefresh();
+                };
+                subAdd.append(sInp, sBtn);
+                subList.append(subAdd);
+            }
+            subWrap.append(subList);
+        }
+        card.append(subWrap);
+        return card;
+    };
+
+    // Split Grid: Actual Tasks (left) vs Things to Check On (right)
+    const splitGrid = document.createElement('div');
+    splitGrid.className = 'quest-split-grid';
+
+    const makeBucketPanel = (kind: 'actual' | 'check', title: string, desc: string, items: QuestTrackerEntry[]) => {
+        const panel = document.createElement('div');
+        panel.className = `quest-bucket-panel is-${kind}`;
+        panel.dataset.questBucket = kind;
+        const pHead = document.createElement('div');
+        pHead.className = 'quest-bucket-head';
+        pHead.innerHTML = `<div><h3>${esc(title)} <span class="quest-bucket-count">${items.length}</span></h3><small>${esc(desc)}</small></div>`;
+        panel.append(pHead);
+        const list = document.createElement('div');
+        list.className = 'quest-bucket-list';
+        if (!items.length) {
+            const empty = document.createElement('div');
+            empty.className = 'quest-bucket-empty';
+            empty.textContent = kind === 'actual'
+                ? 'No active tasks assigned directly to Responsible.'
+                : 'No check-ins or Consulted/Accountable items waiting.';
+            list.append(empty);
+        } else {
+            items.forEach(item => list.append(renderQuestCard(item)));
+        }
+        panel.append(list);
+        return panel;
+    };
+
+    splitGrid.append(
+        makeBucketPanel('actual', 'Actual Tasks', 'Projects & deliverables where you are Responsible', actual),
+        makeBucketPanel('check', 'Things to Check On', 'Teammates & reviews where you are Consulted, Accountable, or checking in', check)
+    );
+    sec.append(splitGrid);
+    return sec;
+}
+
 function renderUserDashboardView(view: HTMLElement) {
     clearInterval(userDashClockTimer);
-    const pages = state.pages.filter(pg => !pg.databaseId && resolvePagePermissions(pg).view);
+    view.replaceChildren();
+    const pages = state.pages.filter(pg => isVisibleDocsPage(pg, true));
     const boards = pages.filter(pg => pg.pageKind === 'board');
+    const forms = pages.filter(pg => pg.pageKind === 'form');
     const dbs = pages.filter(pg => pg.pageKind === 'database');
     const assets = readAssets();
     const unread = getUnreadInboxCount();
@@ -1704,7 +2787,17 @@ function renderUserDashboardView(view: HTMLElement) {
     const heroCopy = document.createElement('div');
 
     if (isSelf) {
-        heroCopy.innerHTML = `<span class="mode-kicker">MY DASHBOARD</span><h1>Welcome back, ${esc(me)}</h1><p>${esc(state.workspaceName || 'Architect Studio')} · ${pages.length} docs · ${boards.length} boards · ${dbs.length} databases · ${assets.length} assets</p>`;
+        const myPresence = getUserPresence(displayUser);
+        const myPMeta = getUserPresenceMeta(myPresence);
+        heroCopy.innerHTML = `<span class="mode-kicker">MY DASHBOARD</span><div class="user-dash-identity-head"><span class="team-member-avatar user-dash-hero-av">${esc(commentUserInitials(me))}<span class="user-presence-dot is-${myPMeta.key}" title="${esc(myPMeta.label)}"></span></span><div><h1>Welcome back, ${esc(me)}</h1><div class="user-dash-meta-row"><select id="user-self-presence-select" class="user-presence-select is-${myPMeta.key}" aria-label="Online status"><option value="online"${myPresence === 'online' ? ' selected' : ''}>🟢 Online</option><option value="unavailable"${myPresence === 'unavailable' ? ' selected' : ''}>🟠 Unavailable (Meeting / Standby)</option><option value="offline"${myPresence === 'offline' ? ' selected' : ''}>⚪ Offline</option></select><span>${esc(state.workspaceName || 'Architect Studio')} · ${pages.length} docs · ${boards.length} boards · ${dbs.length} databases · ${forms.length} forms · ${assets.length} assets</span></div></div></div>`;
+        const presSel = heroCopy.querySelector('#user-self-presence-select') as HTMLSelectElement | null;
+        if (presSel && displayUser) {
+            presSel.onchange = () => {
+                displayUser.presenceStatus = presSel.value as any;
+                save(true);
+                renderUserDashboardView(view);
+            };
+        }
 
         const clockEl = document.createElement('div');
         clockEl.id = 'user-dashboard-clock';
@@ -1754,14 +2847,16 @@ function renderUserDashboardView(view: HTMLElement) {
             const card = document.createElement('button');
             card.type = 'button';
             card.className = 'dashboard-page-card';
-            card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'board' ? 'Board' : pg.pageKind === 'database' ? 'Database' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
+            card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'board' ? 'Board' : pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'form' ? 'Form' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
             card.onclick = e => { if (e.ctrlKey || e.metaKey) openPageInNewTab(pg.id); else navigateToPage(pg.id); };
             recentGrid.append(card);
         });
         recentSection.append(recentGrid);
 
-        shell.append(hero, stats, recentSection);
+        const questSec = renderPersonalQuestTrackerSection(displayUser, () => renderUserDashboardView(view));
+        shell.append(hero, stats, questSec, recentSection);
         view.append(shell);
+        ensureDashboardHistoryNav(view);
         updateClock();
         return;
     }
@@ -1774,7 +2869,9 @@ function renderUserDashboardView(view: HTMLElement) {
     const userLogs = (dd?.timeLogs || []).filter(l => l.personId === targetUser!.id || l.personName.toLowerCase() === nameLower);
     const totalHours = (userLogs.reduce((acc, l) => acc + (Number(l.minutes) || 0), 0) / 60).toFixed(1);
 
-    heroCopy.innerHTML = `<span class="mode-kicker">MEMBER DASHBOARD</span><h1>${esc(me)}</h1><p>${uRoles.map(r => esc(r.name)).join(' · ') || 'Member'} · ${targetUser!.linkedAccount ? `Linked: ${esc(targetUser!.linkedAccount)}` : 'Unlinked profile'}</p>`;
+    const targetPresence = getUserPresence(targetUser);
+    const targetPMeta = getUserPresenceMeta(targetPresence);
+    heroCopy.innerHTML = `<span class="mode-kicker">MEMBER DASHBOARD</span><div class="user-dash-identity-head"><span class="team-member-avatar user-dash-hero-av">${esc(commentUserInitials(me))}<span class="user-presence-dot is-${targetPMeta.key}" title="${esc(targetPMeta.label)}"></span></span><div><h1>${esc(me)}</h1><p><span class="user-presence-label is-${targetPMeta.key}">${esc(targetPMeta.shortLabel)}</span> · ${uRoles.map(r => esc(r.name)).join(' · ') || 'Member'} · ${targetUser!.linkedAccount ? `Linked: ${esc(targetUser!.linkedAccount)}` : 'Unlinked profile'}</p></div></div>`;
     const heroActions = document.createElement('div');
     heroActions.className = 'mode-hero-actions';
     const msgBtn = document.createElement('button');
@@ -1818,38 +2915,232 @@ function renderUserDashboardView(view: HTMLElement) {
             const card = document.createElement('button');
             card.type = 'button';
             card.className = 'dashboard-page-card';
-            card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'board' ? 'Board' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
+            card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'board' ? 'Board' : pg.pageKind === 'form' ? 'Form' : 'Page'} · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
             card.onclick = e => { if (e.ctrlKey || e.metaKey) openPageInNewTab(pg.id); else navigateToPage(pg.id); };
             contribGrid.append(card);
         });
         contribSec.append(contribGrid);
     }
 
-    shell.append(hero, stats, contribSec);
+    const profileStrip = targetUser ? renderTeamMemberProfileStrip(targetUser, () => renderUserDashboardView(view)) : null;
+    const questSec = renderPersonalQuestTrackerSection(targetUser, () => renderUserDashboardView(view));
+    shell.append(hero, stats, ...(profileStrip ? [profileStrip] : []), questSec, contribSec);
     view.append(shell);
+    ensureDashboardHistoryNav(view);
+}
+
+function openTeamMemberProfileModal(userId: string, onSaved?: () => void) {
+    const u = findWorkspaceUser(userId);
+    if (!u) return;
+    let dlg = document.getElementById('team-profile-dialog') as HTMLDialogElement | null;
+    if (!dlg) {
+        dlg = document.createElement('dialog');
+        dlg.id = 'team-profile-dialog';
+        dlg.className = 'member-manager-dialog';
+        dlg.innerHTML = `<div class="member-manager-panel"><header class="settings-header"><div><h2 id="team-profile-dlg-title">Edit Team Member Profile</h2><p>All Team List OS directory fields &amp; current assignment metadata.</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close member profile editor">×</button></header><div id="team-profile-dlg-body" class="member-manager-body"></div></div>`;
+        dlg.addEventListener('click', ev => {
+            if (ev.target === dlg || (ev.target as Element | null)?.closest('[data-close-dialog]')) dlg?.close('cancel');
+        });
+        document.body.append(dlg);
+    }
+    const titleEl = dlg.querySelector('#team-profile-dlg-title') as HTMLElement;
+    const body = dlg.querySelector('#team-profile-dlg-body') as HTMLElement;
+    titleEl.textContent = `Team Profile — ${u.name}`;
+    body.replaceChildren();
+
+    const qb = typeof ArchitectDatabase !== 'undefined' ? ArchitectDatabase.getOfficialQuestboardPage() : null;
+    const liveActive = qb ? getQuestTrackerForUser(qb, u, false).actual.slice(0, 3) : [];
+
+    const draftStatus = { val: u.memberStatus || 'On Project' };
+    const draftRoles = new Set<string>(u.specialtyRoles || []);
+    const draftDepts = new Set<string>(u.departments || []);
+    const draftProjs = new Set<string>(u.currentProjects || []);
+
+    const form = document.createElement('form');
+    form.className = 'team-profile-form';
+
+    const grid = document.createElement('div');
+    grid.className = 'team-profile-form-grid';
+
+    const makeField = (label: string, el: HTMLElement, spanFull = false) => {
+        const w = document.createElement('label');
+        w.className = `team-profile-field${spanFull ? ' is-full' : ''}`;
+        const sp = document.createElement('span');
+        sp.textContent = label;
+        w.append(sp, el);
+        return w;
+    };
+
+    const nameInp = document.createElement('input');
+    nameInp.value = u.name || '';
+    nameInp.required = true;
+
+    const statusSel = document.createElement('select');
+    TEAM_STATUS_OPTIONS.forEach(st => {
+        const o = document.createElement('option');
+        o.value = st.label; o.textContent = st.label;
+        if (st.label === draftStatus.val) o.selected = true;
+        statusSel.append(o);
+    });
+    statusSel.onchange = () => { draftStatus.val = statusSel.value as TeamMemberStatus; };
+
+    const presSel = document.createElement('select');
+    [
+        ['online', '🟢 Online'],
+        ['unavailable', '🟠 Unavailable (Meeting / Standby)'],
+        ['offline', '⚪ Offline']
+    ].forEach(([k, l]) => {
+        const o = document.createElement('option');
+        o.value = k; o.textContent = l;
+        if (k === getUserPresence(u)) o.selected = true;
+        presSel.append(o);
+    });
+
+    const emailInp = document.createElement('input');
+    emailInp.type = 'email';
+    emailInp.placeholder = 'member@studio.com';
+    emailInp.value = u.email || '';
+
+    const countryInp = document.createElement('input');
+    countryInp.placeholder = 'e.g. United States, Canada, Japan…';
+    countryInp.value = u.country || '';
+
+    const portfolioInp = document.createElement('input');
+    portfolioInp.type = 'url';
+    portfolioInp.placeholder = 'https://artstation.com/…';
+    portfolioInp.value = u.portfolioUrl || '';
+
+    const activeInp = document.createElement('input');
+    activeInp.placeholder = liveActive.length ? `Auto from Questboard: ${liveActive.map(x => x.row.title).join(', ')}` : 'Current primary task focus…';
+    activeInp.value = u.activeTaskNote || '';
+
+    const availInp = document.createElement('textarea');
+    availInp.rows = 2;
+    availInp.placeholder = 'Hours, timezone constraints, leave dates, absence reason…';
+    availInp.value = u.availabilityNotes || '';
+
+    grid.append(
+        makeField('Full Name', nameInp),
+        makeField('Status', statusSel),
+        makeField('Online Presence', presSel),
+        makeField('Email', emailInp),
+        makeField('Country', countryInp),
+        makeField('Portfolio URL', portfolioInp, true),
+        makeField('Active Task note (supplement to Official Questboard)', activeInp, true),
+        makeField('Availability / Absence reasons', availInp, true)
+    );
+
+    const buildChipPicker = (label: string, presetList: string[], activeSet: Set<string>, placeholder: string) => {
+        const sec = document.createElement('div');
+        sec.className = 'team-chip-picker';
+        const lbl = document.createElement('div');
+        lbl.className = 'team-chip-picker-lbl';
+        lbl.textContent = label;
+        const chipsBox = document.createElement('div');
+        chipsBox.className = 'team-chip-picker-grid';
+        const renderChips = () => {
+            chipsBox.replaceChildren();
+            const merged = [...new Set([...presetList, ...Array.from(activeSet)])];
+            merged.forEach(item => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                const on = activeSet.has(item);
+                b.className = `team-pick-chip${on ? ' is-selected' : ''}`;
+                b.textContent = item;
+                b.onclick = () => { if (on) activeSet.delete(item); else activeSet.add(item); renderChips(); };
+                chipsBox.append(b);
+            });
+        };
+        renderChips();
+        const addRow = document.createElement('div');
+        addRow.className = 'team-chip-custom-row';
+        const cInp = document.createElement('input');
+        cInp.placeholder = placeholder;
+        const cBtn = document.createElement('button');
+        cBtn.type = 'button';
+        cBtn.className = 'secondary-button';
+        cBtn.textContent = 'Add';
+        cBtn.onclick = () => {
+            const v = cInp.value.trim();
+            if (!v) return;
+            v.split(',').map(x => x.trim()).filter(Boolean).forEach(x => activeSet.add(x));
+            cInp.value = '';
+            renderChips();
+        };
+        addRow.append(cInp, cBtn);
+        sec.append(lbl, chipsBox, addRow);
+        return sec;
+    };
+
+    const footer = document.createElement('div');
+    footer.className = 'team-profile-form-footer';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'secondary-button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => dlg?.close('cancel');
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.className = 'share-button';
+    saveBtn.textContent = 'Save Member Profile';
+    footer.append(cancelBtn, saveBtn);
+
+    form.onsubmit = ev => {
+        ev.preventDefault();
+        const cleanName = nameInp.value.trim();
+        if (cleanName) u.name = cleanName;
+        u.memberStatus = draftStatus.val as TeamMemberStatus;
+        u.presenceStatus = presSel.value as any;
+        u.email = emailInp.value.trim() || undefined;
+        u.country = countryInp.value.trim() || undefined;
+        u.portfolioUrl = portfolioInp.value.trim() || undefined;
+        u.activeTaskNote = activeInp.value.trim() || undefined;
+        u.availabilityNotes = availInp.value.trim() || undefined;
+        u.specialtyRoles = Array.from(draftRoles);
+        u.currentProjects = Array.from(draftProjs);
+        u.departments = Array.from(draftDepts);
+        save(true);
+        dlg?.close('save');
+        toast(`Updated ${u.name}'s Team Profile`);
+        onSaved?.();
+    };
+
+    form.append(
+        grid,
+        buildChipPicker('Department', TEAM_DEPARTMENT_OPTIONS, draftDepts, 'Add custom department…'),
+        buildChipPicker('Current Proj', TEAM_PROJECT_OPTIONS, draftProjs, 'Add custom project…'),
+        buildChipPicker('Roles (Specialty)', TEAM_SPECIALTY_ROLES, draftRoles, 'Add custom role…'),
+        footer
+    );
+    body.append(form);
+    if (!dlg.open) dlg.showModal();
 }
 
 function renderTeamOverviewDashboardView(view: HTMLElement) {
     clearInterval(userDashClockTimer);
-    const pages = state.pages.filter(pg => !pg.databaseId && resolvePagePermissions(pg).view);
+    view.replaceChildren();
+    const pages = state.pages.filter(pg => isVisibleDocsPage(pg, true));
     const boards = pages.filter(pg => pg.pageKind === 'board');
+    const forms = pages.filter(pg => pg.pageKind === 'form');
     const dbs = pages.filter(pg => pg.pageKind === 'database');
     const users = state.users || [];
     const logs = state.dashboardData?.timeLogs || [];
     const actor = getCurrentActorUser();
+    const qb = typeof ArchitectDatabase !== 'undefined' ? ArchitectDatabase.ensureOfficialQuestboardPage() : null;
 
     const shell = document.createElement('div');
     shell.className = 'mode-page-shell';
     const hero = document.createElement('div');
     hero.className = 'mode-hero';
-    hero.innerHTML = `<div><span class="mode-kicker">TEAM OVERVIEW</span><h1>${esc(state.workspaceName || 'Architect Studio')} Team</h1><p>General workspace overview accessible to everyone · ${users.length} members · ${pages.length} shared docs · ${boards.length} boards · ${dbs.length} databases</p></div>`;
+    hero.innerHTML = `<div><span class="mode-kicker">TEAM OVERVIEW</span><h1>${esc(state.workspaceName || 'Architect Studio')} Team</h1><p>General workspace &amp; Team List OS directory · ${users.length} members · ${pages.length} shared docs · ${boards.length} boards · ${dbs.length} databases · ${forms.length} forms</p></div>`;
     shell.append(hero);
 
     const stats = document.createElement('div');
     stats.className = 'dashboard-stats-grid';
     const totalHours = (logs.reduce((acc, l) => acc + (Number(l.minutes) || 0), 0) / 60).toFixed(1);
+    const onProjCount = users.filter(u => (u.memberStatus || 'On Project') === 'On Project').length;
     [
-        { label: 'Team members', val: String(users.length), hint: `${users.filter(u => !!u.linkedAccount).length} linked accounts` },
+        { label: 'Team members', val: String(users.length), hint: `${onProjCount} currently On Project` },
         { label: 'Shared pages', val: String(pages.length), hint: 'Accessible in your workspace' },
         { label: 'Team hours logged', val: `${totalHours}h`, hint: `${logs.length} time entries` },
         { label: 'Databases & Boards', val: String(dbs.length + boards.length), hint: `${dbs.length} DBs · ${boards.length} boards` }
@@ -1862,41 +3153,274 @@ function renderTeamOverviewDashboardView(view: HTMLElement) {
     shell.append(stats);
 
     const teamSec = document.createElement('section');
-    teamSec.className = 'dashboard-recent-section';
-    teamSec.innerHTML = '<h2>Team members</h2>';
-    const grid = document.createElement('div');
-    grid.className = 'team-members-grid';
+    teamSec.className = 'dashboard-recent-section team-os-section';
 
-    users.forEach(u => {
+    // Toolbar: Team List OS View Tabs + Search + Attribute Filters
+    const toolbar = document.createElement('div');
+    toolbar.className = 'team-os-toolbar';
+    const tabBar = document.createElement('div');
+    tabBar.className = 'team-os-tabs';
+    [
+        { id: 'status', label: 'General View (by Status)' },
+        { id: 'department', label: 'By Department' },
+        { id: 'table', label: 'Contributors Table' },
+        { id: 'all', label: 'All Cards' }
+    ].forEach(t => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `team-os-tab${teamOverviewMode === t.id ? ' is-active' : ''}`;
+        b.textContent = t.label;
+        b.onclick = () => { teamOverviewMode = t.id as any; renderTeamOverviewDashboardView(view); };
+        tabBar.append(b);
+    });
+
+    const filters = document.createElement('div');
+    filters.className = 'team-os-filters';
+    const searchInp = document.createElement('input');
+    searchInp.type = 'search';
+    searchInp.className = 'team-os-search';
+    searchInp.placeholder = 'Filter member, role, country, project…';
+    searchInp.value = teamOverviewSearch;
+    searchInp.oninput = () => { teamOverviewSearch = searchInp.value; renderMembersBody(); };
+
+    const allDepts = [...new Set([...TEAM_DEPARTMENT_OPTIONS, ...users.flatMap(u => u.departments || [])])];
+    const allProjs = [...new Set([...TEAM_PROJECT_OPTIONS, ...users.flatMap(u => u.currentProjects || [])])];
+
+    const makeFilterSelect = (label: string, val: string, options: string[], onChange: (v: string) => void) => {
+        const s = document.createElement('select');
+        s.className = 'team-os-filter-sel';
+        s.innerHTML = `<option value="all">${esc(label)}: All</option>`;
+        options.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o; opt.textContent = o;
+            if (o === val) opt.selected = true;
+            s.append(opt);
+        });
+        s.onchange = () => { onChange(s.value); renderMembersBody(); };
+        return s;
+    };
+
+    filters.append(
+        searchInp,
+        makeFilterSelect('Status', teamOverviewFilterStatus, TEAM_STATUS_OPTIONS.map(s => s.label), v => { teamOverviewFilterStatus = v; }),
+        makeFilterSelect('Department', teamOverviewFilterDept, allDepts, v => { teamOverviewFilterDept = v; }),
+        makeFilterSelect('Project', teamOverviewFilterProj, allProjs, v => { teamOverviewFilterProj = v; })
+    );
+    toolbar.append(tabBar, filters);
+    const dirHeading = document.createElement('h2');
+    dirHeading.textContent = 'Team directory & availability';
+    teamSec.append(dirHeading, toolbar);
+
+    const bodyHost = document.createElement('div');
+    bodyHost.className = 'team-os-body';
+    teamSec.append(bodyHost);
+
+    const computeActiveTasksFor = (u: WorkspaceUser) => {
+        const live = qb ? getQuestTrackerForUser(qb, u, false).actual : [];
+        return {
+            liveTitles: live.slice(0, 2).map(x => `${x.issueKey ? `${x.issueKey} ` : ''}${x.row.title || 'Untitled'}`),
+            openCount: live.length,
+            checkCount: qb ? getQuestTrackerForUser(qb, u, false).check.length : 0
+        };
+    };
+
+    const buildMemberCard = (u: WorkspaceUser) => {
         const roles = getUserRoles(u);
         const nameLower = u.name.toLowerCase();
         const authored = pages.filter(pg => (pg.createdBy || '').toLowerCase() === nameLower || (pg.lastEditedBy || '').toLowerCase() === nameLower).length;
         const hrs = (logs.filter(l => l.personId === u.id || l.personName.toLowerCase() === nameLower).reduce((a, l) => a + (Number(l.minutes) || 0), 0) / 60).toFixed(1);
+        const qInfo = computeActiveTasksFor(u);
+        const stVal = u.memberStatus || 'On Project';
+        const stMeta = TEAM_STATUS_OPTIONS.find(s => s.label === stVal) || TEAM_STATUS_OPTIONS[0];
+        const activeSummary = [u.activeTaskNote, ...qInfo.liveTitles].filter(Boolean).join(' · ') || 'No active quests';
 
-        const card = document.createElement('button');
-        card.type = 'button';
+        const card = document.createElement('div');
+        card.setAttribute('role', 'button');
+        card.tabIndex = 0;
         card.className = 'team-member-card';
         card.dataset.userRef = u.id;
-        card.innerHTML = `
-          <div class="team-member-head">
-            <span class="team-member-avatar">${esc(commentUserInitials(u.name))}</span>
-            <div>
-              <strong>${esc(u.name)}</strong>${actor?.id === u.id ? ' <span class="dash-linked-pill">You</span>' : ''}
-              <div class="team-member-meta">${roles.map(r => `<span class="dash-role-pill" style="background:${esc(r.color || '#eef0f4')}22;color:${esc(r.color || '#4a4d55')}">${esc(r.name)}</span>`).join('') || '<span class="dash-role-pill">Member</span>'}</div>
-            </div>
+
+        const pres = getUserPresence(u);
+        const pMeta = getUserPresenceMeta(pres);
+        const headRow = document.createElement('div');
+        headRow.className = 'team-member-head';
+        headRow.innerHTML = `
+          <span class="team-member-avatar user-ref-trigger" data-user-ref="${esc(u.id)}" title="Open ${esc(u.name)}'s profile">${esc(commentUserInitials(u.name))}<span class="user-presence-dot is-${pMeta.key}" title="${esc(pMeta.label)}"></span></span>
+          <div class="team-member-head-main">
+            <div class="team-member-name-row"><strong class="user-ref-trigger" data-user-ref="${esc(u.id)}">${esc(u.name)}</strong>${actor?.id === u.id ? ' <span class="dash-linked-pill">You</span>' : ''}${u.country ? `<span class="team-country-pill">${esc(u.country)}</span>` : ''}</div>
+            <div class="team-member-meta">${roles.map(r => `<span class="dash-role-pill" style="background:${esc(r.color || '#eef0f4')}22;color:${esc(r.color || '#4a4d55')}">${esc(r.name)}</span>`).join('') || '<span class="dash-role-pill">Member</span>'}</div>
           </div>
-          <div class="team-member-meta">
-            <span>${authored} pages</span>
-            <span>·</span>
-            <span>${hrs}h logged</span>
-            <span>·</span>
-            <span>${u.linkedAccount ? 'Linked' : 'Profile'}</span>
-          </div>`;
+          <button type="button" class="team-msg-icon-btn" data-user-message="${esc(u.id)}" aria-label="Message ${esc(u.name)}" title="Send message to ${esc(u.name)}">💬</button>`;
+        headRow.querySelector('.team-msg-icon-btn')?.addEventListener('click', ev => {
+            ev.stopPropagation();
+            openUserDirectMessage(u.id);
+        });
+
+        const headActions = document.createElement('div');
+        headActions.className = 'team-member-card-actions';
+        const stSel = document.createElement('select');
+        stSel.className = 'team-status-select';
+        stSel.style.background = stMeta.bg;
+        stSel.style.color = stMeta.color;
+        stSel.setAttribute('aria-label', `Status for ${u.name}`);
+        TEAM_STATUS_OPTIONS.forEach(optDef => {
+            const o = document.createElement('option');
+            o.value = optDef.label; o.textContent = optDef.label;
+            if (optDef.label === stVal) o.selected = true;
+            stSel.append(o);
+        });
+        stSel.onclick = ev => ev.stopPropagation();
+        stSel.onchange = ev => {
+            ev.stopPropagation();
+            u.memberStatus = stSel.value as TeamMemberStatus;
+            save(true);
+            renderTeamOverviewDashboardView(view);
+        };
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'team-card-edit-btn';
+        editBtn.textContent = '✎ Edit';
+        editBtn.title = `Edit ${u.name}'s Team List OS options`;
+        editBtn.onclick = ev => {
+            ev.stopPropagation();
+            openTeamMemberProfileModal(u.id, () => renderTeamOverviewDashboardView(view));
+        };
+        headActions.append(stSel, editBtn);
+
+        const bodyDetails = document.createElement('div');
+        bodyDetails.className = 'team-member-os-fields';
+        bodyDetails.innerHTML = `
+          <div class="team-os-field-row"><span>Active Task</span><strong title="${esc(activeSummary)}">${esc(activeSummary)}</strong></div>
+          <div class="team-os-field-row"><span>Email</span><span>${esc(u.email || '—')}</span></div>
+          <div class="team-os-field-row"><span>Portfolio</span><span>${u.portfolioUrl ? `<a class="team-portfolio-link" href="${esc(u.portfolioUrl)}" target="_blank" rel="noopener noreferrer">${esc(u.portfolioUrl)}</a>` : '—'}</span></div>
+          <div class="team-os-field-row"><span>Roles</span><span class="team-pill-list">${(u.specialtyRoles || []).map(r => `<span class="team-mini-pill is-role">${esc(r)}</span>`).join('') || '—'}</span></div>
+          <div class="team-os-field-row"><span>Current Proj</span><span class="team-pill-list">${(u.currentProjects || []).map(p => `<span class="team-mini-pill is-proj">${esc(p)}</span>`).join('') || '—'}</span></div>
+          <div class="team-os-field-row"><span>Department</span><span class="team-pill-list">${(u.departments || []).map(d => `<span class="team-mini-pill is-dept">${esc(d)}</span>`).join('') || '—'}</span></div>
+          ${u.availabilityNotes ? `<div class="team-os-field-row"><span>Availability</span><span>${esc(u.availabilityNotes)}</span></div>` : ''}
+        `;
+        bodyDetails.querySelectorAll('a').forEach(a => { a.addEventListener('click', ev => ev.stopPropagation()); });
+
+        const foot = document.createElement('div');
+        foot.className = 'team-member-meta';
+        foot.innerHTML = `<span>${authored} pages</span><span>·</span><span>${hrs}h logged</span><span>·</span><span>${qInfo.openCount} tasks / ${qInfo.checkCount} check-ins</span><span>·</span><span>${u.linkedAccount ? 'Linked' : 'Profile'}</span>`;
+
+        card.append(headRow, headActions, bodyDetails, foot);
         card.onclick = () => openUserDashboard(u.id);
+        card.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openUserDashboard(u.id); } };
         card.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); openUserContextMenu(ev, u.id); };
-        grid.append(card);
-    });
-    teamSec.append(grid);
+        return card;
+    };
+
+    const renderMembersBody = () => {
+        bodyHost.replaceChildren();
+        const q = teamOverviewSearch.trim().toLowerCase();
+        const filteredUsers = users.filter(u => {
+            const st = u.memberStatus || 'On Project';
+            if (teamOverviewFilterStatus !== 'all' && st !== teamOverviewFilterStatus) return false;
+            if (teamOverviewFilterDept !== 'all' && !(u.departments || []).includes(teamOverviewFilterDept)) return false;
+            if (teamOverviewFilterProj !== 'all' && !(u.currentProjects || []).includes(teamOverviewFilterProj)) return false;
+            if (q) {
+                const hay = [
+                    u.name, u.email, u.country, st, u.activeTaskNote, u.availabilityNotes,
+                    ...(u.specialtyRoles || []), ...(u.departments || []), ...(u.currentProjects || [])
+                ].filter(Boolean).join(' ').toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+
+        if (!filteredUsers.length) {
+            bodyHost.innerHTML = '<div class="dash-muted" style="padding:16px">No team members match the current filters.</div>';
+            return;
+        }
+
+        if (teamOverviewMode === 'table') {
+            const wrap = document.createElement('div');
+            wrap.className = 'team-table-wrap';
+            const table = document.createElement('table');
+            table.className = 'team-os-table';
+            table.innerHTML = `<thead><tr><th>Full Name</th><th>Status</th><th>Active Task</th><th>Email</th><th>Portfolio</th><th>Country</th><th>Roles</th><th>Current Proj</th><th>Availability / Absence reasons</th><th>Department</th><th></th></tr></thead><tbody></tbody>`;
+            const tbody = table.querySelector('tbody')!;
+            filteredUsers.forEach(u => {
+                const qInfo = computeActiveTasksFor(u);
+                const stVal = u.memberStatus || 'On Project';
+                const stMeta = TEAM_STATUS_OPTIONS.find(s => s.label === stVal) || TEAM_STATUS_OPTIONS[0];
+                const tr = document.createElement('tr');
+                tr.dataset.userRef = u.id;
+                tr.className = 'team-member-row';
+                const rowPMeta = getUserPresenceMeta(getUserPresence(u));
+                tr.innerHTML = `
+                  <td><span class="team-row-name-cell"><span class="user-presence-dot inline-dot is-${rowPMeta.key}" title="${esc(rowPMeta.label)}"></span><strong>${esc(u.name)}</strong>${actor?.id === u.id ? ' <span class="dash-linked-pill">You</span>' : ''}</span></td>
+                  <td><span class="team-status-pill" style="background:${stMeta.bg};color:${stMeta.color}">${esc(stVal)}</span></td>
+                  <td>${esc([u.activeTaskNote, ...qInfo.liveTitles].filter(Boolean).join(' · ') || '—')}</td>
+                  <td>${esc(u.email || '—')}</td>
+                  <td>${u.portfolioUrl ? `<a class="team-portfolio-link" href="${esc(u.portfolioUrl)}" target="_blank" rel="noopener noreferrer">${esc(u.portfolioUrl)}</a>` : '—'}</td>
+                  <td>${esc(u.country || '—')}</td>
+                  <td>${(u.specialtyRoles || []).map(r => `<span class="team-mini-pill is-role">${esc(r)}</span>`).join(' ') || '—'}</td>
+                  <td>${(u.currentProjects || []).map(p => `<span class="team-mini-pill is-proj">${esc(p)}</span>`).join(' ') || '—'}</td>
+                  <td>${esc(u.availabilityNotes || '—')}</td>
+                  <td>${(u.departments || []).map(d => `<span class="team-mini-pill is-dept">${esc(d)}</span>`).join(' ') || '—'}</td>
+                  <td><div class="team-row-actions"><button type="button" class="team-msg-icon-btn" title="Message ${esc(u.name)}" aria-label="Message ${esc(u.name)}">💬</button><button type="button" class="team-card-edit-btn">✎</button></div></td>`;
+                tr.querySelector('.team-msg-icon-btn')?.addEventListener('click', ev => {
+                    ev.stopPropagation();
+                    openUserDirectMessage(u.id);
+                });
+                tr.querySelector('.team-card-edit-btn')?.addEventListener('click', ev => {
+                    ev.stopPropagation();
+                    openTeamMemberProfileModal(u.id, () => renderTeamOverviewDashboardView(view));
+                });
+                tr.querySelectorAll('a').forEach(a => a.addEventListener('click', ev => ev.stopPropagation()));
+                tr.onclick = () => openUserDashboard(u.id);
+                tr.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); openUserContextMenu(ev, u.id); };
+                tbody.append(tr);
+            });
+            wrap.append(table);
+            bodyHost.append(wrap);
+            return;
+        }
+
+        if (teamOverviewMode === 'status') {
+            TEAM_STATUS_OPTIONS.forEach(stOpt => {
+                const groupUsers = filteredUsers.filter(u => (u.memberStatus || 'On Project') === stOpt.label);
+                if (!groupUsers.length) return;
+                const grp = document.createElement('div');
+                grp.className = 'team-os-group';
+                grp.innerHTML = `<div class="team-os-group-head"><span class="team-status-pill" style="background:${stOpt.bg};color:${stOpt.color}">${esc(stOpt.label)}</span><span class="db-group-count">${groupUsers.length}</span></div>`;
+                const gGrid = document.createElement('div');
+                gGrid.className = 'team-members-grid';
+                groupUsers.forEach(u => gGrid.append(buildMemberCard(u)));
+                grp.append(gGrid);
+                bodyHost.append(grp);
+            });
+            return;
+        }
+
+        if (teamOverviewMode === 'department') {
+            const deptNames = [...new Set([...allDepts, 'Unassigned'])];
+            deptNames.forEach(dName => {
+                const groupUsers = dName === 'Unassigned'
+                    ? filteredUsers.filter(u => !(u.departments || []).length)
+                    : filteredUsers.filter(u => (u.departments || []).includes(dName));
+                if (!groupUsers.length) return;
+                const grp = document.createElement('div');
+                grp.className = 'team-os-group';
+                grp.innerHTML = `<div class="team-os-group-head"><span class="team-mini-pill is-dept">${esc(dName)}</span><span class="db-group-count">${groupUsers.length}</span></div>`;
+                const gGrid = document.createElement('div');
+                gGrid.className = 'team-members-grid';
+                groupUsers.forEach(u => gGrid.append(buildMemberCard(u)));
+                grp.append(gGrid);
+                bodyHost.append(grp);
+            });
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'team-members-grid';
+        filteredUsers.forEach(u => grid.append(buildMemberCard(u)));
+        bodyHost.append(grid);
+    };
+
+    renderMembersBody();
     shell.append(teamSec);
 
     const recentSec = document.createElement('section');
@@ -1909,7 +3433,7 @@ function renderTeamOverviewDashboardView(view: HTMLElement) {
         card.className = 'dashboard-page-card';
         card.style.cursor = 'pointer';
         const editorName = pg.lastEditedBy || pg.createdBy || 'Team';
-        card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'board' ? 'Board' : 'Page'} · Edited by <span class="user-ref-trigger" data-user-ref="${esc(editorName)}">${esc(editorName)}</span> · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
+        card.innerHTML = `<span class="dash-page-ico">${pageIconMarkup(pg.icon)}</span><span class="dash-page-copy"><strong>${esc(pg.title || 'Untitled')}</strong><small>${pg.pageKind === 'database' ? 'Database' : pg.pageKind === 'board' ? 'Board' : pg.pageKind === 'form' ? 'Form' : 'Page'} · Edited by <span class="user-ref-trigger" data-user-ref="${esc(editorName)}">${esc(editorName)}</span> · ${formatInboxRelative(pg.updatedAt)}</small></span>`;
         card.onclick = e => {
             const uTrig = (e.target as Element | null)?.closest?.('[data-user-ref]') as HTMLElement | null;
             if (uTrig) { e.stopPropagation(); openUserDashboard(uTrig.dataset.userRef || editorName); return; }
@@ -1921,6 +3445,7 @@ function renderTeamOverviewDashboardView(view: HTMLElement) {
     shell.append(recentSec);
 
     view.append(shell);
+    ensureDashboardHistoryNav(view);
 }
 function renderRichInlineInto(container: HTMLElement, rawText: string, afterNavigate?: () => void) {
     const tokenRe = /(!\[[^\]]*\]\([^)]+\)|\[\[[^\]]+\]\]|<t:\d{6,13}(?::[tTdDfFR])?>)/g;
@@ -2701,7 +4226,7 @@ function openFullTimeTrackingDialog() {
         ensureWorkspaceDefaults(state);
         const logs = state.dashboardData?.timeLogs || [];
         const users = state.users || [];
-        const pages = state.pages.filter(pg => !pg.databaseId);
+        const pages = state.pages.filter(pg => isVisibleDocsPage(pg));
         const summary = summarizeWeeklyTimeLogs(logs);
         body.replaceChildren();
 
@@ -2880,7 +4405,7 @@ function renderAdminDashboardView(view: HTMLElement) {
     const actor = getCurrentActorUser();
     const owner = state.users?.[0];
     const isAdmin = isAdminAuthorized(actor);
-    const pages = state.pages.filter(pg => !pg.databaseId);
+    const pages = state.pages.filter(pg => isVisibleDocsPage(pg));
     const assets = readAssets();
     const users = state.users || [];
     const roles = getSortedRoles();
@@ -3059,6 +4584,46 @@ function renderAdminDashboardView(view: HTMLElement) {
     notifCreatorCard.append(notifActions);
 
     bottomGrid.append(notifCreatorCard);
+
+    const fontsCard = document.createElement('section');
+    fontsCard.id = 'admin-fonts-manager';
+    fontsCard.className = 'dash-card admin-dash-card';
+    fontsCard.innerHTML = '<div class="dash-card-head"><div><h3>Fonts &amp; typography</h3><p class="dash-muted">Upload workspace custom fonts (.ttf, .otf, .woff, .woff2) for all members to use.</p></div></div>';
+    const customFontsList = typeof ArchitectToolbar !== 'undefined' && ArchitectToolbar.getWorkspaceCustomFonts
+        ? ArchitectToolbar.getWorkspaceCustomFonts()
+        : (state.customFonts || []);
+    const fontChipWrap = document.createElement('div');
+    fontChipWrap.className = 'user-custom-fonts-list';
+    fontChipWrap.id = 'admin-custom-fonts-list';
+    if (!customFontsList.length) {
+        fontChipWrap.innerHTML = '<span class="user-font-empty">No workspace custom fonts uploaded yet.</span>';
+    } else {
+        customFontsList.forEach((cf: any) => {
+            const chip = document.createElement('div');
+            chip.className = 'user-font-chip';
+            chip.innerHTML = `<span style="font-family:'${esc(cf.family)}',sans-serif">${esc(cf.name)}</span><button type="button" class="user-font-remove" title="Remove font" aria-label="Remove ${esc(cf.name)}">×</button>`;
+            chip.querySelector('button')?.addEventListener('click', () => {
+                ArchitectToolbar?.removeCustomFont?.(cf.id);
+                renderDashboardView();
+            });
+            fontChipWrap.append(chip);
+        });
+    }
+    const fontActs = document.createElement('div');
+    fontActs.className = 'admin-card-actions';
+    fontActs.innerHTML = '<label class="secondary-button file-select">↑ Add custom font<input id="admin-font-upload" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden></label>';
+    fontActs.querySelector('#admin-font-upload')?.addEventListener('change', async e => {
+        const inp = e.target as HTMLInputElement;
+        const file = inp.files?.[0];
+        inp.value = '';
+        if (file && ArchitectToolbar?.addCustomFont) {
+            await ArchitectToolbar.addCustomFont(file);
+            renderDashboardView();
+        }
+    });
+    fontsCard.append(fontChipWrap, fontActs);
+    bottomGrid.append(fontsCard);
+
     shell.append(overviewGrid, peopleGrid, bottomGrid);
     view.append(shell);
 }
@@ -3321,7 +4886,7 @@ function openNotificationCreatorDialog() {
     const actor = getCurrentActorUser();
     const canSendNotif = userHasGlobalPerm('sendNotifications', actor);
     const users = state.users || [];
-    const pages = state.pages.filter(pg => !pg.databaseId);
+    const pages = state.pages.filter(pg => isVisibleDocsPage(pg));
     const userOpts = `<option value="all">@everyone (All workspace members)</option>${users.map(u => `<option value="${esc(u.name)}">@${esc(u.name)}</option>`).join('')}`;
     const pageLinkOpts = `<option value="">No primary linked page</option>${pages.map(pg => `<option value="${esc(pg.id)}">${esc(pg.title || 'Untitled')}</option>`).join('')}`;
     const embedPageOpts = `<option value="">＋ Embed page</option>${pages.map(pg => `<option value="${esc(pg.id)}">${esc(pg.title || 'Untitled')}</option>`).join('')}`;
@@ -3944,7 +5509,48 @@ function ensureDirectChatChannel(targetAccountOrName: string): ChatChannel {
     }
     return dm;
 }
-function pushWorkspaceChatMessage(opts: { channelId?: string; targetAccount?: string; senderName?: string; text: string; fromAutomation?: string; silent?: boolean }): ChatMessage | null {
+let pendingChatCommentRef: ChatCommentRef | null = null;
+function openPrivateCommentReply(page: Page, thread: CommentThread, msg: CommentMessage) {
+    if (!page || !thread || !msg) return;
+    const rawAuthor = msg.authorId || msg.authorName || 'Raphael';
+    const user = findWorkspaceUser(rawAuthor);
+    const targetRef = user?.linkedAccount || user?.name || rawAuthor;
+    pendingChatCommentRef = {
+        pageId: page.id,
+        pageTitle: page.title || 'Untitled',
+        threadId: thread.id,
+        commentMsgId: msg.id,
+        authorName: msg.authorName || user?.name || 'Member',
+        excerpt: String(msg.text || '').trim().slice(0, 220),
+        ...(thread.quote ? { quote: String(thread.quote).slice(0, 140) } : {}),
+        resolved: !!thread.resolved
+    };
+    openUserDirectMessage(targetRef);
+    requestAnimationFrame(() => {
+        const inp = document.querySelector('#dashboard-view .ws-chat-input') as HTMLTextAreaElement | null;
+        if (inp) inp.focus();
+    });
+}
+function openCommentFromChatRef(ref: ChatCommentRef) {
+    if (!ref?.pageId) return;
+    const pg = state.pages.find(p => p.id === ref.pageId);
+    if (!pg) {
+        toast('Referenced page no longer exists');
+        return;
+    }
+    if (!resolvePagePermissions(pg).view) {
+        toast('You do not have permission to view that page');
+        return;
+    }
+    navigateToPage(pg.id);
+    const thread = (pg.comments || []).find(t => t.id === ref.threadId);
+    if (!thread) {
+        toast('Referenced comment thread no longer exists');
+        return;
+    }
+    requestAnimationFrame(() => focusCommentTarget(pg, thread, { commentMsgId: ref.commentMsgId, openDrawer: true }));
+}
+function pushWorkspaceChatMessage(opts: { channelId?: string; targetAccount?: string; senderName?: string; text: string; fromAutomation?: string; silent?: boolean; commentRef?: ChatCommentRef }): ChatMessage | null {
     const cleanText = String(opts.text || '').trim();
     if (!cleanText) return null;
     ensureWorkspaceDefaults(state);
@@ -3958,13 +5564,15 @@ function pushWorkspaceChatMessage(opts: { channelId?: string; targetAccount?: st
     if (!ch) ch = state.chats[0];
     if (!ch) return null;
     const sender = opts.senderName || getActorDisplayName();
+    const myAcct = getLoggedInAccountName();
     const msg: ChatMessage = {
         id: id(),
         senderName: sender,
-        senderAccount: getLoggedInAccountName(),
+        senderAccount: myAcct,
         text: cleanText,
         createdAt: Date.now(),
-        ...(opts.fromAutomation ? { fromAutomation: opts.fromAutomation } : {})
+        ...(opts.fromAutomation ? { fromAutomation: opts.fromAutomation } : {}),
+        ...(opts.commentRef ? { commentRef: JSON.parse(JSON.stringify(opts.commentRef)) } : {})
     };
     ch.messages.push(msg);
     if (ch.messages.length > 200) ch.messages = ch.messages.slice(-200);
@@ -3982,6 +5590,19 @@ function pushWorkspaceChatMessage(opts: { channelId?: string; targetAccount?: st
             actor: sender,
             targetAccount: opts.targetAccount
         });
+    } else if (!opts.silent && opts.commentRef && ch.kind === 'dm') {
+        const recip = ch.memberAccounts.find(a => a && a.toLowerCase() !== myAcct.toLowerCase()) || opts.targetAccount;
+        if (recip && recip.toLowerCase() !== myAcct.toLowerCase()) {
+            pushInboxNotification({
+                kind: 'reply',
+                title: `💬 Private reply from ${sender}`,
+                body: `Re: "${opts.commentRef.excerpt.slice(0, 60)}" — ${cleanText.slice(0, 100)}`,
+                pageId: opts.commentRef.pageId,
+                commentThreadId: opts.commentRef.threadId,
+                actor: sender,
+                targetAccount: recip
+            });
+        }
     }
     save();
     if (viewingThisChat) renderDashboardView();
@@ -4108,14 +5729,44 @@ function renderDashboardChatView(view: HTMLElement) {
         } else {
             activeCh.messages.forEach(m => {
                 const item = document.createElement('article');
-                item.className = 'ws-chat-msg';
+                item.className = 'ws-chat-msg' + (m.commentRef ? ' has-comment-ref' : '');
                 item.innerHTML = `<span class="ws-chat-msg-avatar user-ref-trigger" data-user-ref="${esc(m.senderName)}">${esc(commentUserInitials(m.senderName))}</span><div class="ws-chat-msg-body"><div class="ws-chat-msg-meta"><strong class="user-ref-trigger" data-user-ref="${esc(m.senderName)}">${esc(m.senderName)}</strong>${m.fromAutomation ? `<span class="ws-chat-auto-tag">⚡ ${esc(m.fromAutomation)}</span>` : ''}<span>${esc(formatInboxRelative(m.createdAt))}</span></div><div class="ws-chat-msg-text">${esc(m.text)}</div></div>`;
+                if (m.commentRef) {
+                    const bodyEl = item.querySelector('.ws-chat-msg-body');
+                    const textEl = item.querySelector('.ws-chat-msg-text');
+                    const refCard = document.createElement('button');
+                    refCard.type = 'button';
+                    refCard.className = 'ws-chat-comment-ref';
+                    refCard.dataset.commentRefPage = m.commentRef.pageId;
+                    refCard.dataset.commentRefThread = m.commentRef.threadId;
+                    refCard.dataset.commentRefMsg = m.commentRef.commentMsgId;
+                    refCard.title = `Jump to comment on "${m.commentRef.pageTitle}"`;
+                    refCard.innerHTML = `<div class="ws-chat-comment-ref-head"><span>💬 ${esc(m.commentRef.authorName)} · <strong>${esc(m.commentRef.pageTitle)}</strong></span>${m.commentRef.resolved ? '<span class="ws-chat-ref-resolved">Resolved</span>' : ''}<span class="ws-chat-ref-jump">↗ Open</span></div>${m.commentRef.quote ? `<div class="ws-chat-comment-ref-quote">“${esc(m.commentRef.quote)}”</div>` : ''}<div class="ws-chat-comment-ref-excerpt">${esc(m.commentRef.excerpt)}</div>`;
+                    refCard.onclick = e => {
+                        e.stopPropagation();
+                        openCommentFromChatRef(m.commentRef!);
+                    };
+                    if (bodyEl && textEl) bodyEl.insertBefore(refCard, textEl);
+                }
                 item.querySelectorAll<HTMLElement>('.user-ref-trigger').forEach(trig => {
                     trig.onclick = e => { e.stopPropagation(); openUserDashboard(m.senderName); };
                     trig.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, m.senderName); };
                 });
                 stream.append(item);
             });
+        }
+
+        const composerWrap = document.createElement('div');
+        composerWrap.className = 'ws-chat-composer-wrap';
+        if (pendingChatCommentRef) {
+            const draftBar = document.createElement('div');
+            draftBar.className = 'ws-chat-reply-draft';
+            draftBar.innerHTML = `<div class="ws-chat-reply-draft-copy"><span class="ws-chat-reply-draft-title">Replying in private to <strong>${esc(pendingChatCommentRef.authorName)}</strong> on <strong>${esc(pendingChatCommentRef.pageTitle)}</strong></span><span class="ws-chat-reply-draft-excerpt">${pendingChatCommentRef.quote ? `“${esc(pendingChatCommentRef.quote)}” — ` : ''}${esc(pendingChatCommentRef.excerpt)}</span></div><button type="button" class="ws-chat-reply-cancel" aria-label="Cancel private reply reference">×</button>`;
+            draftBar.querySelector('.ws-chat-reply-cancel')?.addEventListener('click', () => {
+                pendingChatCommentRef = null;
+                renderDashboardView();
+            });
+            composerWrap.append(draftBar);
         }
 
         const composer = document.createElement('form');
@@ -4126,7 +5777,9 @@ function renderDashboardChatView(view: HTMLElement) {
             const val = (ta.value || '').trim();
             if (!val) return;
             ta.value = '';
-            pushWorkspaceChatMessage({ channelId: activeCh.id, text: val, silent: true });
+            const stagedRef = pendingChatCommentRef ? { ...pendingChatCommentRef } : undefined;
+            pendingChatCommentRef = null;
+            pushWorkspaceChatMessage({ channelId: activeCh.id, text: val, silent: !stagedRef, commentRef: stagedRef });
             requestAnimationFrame(() => (view.querySelector('.ws-chat-input') as HTMLTextAreaElement | null)?.focus());
         };
         ta.addEventListener('keydown', ev => {
@@ -4136,8 +5789,9 @@ function renderDashboardChatView(view: HTMLElement) {
             }
         });
         composer.onsubmit = ev => { ev.preventDefault(); doSend(); };
+        composerWrap.append(composer);
 
-        main.append(mHead, stream, composer);
+        main.append(mHead, stream, composerWrap);
         requestAnimationFrame(() => { stream.scrollTop = stream.scrollHeight; });
     }
 
@@ -4158,12 +5812,12 @@ function blocksContentSignature(p: Page): string {
 function recordPageVersionSnapshot(page: Page, note?: string, force = false): PageVersionSnapshot | null {
     if (!page) return null;
     page.history = Array.isArray(page.history) ? page.history : [];
-    const sig = blocksContentSignature(page);
     const latest = page.history[0];
     if (!force && latest) {
+        if (Date.now() - latest.savedAt < 45000) return null;
+        const sig = blocksContentSignature(page);
         const latestSig = JSON.stringify({ t: latest.title, i: latest.icon, b: latest.blocks });
         if (latestSig === sig) return null;
-        if (Date.now() - latest.savedAt < 45000) return null;
     }
     const snap: PageVersionSnapshot = {
         id: id(),
@@ -4501,6 +6155,100 @@ function renderCalendarDashboardView(view: HTMLElement) {
 }
 function renderTaskboardDashboardView(view: HTMLElement) {
     view.replaceChildren();
+    const qb = typeof ArchitectDatabase !== 'undefined' ? ArchitectDatabase.ensureOfficialQuestboardPage() : null;
+    if (!qb) return;
+
+    const db = ArchitectDatabase.ensureDatabaseConfig(qb);
+    const allRows = ArchitectDatabase.getDatabaseRows(qb.id) || [];
+    const parentProp = db.parentPropertyId ? db.schema.find((s: any) => s.id === db.parentPropertyId) : db.schema.find((s: any) => s.type === 'relation' && /parent/i.test(s.name || ''));
+    const isSub = (r: any) => parentProp && Array.isArray(r.propertyValues?.[parentProp.id]) && r.propertyValues[parentProp.id].length > 0;
+    const parentRows = allRows.filter((r: any) => !isSub(r));
+    const subRows = allRows.filter((r: any) => isSub(r));
+    const openQuests = parentRows.filter((r: any) => !ArchitectDatabase.isRowComplete(r, qb)).length;
+    const doneQuests = parentRows.filter((r: any) => ArchitectDatabase.isRowComplete(r, qb)).length;
+    const doneSubs = subRows.filter((r: any) => ArchitectDatabase.isRowComplete(r, qb)).length;
+    const allDbPages = ArchitectDatabase.getDatabasePages().filter((p: any) => !ArchitectDatabase.isFormPage(p));
+
+    const shell = document.createElement('div');
+    shell.className = 'mode-page-shell taskboard-dash-shell';
+
+    const hero = document.createElement('div');
+    hero.className = 'mode-hero';
+    hero.innerHTML = `<div><span class="mode-kicker">OFFICIAL TASKBOARD</span><h1>⚔️ ${esc(qb.title || 'Master Questboard | OS')}</h1><p>Studio-wide task &amp; quest tracker powering every member's Personal Dashboard · Subtasks &amp; RACI assignments enabled</p></div>`;
+
+    const heroActions = document.createElement('div');
+    heroActions.className = 'mode-hero-actions';
+
+    const boardSel = document.createElement('select');
+    boardSel.className = 'taskboard-source-select';
+    boardSel.title = 'Choose which database acts as Official Taskboard';
+    boardSel.setAttribute('aria-label', 'Official Taskboard database');
+    allDbPages.forEach((p: any) => {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = `Official Board: ${p.title || 'Untitled'}`;
+        if (p.id === qb.id) o.selected = true;
+        boardSel.append(o);
+    });
+    boardSel.onchange = () => {
+        ArchitectDatabase.setOfficialQuestboardPage(boardSel.value);
+        save();
+        renderTaskboardDashboardView(view);
+    };
+
+    const newQuestBtn = document.createElement('button');
+    newQuestBtn.type = 'button';
+    newQuestBtn.className = 'share-button';
+    newQuestBtn.textContent = '＋ New Quest';
+    newQuestBtn.onclick = () => {
+        const created = ArchitectDatabase.createDatabaseRow(qb, {}, [], '📌');
+        save();
+        ArchitectDatabase.refreshAllDatabaseViews();
+        ArchitectDatabase.openDatabaseRow(created, qb);
+    };
+
+    const newQbBtn = document.createElement('button');
+    newQbBtn.type = 'button';
+    newQbBtn.className = 'secondary-button';
+    newQbBtn.textContent = '＋ New Questboard DB';
+    newQbBtn.onclick = () => {
+        const created = ArchitectDatabase.createQuestboardPage(undefined, 'Task Tracker', false);
+        ArchitectDatabase.setOfficialQuestboardPage(created.id);
+        save();
+        renderTaskboardDashboardView(view);
+    };
+
+    const openFullBtn = document.createElement('button');
+    openFullBtn.type = 'button';
+    openFullBtn.className = 'secondary-button';
+    openFullBtn.textContent = '↗ Open Full Page';
+    openFullBtn.onclick = () => navigateToPage(qb.id);
+
+    heroActions.append(boardSel, newQuestBtn, newQbBtn, openFullBtn);
+    hero.append(heroActions);
+    shell.append(hero);
+
+    const stats = document.createElement('div');
+    stats.className = 'dashboard-stats-grid';
+    [
+        { label: 'Open quests', val: String(openQuests), hint: `${parentRows.length} top-level quests total` },
+        { label: 'Completed quests', val: String(doneQuests), hint: 'Finished or dismissed' },
+        { label: 'Subtasks progress', val: `${doneSubs}/${subRows.length}`, hint: 'Jira-ready nested sub-items' },
+        { label: 'Quest views', val: String(db.views.length), hint: db.views.map((v: any) => v.name).slice(0, 4).join(' · ') }
+    ].forEach(c => {
+        const box = document.createElement('div');
+        box.className = 'dashboard-stat-card';
+        box.innerHTML = `<span class="stat-label">${esc(c.label)}</span><strong class="stat-val">${esc(c.val)}</strong><small>${esc(c.hint)}</small>`;
+        stats.append(box);
+    });
+    shell.append(stats);
+
+    const dbCard = document.createElement('section');
+    dbCard.className = 'taskboard-embed-card';
+    shell.append(dbCard);
+    view.append(shell);
+    ensureDashboardHistoryNav(view);
+    ArchitectDatabase.renderDatabaseWidget(dbCard, qb);
 }
 const TASK_TRASH_TTL_MS = 72 * 60 * 60 * 1000;
 function purgeExpiredCompletedTasks(dd?: DashboardData, now = Date.now()): number {
@@ -5110,7 +6858,14 @@ function getPageBreadcrumbSummary(page: Page): string {
     return `${ancestors[0].title || 'Untitled'} / ... / ${ancestors[ancestors.length - 1].title || 'Untitled'}`;
 }
 
+const pageReferenceIdsCache = new Map<string, { updatedAt: number; blocksLen: number; links: Set<string>; relations: Set<string> }>();
 function collectPageReferenceIds(page: Page): { links: Set<string>; relations: Set<string> } {
+    const updatedAt = Number(page?.updatedAt || 0);
+    const blocksLen = Array.isArray(page?.blocks) ? page.blocks.length : 0;
+    const cached = page?.id ? pageReferenceIdsCache.get(page.id) : null;
+    if (cached && cached.updatedAt === updatedAt && cached.blocksLen === blocksLen) {
+        return { links: cached.links, relations: cached.relations };
+    }
     const links = new Set<string>();
     const relations = new Set<string>();
 
@@ -5180,6 +6935,9 @@ function collectPageReferenceIds(page: Page): { links: Set<string>; relations: S
 
     links.delete(page.id);
     relations.delete(page.id);
+    if (page?.id) {
+        pageReferenceIdsCache.set(page.id, { updatedAt, blocksLen, links, relations });
+    }
     return { links, relations };
 }
 
@@ -5308,9 +7066,11 @@ function collectWorkspaceGraphData(opts: { includeHierarchy: boolean; includeLin
         degreeMap.set(e.target, (degreeMap.get(e.target) || 0) + 1);
     }
 
-    const filteredPages = opts.includeOrphans
-        ? visiblePages
-        : visiblePages.filter(pg => (degreeMap.get(pg.id) || 0) > 0);
+    const filteredPages = visiblePages.filter(pg => {
+        const deg = degreeMap.get(pg.id) || 0;
+        if (isHiddenBaseDocsPage(pg)) return deg > 0;
+        return opts.includeOrphans || deg > 0;
+    });
 
     const nodes = filteredPages.map((pg, idx) => {
         const cached = graphNodePosCache.get(pg.id);
@@ -5320,7 +7080,7 @@ function collectWorkspaceGraphData(opts: { includeHierarchy: boolean; includeLin
             id: pg.id,
             title: pg.title || 'Untitled',
             icon: pg.icon || '📄',
-            kind: (pg.pageKind || 'page') as 'page' | 'database' | 'board',
+            kind: (pg.pageKind || 'page') as 'page' | 'database' | 'board' | 'form',
             isActive: pg.id === state.activePageId,
             degree: degreeMap.get(pg.id) || 0,
             x: cached ? cached.x : Math.cos(angle) * ring,
@@ -5554,7 +7314,7 @@ function renderWorkspaceGraphView(host: HTMLElement) {
         hoveredId = hit?.id || null;
         canvas.style.cursor = hit ? 'pointer' : 'grab';
         if (hit) {
-            const kindLbl = hit.kind === 'database' ? 'Database' : hit.kind === 'board' ? 'Board' : 'Page';
+            const kindLbl = hit.kind === 'database' ? 'Database' : hit.kind === 'board' ? 'Board' : hit.kind === 'form' ? 'Form' : 'Page';
             tooltip.innerHTML = `<strong>${esc(hit.title)}</strong><span>${kindLbl} · ${hit.degree} ${hit.degree === 1 ? 'link' : 'links'}</span>`;
             tooltip.style.left = `${Math.min(width - 180, sx + 14)}px`;
             tooltip.style.top = `${Math.max(8, sy - 10)}px`;
@@ -5712,7 +7472,7 @@ function renderWorkspaceGraphView(host: HTMLElement) {
                 const dimmed = (focusSet && !focusSet.has(n.id)) || (queryMatches && !queryMatches.has(n.id));
                 ctx.globalAlpha = dimmed ? 0.22 : 1;
 
-                const fill = n.kind === 'database' ? '#8b5cf6' : n.kind === 'board' ? '#10b981' : '#3b82f6';
+                const fill = n.kind === 'database' ? '#8b5cf6' : n.kind === 'board' ? '#10b981' : n.kind === 'form' ? '#6366f1' : '#3b82f6';
                 ctx.beginPath();
                 ctx.arc(sx, sy, r, 0, Math.PI * 2);
                 ctx.fillStyle = fill;
@@ -5842,7 +7602,7 @@ async function checkForAppUpdates(feedUrlOverride?: string, manual = false) {
     }
     return null;
 }
-function syncAppModeUi() {
+function syncAppModeUi(opts: { skipChromeSync?: boolean } = {}) {
     const inNotion = currentAppMode === 'notion';
     const inGraph = inNotion && isDocsGraphMode;
     document.body.dataset.appMode = currentAppMode;
@@ -5891,8 +7651,15 @@ function syncAppModeUi() {
         if (assetsSidebar && !assetsSidebar.hidden) toggleAssetsSidebar(false);
     }
     if (editorWrap) editorWrap.hidden = !inNotion || inGraph;
-    if (coverSlot && (!inNotion || inGraph)) coverSlot.hidden = true;
-    if (toolbarDock) toolbarDock.hidden = !inNotion || inGraph;
+    if (coverSlot) {
+        if (!inNotion || inGraph) coverSlot.hidden = true;
+        else {
+            const pg = current();
+            const isExpBoard = !!pg && typeof ArchitectBoard !== 'undefined' && ArchitectBoard.isBoardPage(pg) && !!pg.boardExpanded;
+            coverSlot.hidden = !pg || isExpBoard || !pageHasCover(pg) || !resolvePagePermissions(pg).view;
+        }
+    }
+    if (toolbarDock && (!inNotion || inGraph)) toolbarDock.hidden = true;
     if (graphView) graphView.hidden = !inGraph;
     if (dashView) dashView.hidden = currentAppMode !== 'dashboard';
 
@@ -5905,14 +7672,14 @@ function syncAppModeUi() {
         renderWorkspaceGraphView(graphView);
     } else {
         stopGraphAnimation();
-        if (inNotion && current()) {
+        if (inNotion && !opts.skipChromeSync && current()) {
             renderTabs();
             renderBreadcrumbs(current());
         }
     }
-    ArchitectToolbar?.renderToolbar?.();
+    if (!opts.skipChromeSync) ArchitectToolbar?.renderToolbar?.();
 }
-function navigateToPage(pageId, record = true) { if (!state.pages.some(page => page.id === pageId)) return; isDocsGraphMode = false; closeBacklinksPopover(); closeDocsNotificationsPopover(); setAppMode('notion', { skipRender: true }); const switched = state.activePageId !== pageId; stopAllAudioPlayers(); closeSelectionToolbar(); hideCommentPopover(); savedEditorRange = null; formatPainterArmed = false; formatPainterStyle = null; ArchitectDatabase?.closeDbPopover?.(); ArchitectDatabase?.closeDatabasePeek?.(); editingCommentMsgId = null; typingBurstOpen = false; clearTimeout(typingUndoTimer); if (record && switched) { pageHistory = pageHistory.slice(0, historyIndex + 1); pageHistory.push(pageId); historyIndex = pageHistory.length - 1; } state.activePageId = pageId; const dest = state.pages.find(pg => pg.id === pageId); if (dest?.published && switched) recordPublishedPageView(dest); syncHistoryToActiveTab(); syncPageUrl(pageId); save(); render(); if (switched) window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); updateHistoryControls(); }
+function navigateToPage(pageId, record = true) { if (!state.pages.some(page => page.id === pageId)) return; isDocsGraphMode = false; closeBacklinksPopover(); closeDocsNotificationsPopover(); setAppMode('notion', { skipRender: true }); const switched = state.activePageId !== pageId; stopAllAudioPlayers(); closeSelectionToolbar(); hideCommentPopover(); savedEditorRange = null; formatPainterArmed = false; formatPainterStyle = null; ArchitectDatabase?.closeDbPopover?.(); ArchitectDatabase?.closeDatabasePeek?.(); editingCommentMsgId = null; typingBurstOpen = false; clearTimeout(typingUndoTimer); if (record && switched) { pageHistory = pageHistory.slice(0, historyIndex + 1); pageHistory.push(pageId); historyIndex = pageHistory.length - 1; } state.activePageId = pageId; recordUnifiedNav({ mode: 'notion', pageId }); const dest = state.pages.find(pg => pg.id === pageId); if (dest?.published && switched) recordPublishedPageView(dest); syncHistoryToActiveTab(); syncPageUrl(pageId); save(); render(); if (switched) window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); updateHistoryControls(); }
 function navigateHistory(delta) { const next = historyIndex + delta; if (next < 0 || next >= pageHistory.length) return; historyIndex = next; navigateToPage(pageHistory[historyIndex], false); }
 function syncUserProfileUi() {
     if (currentAppMode === 'dashboard') renderDashboardView();
@@ -5931,18 +7698,30 @@ function updateSidebarModeBadge() {
                 : 'Flush local workspace save to disk';
     }
 }
-function persistAllStorage(serialized) {
+let hostWorkspaceHydrated = typeof ArchitectBackend === 'undefined' || !ArchitectBackend.host();
+let lastRichBackupAt = 0;
+function persistAllStorage(serialized, forceBackup = false) {
+    if (!state || !Array.isArray(state.pages) || !state.pages.length) return;
     const key = getActiveStoreKey();
-    localStorage.setItem(key, serialized);
+    try {
+        localStorage.setItem(key, serialized);
+        const now = Date.now();
+        if (key === STORE && (forceBackup || now - lastRichBackupAt >= 10000) && isRichWorkspace(state)) {
+            localStorage.setItem(LAST_RICH_BACKUP, serialized);
+            lastRichBackupAt = now;
+        }
+    } catch {}
     syncActiveWorkspaceInIndex(state, key);
     const desktop = ArchitectBackend.host();
-    if (desktop && key === STORE) desktop.writeWorkspace(serialized).catch(() => {});
+    if (desktop && key === STORE && hostWorkspaceHydrated) {
+        desktop.writeWorkspace(serialized).catch(() => {});
+    }
 }
 window.addEventListener('beforeunload', () => {
     if (saveTimer) {
         clearTimeout(saveTimer);
         saveTimer = 0;
-        if (!isReadOnlyMirror()) persistAllStorage(JSON.stringify(state));
+        if (!isReadOnlyMirror()) persistAllStorage(JSON.stringify(state), true);
     }
 });
 function save(force = false) {
@@ -5950,20 +7729,22 @@ function save(force = false) {
     const activePg = current();
     if (activePg) {
         activePg.updatedAt = Date.now();
-        maybeAutoSnapshotPage(activePg);
     }
     clearTimeout(saveTimer);
     saveTimer = 0;
     if (force) {
-        persistAllStorage(JSON.stringify(state));
+        if (activePg) maybeAutoSnapshotPage(activePg);
+        persistAllStorage(JSON.stringify(state), true);
         $('#saved-status').textContent = isReadOnlyMirror() ? 'View-only mirror' : 'All changes saved';
         return;
     }
     $('#saved-status').textContent = 'Saving…';
     saveTimer = window.setTimeout(() => {
         saveTimer = 0;
+        const pgNow = current();
+        if (pgNow) maybeAutoSnapshotPage(pgNow);
         const serialized = JSON.stringify(state);
-        persistAllStorage(serialized);
+        persistAllStorage(serialized, false);
         $('#saved-status').textContent = 'All changes saved';
     }, 180);
 }
@@ -6268,11 +8049,13 @@ function syncAssetPreviewSettingsVisibility() {
     if (sizeRow) sizeRow.hidden = mode !== 'smart-proxy';
     if (folderRow) folderRow.hidden = mode !== 'download-all';
 }
-function setWorkspaceSettingsTab(tab: 'general' | 'customization' | 'plugins') {
+type WorkspaceSettingsTab = 'general' | 'coordination' | 'assets' | 'backup' | 'customization' | 'plugins';
+function setWorkspaceSettingsTab(tab: WorkspaceSettingsTab) {
     const dlg = $('#settings-dialog');
     if (!dlg) return;
     dlg.querySelectorAll<HTMLElement>('[data-ws-tab]').forEach(btn => {
         const active = btn.dataset.wsTab === tab;
+        btn.classList.toggle('is-active', active);
         btn.classList.toggle('active', active);
         btn.setAttribute('aria-selected', String(active));
     });
@@ -6284,10 +8067,209 @@ function isBlockImageRounded(b: Block, ws = state): boolean {
     if (typeof b?.roundedCorners === 'boolean') return b.roundedCorners;
     return !!ws?.roundedImageCorners;
 }
+function renderWorkspaceIconPacksSettings() {
+    const listEl = $('#ws-iconpack-list');
+    const feedbackEl = $('#ws-iconpack-feedback');
+    const namingGrid = $('#ws-iconpack-naming-grid');
+    if (typeof ArchitectIcons === 'undefined') return;
+    const slots = ArchitectIcons.UI_ICON_SLOTS || [];
+
+    if (namingGrid && !namingGrid.childElementCount) {
+        const groups = [...new Set(slots.map((s: any) => s.group))];
+        groups.forEach((grp: any) => {
+            const sec = document.createElement('div');
+            sec.className = 'ws-naming-group';
+            const h = document.createElement('div');
+            h.className = 'ws-naming-group-title';
+            h.textContent = String(grp);
+            const chips = document.createElement('div');
+            chips.className = 'ws-naming-chips';
+            slots.filter((s: any) => s.group === grp).forEach((s: any) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ws-naming-chip';
+                btn.dataset.slotCopy = `${s.id}.svg`;
+                btn.title = `${s.label} — click to copy filename (${s.id}.svg)`;
+                btn.innerHTML = `<code>${esc(s.id)}.svg</code><span>${esc(s.label)}</span>`;
+                btn.onclick = () => {
+                    try { navigator.clipboard?.writeText(`${s.id}.svg`); } catch {}
+                    toast(`Copied ${s.id}.svg`);
+                };
+                chips.append(btn);
+            });
+            sec.append(h, chips);
+            namingGrid.append(sec);
+        });
+    }
+
+    const packs = Array.isArray(state.uiIconPacks) ? state.uiIconPacks : [];
+    const activeId = state.activeUiIconPackId || null;
+    if (feedbackEl && !feedbackEl.dataset.customNotice) {
+        const activePack = packs.find(pk => pk.id === activeId);
+        feedbackEl.textContent = activePack
+            ? `Active UI pack: “${activePack.name}” (${Object.keys(activePack.icons || {}).length}/${slots.length} UI slots overridden).`
+            : `Using built-in Architect UI icons. Name files like rail-docs.svg, toolbar-bold.svg, or include a manifest.json.`;
+    }
+    if (!listEl) return;
+    listEl.replaceChildren();
+
+    const defaultCard = document.createElement('div');
+    defaultCard.className = 'ws-iconpack-card' + (!activeId ? ' is-active' : '');
+    defaultCard.dataset.iconpackCard = 'builtin';
+    defaultCard.innerHTML = `
+      <div class="ws-iconpack-card-main">
+        <div class="ws-iconpack-card-title"><strong>Built-in Architect UI Icons</strong><span class="badge-pill">Default · ${slots.length} slots</span></div>
+        <small class="dash-muted">Crisp monochrome vector icons for all app chrome, toolbar actions, tabs, and ribbon.</small>
+      </div>
+      <div class="ws-iconpack-card-actions">
+        <button type="button" class="${!activeId ? 'share-button' : 'secondary-button'}" data-iconpack-activate="builtin">${!activeId ? '✓ Active' : 'Use default'}</button>
+      </div>
+    `;
+    defaultCard.querySelector('[data-iconpack-activate]')?.addEventListener('click', () => {
+        state.activeUiIconPackId = null;
+        if (feedbackEl) delete feedbackEl.dataset.customNotice;
+        syncActiveUiIconPack();
+        save(true);
+        render();
+        renderWorkspaceIconPacksSettings();
+        toast('Switched to built-in UI icons');
+    });
+    listEl.append(defaultCard);
+
+    packs.forEach((pk: any) => {
+        const isActive = pk.id === activeId;
+        const count = Object.keys(pk.icons || {}).length;
+        const card = document.createElement('div');
+        card.className = 'ws-iconpack-card' + (isActive ? ' is-active' : '');
+        card.dataset.iconpackCard = pk.id;
+
+        const main = document.createElement('div');
+        main.className = 'ws-iconpack-card-main';
+        const titleRow = document.createElement('div');
+        titleRow.className = 'ws-iconpack-card-title';
+        const nameInp = document.createElement('input');
+        nameInp.type = 'text';
+        nameInp.className = 'ws-iconpack-title-inp';
+        nameInp.value = pk.name || 'Custom Pack';
+        nameInp.setAttribute('aria-label', 'Icon pack name');
+        nameInp.onchange = () => {
+            pk.name = nameInp.value.trim() || pk.name;
+            save(true);
+            renderWorkspaceIconPacksSettings();
+        };
+        const badge = document.createElement('span');
+        badge.className = 'badge-pill';
+        badge.textContent = `${count} / ${slots.length} slots`;
+        titleRow.append(nameInp, badge);
+
+        const prevRow = document.createElement('div');
+        prevRow.className = 'ws-iconpack-preview-row';
+        Object.entries(pk.icons || {}).slice(0, 14).forEach(([slotId, entry]: [string, any]) => {
+            const box = document.createElement('span');
+            box.className = 'ws-iconpack-preview-item';
+            box.title = `${slotId} (${entry.filename || slotId})`;
+            if (entry.markup) box.innerHTML = `<span class="ui-pack-svg">${entry.markup}</span>`;
+            else if (entry.dataUrl) box.innerHTML = `<img class="ui-pack-icon-img" src="${esc(entry.dataUrl)}" alt="">`;
+            prevRow.append(box);
+        });
+        if (count > 14) {
+            const more = document.createElement('span');
+            more.className = 'ws-iconpack-more';
+            more.textContent = `+${count - 14} more`;
+            prevRow.append(more);
+        }
+        main.append(titleRow, prevRow);
+
+        const acts = document.createElement('div');
+        acts.className = 'ws-iconpack-card-actions';
+        const actBtn = document.createElement('button');
+        actBtn.type = 'button';
+        actBtn.className = isActive ? 'share-button' : 'secondary-button';
+        actBtn.dataset.iconpackActivate = pk.id;
+        actBtn.textContent = isActive ? '✓ Active' : 'Activate';
+        actBtn.onclick = () => {
+            state.activeUiIconPackId = pk.id;
+            if (feedbackEl) delete feedbackEl.dataset.customNotice;
+            syncActiveUiIconPack();
+            save(true);
+            render();
+            renderWorkspaceIconPacksSettings();
+            toast(`Activated UI icon pack “${pk.name}”`);
+        };
+        const expBtn = document.createElement('button');
+        expBtn.type = 'button';
+        expBtn.className = 'secondary-button';
+        expBtn.textContent = '↓ Export';
+        expBtn.title = 'Download portable icon pack JSON';
+        expBtn.onclick = () => {
+            const blob = new Blob([JSON.stringify({ format: 'architect-ui-icon-pack', name: pk.name, icons: pk.icons }, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${(pk.name || 'ui-icon-pack').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+            document.body.append(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'secondary-button';
+        delBtn.dataset.iconpackDelete = pk.id;
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = () => {
+            state.uiIconPacks = (state.uiIconPacks || []).filter((x: any) => x.id !== pk.id);
+            if (state.activeUiIconPackId === pk.id) state.activeUiIconPackId = null;
+            if (feedbackEl) delete feedbackEl.dataset.customNotice;
+            syncActiveUiIconPack();
+            save(true);
+            render();
+            renderWorkspaceIconPacksSettings();
+            toast(`Removed UI icon pack “${pk.name}”`);
+        };
+        acts.append(actBtn, expBtn, delBtn);
+        card.append(main, acts);
+        listEl.append(card);
+    });
+}
+async function handleWorkspaceIconPackUpload(files: File[]) {
+    if (!files.length || typeof ArchitectIcons === 'undefined') return;
+    const nameEl = $('#ws-iconpack-name') as HTMLInputElement | null;
+    const feedbackEl = $('#ws-iconpack-feedback');
+    const customName = nameEl?.value.trim() || '';
+    const { pack, matchedCount, unmatchedFiles } = await ArchitectIcons.buildUiIconPackFromFiles(files, customName);
+    if (!matchedCount) {
+        if (feedbackEl) {
+            feedbackEl.dataset.customNotice = '1';
+            feedbackEl.textContent = `No UI icon filenames matched (${unmatchedFiles.slice(0, 6).join(', ')}). Expand "File naming reference" below or download the template JSON.`;
+        }
+        toast('No matching UI icon filenames found');
+        return;
+    }
+    state.uiIconPacks = Array.isArray(state.uiIconPacks) ? state.uiIconPacks : [];
+    state.uiIconPacks.push(pack);
+    state.activeUiIconPackId = pack.id;
+    if (nameEl) nameEl.value = '';
+    if (feedbackEl) {
+        feedbackEl.dataset.customNotice = '1';
+        feedbackEl.textContent = `Loaded “${pack.name}”: matched ${matchedCount} UI icons${unmatchedFiles.length ? `. Ignored ${unmatchedFiles.length} unrecognized file(s): ${unmatchedFiles.slice(0, 5).join(', ')}` : '!'}`;
+    }
+    syncActiveUiIconPack();
+    save(true);
+    render();
+    renderWorkspaceIconPacksSettings();
+    toast(`Installed UI icon pack “${pack.name}” (${matchedCount} icons)`);
+}
 function openWorkspaceSettings() {
+    const searchEl = $('#ws-settings-search') as HTMLInputElement | null;
+    if (searchEl) searchEl.value = '';
+    document.querySelectorAll('#settings-dialog [data-ws-tab], #settings-dialog [data-ws-keywords]').forEach(el => {
+        (el as HTMLElement).hidden = false;
+    });
     setWorkspaceSettingsTab('general');
     const roundedCb = $('#ws-rounded-images') as HTMLInputElement | null;
     if (roundedCb) roundedCb.checked = !!state.roundedImageCorners;
+    const fbEl = $('#ws-iconpack-feedback');
+    if (fbEl) delete fbEl.dataset.customNotice;
+    renderWorkspaceIconPacksSettings();
     $('#settings-workspace-name').value = state.workspaceName || '';
     $('#settings-coord-mode').value = state.coordinationMode || 'local';
     $('#settings-asset-mode').value = state.assetStorageMode || 'local';
@@ -6444,6 +8426,8 @@ function cleanInlineHtml(html) {
             if (tcase && ALLOWED_INLINE_CASE_KEYS.has(tcase)) attrs.push(`data-text-case="${esc(tcase)}"`);
             const fontKey = child.getAttribute('data-font');
             if (fontKey && /^[a-zA-Z0-9 _:-]{1,64}$/.test(fontKey)) attrs.push(`data-font="${esc(fontKey)}"`);
+            const fsKey = child.getAttribute('data-font-size');
+            if (fsKey && /^(sm|default|lg|xl)$/.test(fsKey)) attrs.push(`data-font-size="${esc(fsKey)}"`);
             const mdHeading = child.getAttribute('data-md-heading');
             if (mdHeading && /^h[1-6]$/.test(mdHeading)) attrs.push(`data-md-heading="${esc(mdHeading)}"`);
             return attrs.length ? `<span ${attrs.join(' ')}>${content}</span>` : content;
@@ -6453,7 +8437,7 @@ function cleanInlineHtml(html) {
     return walk(doc.body);
 }
 function inlineMarkdownAtCaret(el) { const selection=getSelection();if(!selection?.rangeCount)return false;const active=selection.getRangeAt(0),node=active.startContainer,offset=active.startOffset;if(node.nodeType!==Node.TEXT_NODE)return false;const before=node.textContent.slice(0,offset),match=before.match(/(\*\*([^*]+)\*\*|\*([^*]+)\*|~~([^~]+)~~|`([^`]+)`)\s$/);if(!match)return false;const tag=match[2]?'strong':match[3]?'em':match[4]?'del':'code',content=match[2]||match[3]||match[4]||match[5],start=offset-match[0].length,suffix=node.textContent.slice(offset),parent=node.parentNode;if(start<0||!parent)return false;const formatted=document.createElement(tag);formatted.textContent=content;const space=document.createTextNode(' '),tail=suffix?document.createTextNode(suffix):null;node.textContent=node.textContent.slice(0,start);parent.insertBefore(formatted,node.nextSibling);parent.insertBefore(space,formatted.nextSibling);if(tail)parent.insertBefore(tail,space.nextSibling);const caret=document.createRange();caret.setStartAfter(space);caret.collapse(true);selection.removeAllRanges();selection.addRange(caret);return true}
-function renderNav() { const nav=$('#page-list');nav.replaceChildren();state.expandedPageIds=state.expandedPageIds||[];const section=(label)=>{const wrap=document.createElement('section');wrap.className='outline-section';const heading=document.createElement('div');heading.className='nav-label';heading.textContent=label;const list=document.createElement('div');wrap.append(heading,list);nav.append(wrap);return list};const favorites=section('FAVORITES'),pages=section('WORKSPACE PAGES');const hasChildren=p=>state.pages.some(x=>x.parentId===p.id&&!x.databaseId);const addRow=(p,container,depth=0,tree=false)=>{const navPerms=resolvePagePermissions(p);const isLockedNav=!navPerms.view||!!p.permissions?.noOneAccess;const row=document.createElement('div');row.className='page-nav'+(p.id===state.activePageId?' active':'')+(p.pageKind==='database'?' is-database-nav':'')+(p.pageKind==='board'?' is-board-nav':'')+(isLockedNav?' is-locked':'');row.style.paddingLeft=`${7+depth*13}px`;const children=hasChildren(p);const arrow=document.createElement('button');arrow.type='button';arrow.className='page-expand'+(state.expandedPageIds.includes(p.id)?' expanded':'');arrow.textContent=children?'›':'';arrow.setAttribute('aria-label',state.expandedPageIds.includes(p.id)?'Collapse subpages':'Expand subpages');arrow.onclick=e=>{e.stopPropagation();if(!children)return;state.expandedPageIds.includes(p.id)?state.expandedPageIds=state.expandedPageIds.filter(id=>id!==p.id):state.expandedPageIds.push(p.id);save();renderNav()};const icon=document.createElement('span');icon.className='page-icon';icon.innerHTML=pageIconMarkup(p.icon);const title=document.createElement('span');title.className='page-title';title.textContent=p.title;const more=document.createElement('button');more.type='button';more.className='page-more';more.title='Page actions';more.textContent='•••';more.onclick=e=>{e.stopPropagation();pageMenu(p,e.currentTarget)};row.append(arrow,icon,title);if(isLockedNav){const lk=document.createElement('span');lk.className='page-lock-badge';lk.title='Restricted permissions';lk.textContent='🔒';row.append(lk);}row.append(more);row.setAttribute('role','link');row.tabIndex=0;row.onclick=e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();openPageInNewTab(p.id);return;}navigateToPage(p.id)};row.onauxclick=e=>{if(e.button===1&&!e.target.closest('.page-more,.page-expand')){e.preventDefault();openPageInNewTab(p.id)}};row.addEventListener('mousedown',e=>{if(e.button===1&&!e.target.closest('.page-more,.page-expand'))e.preventDefault()});row.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();pageMenu(p,e)};row.onkeydown=e=>{if(e.target!==row)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();navigateToPage(p.id)}else if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();pageMenu(p,e.currentTarget)}};container.append(row);if(tree&&children&&state.expandedPageIds.includes(p.id))state.pages.filter(x=>x.parentId===p.id&&!x.databaseId).forEach(child=>addRow(child,container,depth+1,true))};state.pages.filter(p=>p.favorite).sort((a,b)=>a.title.localeCompare(b.title)).forEach(p=>addRow(p,favorites,0,true));state.pages.filter(p=>!p.parentId&&!p.databaseId).forEach(p=>addRow(p,pages,0,true));const ws=$('#workspace-access');if(ws){ws.innerHTML='';const button=document.createElement('button');button.type='button';button.className='workspace-access-item';const monogram=esc((state.workspaceName||'N').trim().charAt(0).toUpperCase()||'N');button.innerHTML=`<span class="workspace-access-icon">${monogram}</span><span>${esc(state.workspaceName)}</span><span class="workspace-access-arrow">⌄</span>`;button.title='Switch or create workspace';button.setAttribute('aria-haspopup','menu');button.onclick=e=>{e.stopPropagation();openWorkspaceDropdown(button)};ws.append(button)}}
+function renderNav() { const nav=$('#page-list');nav.replaceChildren();state.expandedPageIds=state.expandedPageIds||[];const section=(label)=>{const wrap=document.createElement('section');wrap.className='outline-section';const heading=document.createElement('div');heading.className='nav-label';heading.textContent=label;const list=document.createElement('div');wrap.append(heading,list);nav.append(wrap);return list};const favorites=section('FAVORITES'),pages=section('WORKSPACE PAGES');const childrenByParent=new Map<string, Page[]>();state.pages.forEach(x=>{if(!x.parentId||!isVisibleDocsPage(x))return;const arr=childrenByParent.get(x.parentId);if(arr)arr.push(x);else childrenByParent.set(x.parentId,[x]);});const addRow=(p,container,depth=0,tree=false)=>{const navPerms=resolvePagePermissions(p);const isLockedNav=!navPerms.view||!!p.permissions?.noOneAccess;const row=document.createElement('div');row.className='page-nav'+(p.id===state.activePageId?' active':'')+(p.pageKind==='database'?' is-database-nav':'')+(p.pageKind==='board'?' is-board-nav':'')+(p.pageKind==='form'?' is-form-nav':'')+(isLockedNav?' is-locked':'');row.style.paddingLeft=`${7+depth*13}px`;const childList=childrenByParent.get(p.id)||[];const children=childList.length>0;const arrow=document.createElement('button');arrow.type='button';arrow.className='page-expand'+(state.expandedPageIds.includes(p.id)?' expanded':'');arrow.textContent=children?'›':'';arrow.setAttribute('aria-label',state.expandedPageIds.includes(p.id)?'Collapse subpages':'Expand subpages');arrow.onclick=e=>{e.stopPropagation();if(!children)return;state.expandedPageIds.includes(p.id)?state.expandedPageIds=state.expandedPageIds.filter(id=>id!==p.id):state.expandedPageIds.push(p.id);save();renderNav()};const icon=document.createElement('span');icon.className='page-icon';icon.innerHTML=pageIconMarkup(p.icon);const title=document.createElement('span');title.className='page-title';title.textContent=p.title;const more=document.createElement('button');more.type='button';more.className='page-more';more.title='Page actions';more.textContent='•••';more.onclick=e=>{e.stopPropagation();pageMenu(p,e.currentTarget)};row.append(arrow,icon,title);if(isLockedNav){const lk=document.createElement('span');lk.className='page-lock-badge';lk.title='Restricted permissions';lk.textContent='🔒';row.append(lk);}row.append(more);row.setAttribute('role','link');row.tabIndex=0;row.onclick=e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();openPageInNewTab(p.id);return;}navigateToPage(p.id)};row.onauxclick=e=>{if(e.button===1&&!e.target.closest('.page-more,.page-expand')){e.preventDefault();openPageInNewTab(p.id)}};row.addEventListener('mousedown',e=>{if(e.button===1&&!e.target.closest('.page-more,.page-expand'))e.preventDefault()});row.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();pageMenu(p,e)};row.onkeydown=e=>{if(e.target!==row)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();navigateToPage(p.id)}else if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();pageMenu(p,e.currentTarget)}};container.append(row);if(tree&&children&&state.expandedPageIds.includes(p.id))childList.forEach(child=>addRow(child,container,depth+1,true))};state.pages.filter(p=>p.favorite&&!isHiddenBaseDocsPage(p)).sort((a,b)=>a.title.localeCompare(b.title)).forEach(p=>addRow(p,favorites,0,true));state.pages.filter(p=>!p.parentId&&isVisibleDocsPage(p)).forEach(p=>addRow(p,pages,0,true));const ws=$('#workspace-access');if(ws){ws.innerHTML='';const button=document.createElement('button');button.type='button';button.className='workspace-access-item';const monogram=esc((state.workspaceName||'N').trim().charAt(0).toUpperCase()||'N');button.innerHTML=`<span class="workspace-access-icon">${monogram}</span><span>${esc(state.workspaceName)}</span><span class="workspace-access-arrow">⌄</span>`;button.title='Switch or create workspace';button.setAttribute('aria-haspopup','menu');button.onclick=e=>{e.stopPropagation();openWorkspaceDropdown(button)};ws.append(button)}}
 function renderBreadcrumbs(p) { const target = $('#breadcrumbs'); target.replaceChildren(); const wireCrumb = (btn, pageId) => { btn.dataset.pageId = pageId; btn.onclick = e => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); openPageInNewTab(pageId); return; } navigateToPage(pageId); }; btn.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); }); btn.onauxclick = e => { if (e.button === 1) { e.preventDefault(); openPageInNewTab(pageId); } }; }; const ancestors = []; let node = p; while (node) { ancestors.unshift(node); node = node.parentId ? state.pages.find(page => page.id === node.parentId) : null; } ancestors.forEach((page, index) => { if (index > 0) { const separator = document.createElement('span'); separator.textContent = '›'; target.append(separator); } if (index === ancestors.length - 1) { const currentCrumb = document.createElement('strong'); currentCrumb.textContent = page.title; target.append(currentCrumb); } else { const crumb = document.createElement('button'); crumb.type = 'button'; crumb.className = 'breadcrumb-ancestor'; crumb.textContent = page.title; wireCrumb(crumb, page.id); target.append(crumb); } }); }
 const resolvedAssetPreviewCache = new Map();
 const resolvedCoverOriginalCache = new Map();
@@ -6474,8 +8458,899 @@ function ensurePageCoverSlot() {
     else main.append(slot);
     return slot;
 }
+
+function formHexColorWithOpacity(hex: string, opacity: number): string {
+    const clean = String(hex || '#ffffff').trim();
+    const op = Math.max(0, Math.min(1, Number.isFinite(Number(opacity)) ? Number(opacity) : 1));
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(clean);
+    if (!m) return clean;
+    const raw = m[1].length === 3 ? m[1].split('').map(c => c + c).join('') : m[1];
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${op})`;
+}
+
+const formSessionStateByPageId = new Map<string, { draftRow: any; fieldErrors: Record<string, string>; submittedRow: any; activeQuestionId: string | null }>();
+function getFormSessionState(page) {
+    let s = formSessionStateByPageId.get(page.id);
+    if (!s) {
+        s = {
+            draftRow: { id: '__form_draft__', title: '', icon: '📄', propertyValues: {} },
+            fieldErrors: {},
+            submittedRow: null,
+            activeQuestionId: null
+        };
+        formSessionStateByPageId.set(page.id, s);
+    }
+    return s;
+}
+function isFormResponderActive(page): boolean {
+    if (!page || typeof ArchitectDatabase === 'undefined' || !ArchitectDatabase.isFormPage(page)) return false;
+    const ro = effectivePageReadOnly(page);
+    const { cfg } = ArchitectDatabase.ensureFormConfig(page);
+    const isPublishedSubdomain = Boolean(
+        cfg.publishedSiteEnabled
+        && cfg.subdomain
+        && typeof location !== 'undefined'
+        && (location.hostname || '').toLowerCase().startsWith(cfg.subdomain.toLowerCase() + '.')
+    );
+    return ro || cfg.formMode === 'respond' || (window as any).__architectFormOpenMode === page.id || isPublishedSubdomain;
+}
+
+const formImageRatioCache = new Map<string, number>();
+function applyCroppedBgStyle(
+    el: HTMLElement,
+    url: string,
+    opts: { x?: number; y?: number; zoom?: number; aspect?: number; fallbackW?: number; fallbackH?: number } = {}
+) {
+    if (!url) {
+        el.style.backgroundImage = '';
+        return;
+    }
+    el.style.backgroundImage = `url("${url}")`;
+    el.style.backgroundRepeat = 'no-repeat';
+    const x = Math.min(100, Math.max(0, Number(opts.x ?? 50)));
+    const y = Math.min(100, Math.max(0, Number(opts.y ?? 50)));
+    const zoom = Math.max(100, Number(opts.zoom ?? 100));
+    el.style.backgroundPosition = `${x}% ${y}%`;
+
+    const applySized = (imgRatio: number) => {
+        if (!el.isConnected && !el.dataset.forceBgSize) return;
+        const elW = el.clientWidth || opts.fallbackW || 0;
+        const elH = el.clientHeight || opts.fallbackH || 0;
+        if (!elW || !elH || !imgRatio) {
+            el.style.backgroundSize = zoom <= 100 ? 'cover' : `${zoom}% auto`;
+            return;
+        }
+        const elRatio = elW / Math.max(1, elH);
+        const cropAspect = Number(opts.aspect) > 0 ? Number(opts.aspect) : elRatio;
+        const fitFracW = Math.min(1, cropAspect / imgRatio);
+        const cropFracW = Math.max(0.05, fitFracW * (100 / zoom));
+        const needW = 100 / cropFracW;
+        const needHAsW = needW * (cropAspect / elRatio);
+        el.style.backgroundSize = `${Math.max(needW, needHAsW).toFixed(2)}% auto`;
+    };
+
+    const cached = formImageRatioCache.get(url);
+    if (cached) {
+        requestAnimationFrame(() => applySized(cached));
+    } else {
+        el.style.backgroundSize = zoom <= 100 ? 'cover' : `${zoom}% auto`;
+        const probe = new Image();
+        probe.onload = () => {
+            if (probe.naturalWidth && probe.naturalHeight) {
+                const ratio = probe.naturalWidth / probe.naturalHeight;
+                formImageRatioCache.set(url, ratio);
+                applySized(ratio);
+            }
+        };
+        probe.src = url;
+    }
+}
+
+function getFormCanvasCropAspect(): { aspect: number; label: string } {
+    const outer = document.querySelector('#editor .form-canvas-outer') as HTMLElement | null;
+    const w = Math.max(320, Math.round(outer?.clientWidth || editor?.clientWidth || 760));
+    const h = Math.max(260, Math.round(Math.max(outer?.scrollHeight || 0, outer?.clientHeight || 0, 520)));
+    const aspect = Math.min(3.5, Math.max(0.22, w / h));
+    return { aspect, label: `Form dimensions: ${w} × ${h} px (${aspect.toFixed(2)}:1 based on form length)` };
+}
+
+function getFormButtonCropAspect(blockId: string, bcfg: any): { aspect: number; label: string } {
+    const btn = editor.querySelector(`.block[data-block-id="${CSS.escape(blockId)}"] .form-custom-btn`) as HTMLElement | null;
+    const w = Math.max(88, Math.round(btn?.clientWidth || (bcfg?.align === 'full' ? 680 : 164)));
+    const h = Math.max(30, Math.round(btn?.clientHeight || 40));
+    const aspect = Math.min(10, Math.max(1.1, w / h));
+    return { aspect, label: `Button dimensions: ${w} × ${h} px (${aspect.toFixed(2)}:1)` };
+}
+
+function openFormImageCropModal(opts: {
+    title: string;
+    subtitle?: string;
+    src: string;
+    aspectRatio: number;
+    dimensionLabel?: string;
+    initialX?: number;
+    initialY?: number;
+    initialZoom?: number;
+    previewKind: 'button' | 'background';
+    backgroundColor?: string;
+    backgroundOpacity?: number;
+    buttonPreviewCfg?: { label?: string; icon?: string; textColor?: string; borderColor?: string; bgColor?: string; fontFamily?: string; borderRadius?: string; fullWidth?: boolean };
+    onApply: (crop: { x: number; y: number; zoom: number; aspect: number }) => void;
+    onCancel?: () => void;
+}) {
+    if (!opts?.src) return;
+    closeMenu();
+    closeRichPopover();
+
+    const aspect = Math.max(0.18, Math.min(10, Number(opts.aspectRatio) || 1.5));
+    let cropX = Math.min(100, Math.max(0, Number(opts.initialX ?? 50)));
+    let cropY = Math.min(100, Math.max(0, Number(opts.initialY ?? 50)));
+    let cropZoom = Math.min(250, Math.max(100, Number(opts.initialZoom ?? 100)));
+
+    const dlg = document.createElement('dialog');
+    dlg.className = 'settings-dialog form-crop-dialog';
+    dlg.dataset.formCropKind = opts.previewKind;
+    dlg.innerHTML = `
+        <form method="dialog" class="cover-panel form-crop-panel">
+            <header class="settings-header">
+                <div>
+                    <h2>${esc(opts.title || 'Crop image')}</h2>
+                    <p>${esc(opts.subtitle || opts.dimensionLabel || 'Drag the frame to select the section; drag the corner handle or use zoom to resize.')}</p>
+                </div>
+                <button type="button" class="icon-button" data-form-crop-cancel aria-label="Close cropper">×</button>
+            </header>
+            ${opts.dimensionLabel ? `<div class="form-crop-dims-pill">${esc(opts.dimensionLabel)}</div>` : ''}
+            <div class="form-crop-workspace">
+                <div class="form-crop-stage-col">
+                    <div class="cover-crop-stage form-crop-stage"><span class="crop-empty">Loading image…</span></div>
+                    <div class="form-crop-sliders">
+                        <label class="form-crop-slider-item"><span>Zoom</span><input type="range" min="100" max="250" step="1" value="${cropZoom}" data-form-crop-zoom><strong data-form-crop-zoom-val>${cropZoom}%</strong></label>
+                        <label class="form-crop-slider-item"><span>X %</span><input type="range" min="0" max="100" step="1" value="${cropX}" data-form-crop-x><strong data-form-crop-x-val>${cropX}%</strong></label>
+                        <label class="form-crop-slider-item"><span>Y %</span><input type="range" min="0" max="100" step="1" value="${cropY}" data-form-crop-y><strong data-form-crop-y-val>${cropY}%</strong></label>
+                    </div>
+                </div>
+                <div class="form-crop-preview-col">
+                    <div class="cover-preview-label">Live preview</div>
+                    <div class="form-crop-live-preview-box"></div>
+                </div>
+            </div>
+            <footer class="cover-footer">
+                <button type="button" class="secondary-button" data-form-crop-reset>Reset</button>
+                <div style="display:flex;gap:8px">
+                    <button type="button" class="secondary-button" data-form-crop-cancel>Cancel</button>
+                    <button type="submit" class="share-button" data-form-crop-apply>Apply crop</button>
+                </div>
+            </footer>
+        </form>
+    `;
+    document.body.append(dlg);
+
+    const stage = dlg.querySelector('.form-crop-stage') as HTMLElement;
+    const previewBox = dlg.querySelector('.form-crop-live-preview-box') as HTMLElement;
+    const zoomInp = dlg.querySelector('[data-form-crop-zoom]') as HTMLInputElement;
+    const xInp = dlg.querySelector('[data-form-crop-x]') as HTMLInputElement;
+    const yInp = dlg.querySelector('[data-form-crop-y]') as HTMLInputElement;
+    const zoomLbl = dlg.querySelector('[data-form-crop-zoom-val]') as HTMLElement;
+    const xLbl = dlg.querySelector('[data-form-crop-x-val]') as HTMLElement;
+    const yLbl = dlg.querySelector('[data-form-crop-y-val]') as HTMLElement;
+
+    let previewTargetEl: HTMLElement;
+    if (opts.previewKind === 'button') {
+        const bcfg = opts.buttonPreviewCfg || {};
+        const mockBtn = document.createElement('button');
+        mockBtn.type = 'button';
+        mockBtn.className = 'form-custom-btn has-bg-image form-crop-btn-preview';
+        mockBtn.style.backgroundColor = bcfg.bgColor || '#2383e2';
+        mockBtn.style.color = bcfg.textColor || '#ffffff';
+        mockBtn.style.borderColor = bcfg.borderColor || bcfg.bgColor || '#2383e2';
+        mockBtn.style.borderRadius = bcfg.borderRadius || '8px';
+        if (bcfg.fontFamily && bcfg.fontFamily !== 'inherit') mockBtn.style.fontFamily = bcfg.fontFamily;
+        if (bcfg.fullWidth) mockBtn.style.width = '100%';
+        if (bcfg.icon) {
+            const ico = document.createElement('span');
+            ico.className = 'form-custom-btn-ico';
+            ico.textContent = bcfg.icon;
+            mockBtn.append(ico);
+        }
+        const lbl = document.createElement('span');
+        lbl.textContent = bcfg.label || 'Submit';
+        mockBtn.append(lbl);
+        previewBox.append(mockBtn);
+        previewTargetEl = mockBtn;
+    } else {
+        const mockCanvas = document.createElement('div');
+        mockCanvas.className = 'form-crop-bg-preview-card';
+        const previewH = Math.min(220, Math.max(115, Math.round(168 / aspect)));
+        const previewW = Math.round(previewH * aspect);
+        mockCanvas.style.width = `${Math.min(210, Math.max(96, previewW))}px`;
+        mockCanvas.style.height = `${previewH}px`;
+        mockCanvas.style.backgroundColor = opts.backgroundColor || '#f4f6fb';
+        const layer = document.createElement('div');
+        layer.className = 'form-canvas-bg-image-layer';
+        layer.dataset.forceBgSize = 'true';
+        layer.style.opacity = String(opts.backgroundOpacity !== undefined ? Math.max(0, Math.min(1, Number(opts.backgroundOpacity))) : 1);
+        const cardMock = document.createElement('div');
+        cardMock.className = 'form-crop-bg-preview-inner';
+        cardMock.innerHTML = '<strong>Form Preview</strong><span></span><span></span>';
+        mockCanvas.append(layer, cardMock);
+        previewBox.append(mockCanvas);
+        previewTargetEl = layer;
+    }
+
+    const syncLivePreview = () => {
+        zoomInp.value = String(Math.round(cropZoom));
+        xInp.value = String(Math.round(cropX));
+        yInp.value = String(Math.round(cropY));
+        zoomLbl.textContent = `${Math.round(cropZoom)}%`;
+        xLbl.textContent = `${Math.round(cropX)}%`;
+        yLbl.textContent = `${Math.round(cropY)}%`;
+        applyCroppedBgStyle(previewTargetEl, opts.src, { x: cropX, y: cropY, zoom: cropZoom, aspect });
+    };
+
+    stage.replaceChildren();
+    const image = document.createElement('img');
+    image.className = 'cover-source-image';
+    image.alt = 'Form crop source';
+    image.draggable = false;
+    const shade = document.createElement('div');
+    shade.className = 'crop-shade';
+    const shades = Array.from({ length: 4 }, () => {
+        const p = document.createElement('div');
+        p.className = 'crop-shade-piece';
+        shade.append(p);
+        return p;
+    });
+    const frame = document.createElement('div');
+    frame.className = 'crop-frame';
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'crop-resize-handle';
+    handle.setAttribute('aria-label', 'Resize crop region');
+    frame.append(handle);
+    stage.append(image, shade, frame);
+
+    let metrics: { imageLeft: number; imageTop: number; imageWidth: number; imageHeight: number; fitWidth: number; cropWidth: number; cropHeight: number; left: number; top: number } | null = null;
+    const layoutCropFrame = () => {
+        if (!image.naturalWidth || !stage.clientWidth || !stage.clientHeight) return;
+        const sw = stage.clientWidth;
+        const sh = stage.clientHeight;
+        const scale = Math.min(sw / image.naturalWidth, sh / image.naturalHeight);
+        const iw = image.naturalWidth * scale;
+        const ih = image.naturalHeight * scale;
+        const il = (sw - iw) / 2;
+        const it = (sh - ih) / 2;
+        formImageRatioCache.set(opts.src, image.naturalWidth / Math.max(1, image.naturalHeight));
+        image.style.width = `${iw}px`;
+        image.style.height = `${ih}px`;
+        image.style.left = `${il}px`;
+        image.style.top = `${it}px`;
+
+        const fitW = Math.min(iw, ih * aspect);
+        const cw = Math.max(24, fitW * 100 / cropZoom);
+        const ch = cw / aspect;
+        const left = il + (iw - cw) * cropX / 100;
+        const top = it + (ih - ch) * cropY / 100;
+        frame.style.left = `${left}px`;
+        frame.style.top = `${top}px`;
+        frame.style.width = `${cw}px`;
+        frame.style.height = `${ch}px`;
+        metrics = { imageLeft: il, imageTop: it, imageWidth: iw, imageHeight: ih, fitWidth: fitW, cropWidth: cw, cropHeight: ch, left, top };
+        Object.assign(shades[0].style, { left: '0', top: '0', width: `${sw}px`, height: `${Math.max(0, top)}px` });
+        Object.assign(shades[1].style, { left: '0', top: `${top + ch}px`, width: `${sw}px`, height: `${Math.max(0, sh - top - ch)}px` });
+        Object.assign(shades[2].style, { left: '0', top: `${top}px`, width: `${Math.max(0, left)}px`, height: `${ch}px` });
+        Object.assign(shades[3].style, { left: `${left + cw}px`, top: `${top}px`, width: `${Math.max(0, sw - left - cw)}px`, height: `${ch}px` });
+        syncLivePreview();
+    };
+
+    image.onload = layoutCropFrame;
+    image.src = opts.src;
+
+    const beginDrag = (ev: PointerEvent, mode: 'move' | 'resize') => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const m = metrics;
+        if (!m) return;
+        const start = { x: ev.clientX, y: ev.clientY, left: m.left, top: m.top, width: m.cropWidth };
+        const onMove = (nxt: PointerEvent) => {
+            const dx = nxt.clientX - start.x;
+            const dy = nxt.clientY - start.y;
+            if (mode === 'move') {
+                cropX = Math.round(Math.min(100, Math.max(0, ((start.left + dx - m.imageLeft) / Math.max(1, m.imageWidth - m.cropWidth)) * 100)));
+                cropY = Math.round(Math.min(100, Math.max(0, ((start.top + dy - m.imageTop) / Math.max(1, m.imageHeight - m.cropHeight)) * 100)));
+            } else {
+                const nextW = Math.min(m.fitWidth, Math.max(m.fitWidth * 100 / 250, start.width + dx));
+                cropZoom = Math.round(Math.min(250, Math.max(100, m.fitWidth * 100 / nextW)));
+            }
+            layoutCropFrame();
+        };
+        const onUp = () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp, { once: true });
+    };
+    frame.addEventListener('pointerdown', ev => { if (ev.target !== handle) beginDrag(ev, 'move'); });
+    handle.addEventListener('pointerdown', ev => beginDrag(ev, 'resize'));
+
+    zoomInp.oninput = () => { cropZoom = Math.min(250, Math.max(100, Number(zoomInp.value) || 100)); layoutCropFrame(); };
+    xInp.oninput = () => { cropX = Math.min(100, Math.max(0, Number(xInp.value) || 0)); layoutCropFrame(); };
+    yInp.oninput = () => { cropY = Math.min(100, Math.max(0, Number(yInp.value) || 0)); layoutCropFrame(); };
+
+    dlg.querySelector('[data-form-crop-reset]')?.addEventListener('click', () => {
+        cropX = 50; cropY = 50; cropZoom = 100;
+        layoutCropFrame();
+    });
+
+    const cleanup = () => {
+        if (dlg.open) dlg.close();
+        dlg.remove();
+    };
+    dlg.querySelectorAll('[data-form-crop-cancel]').forEach(b => b.addEventListener('click', () => {
+        cleanup();
+        opts.onCancel?.();
+    }));
+    dlg.querySelector('form')?.addEventListener('submit', ev => {
+        ev.preventDefault();
+        cleanup();
+        opts.onApply({ x: cropX, y: cropY, zoom: cropZoom, aspect });
+    });
+    dlg.addEventListener('cancel', ev => {
+        ev.preventDefault();
+        cleanup();
+        opts.onCancel?.();
+    });
+
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open', 'true');
+    requestAnimationFrame(() => { layoutCropFrame(); syncLivePreview(); });
+}
+
+let formDesignSidebarPageId = '';
+function toggleFormDesignSidebar(forceOpen: boolean | null = null, targetPage?: any, onUpdated?: () => void) {
+    const drawer = $('#form-design-sidebar');
+    if (!drawer) return;
+    const pg = targetPage || current();
+    const isFormDoc = Boolean(pg && typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(pg) && !isFormResponderActive(pg));
+    const nextOpen = forceOpen === null
+        ? (drawer.hidden || (pg && formDesignSidebarPageId !== pg.id))
+        : (!!forceOpen && isFormDoc);
+    if (nextOpen && !isFormDoc) return;
+
+    if (nextOpen && pg) {
+        const cDrawer = $('#comments-drawer');
+        if (cDrawer && !cDrawer.hidden) toggleCommentsDrawer(false);
+        const aSidebar = $('#assets-sidebar');
+        if (aSidebar && !aSidebar.hidden) toggleAssetsSidebar(false);
+        closeRichPopover();
+        formDesignSidebarPageId = pg.id;
+        drawer.hidden = false;
+        ArchitectDatabase.renderFormDesignPanel(drawer, pg, {
+            onUpdated: onUpdated || (() => render()),
+            onClose: () => toggleFormDesignSidebar(false)
+        });
+    } else {
+        formDesignSidebarPageId = '';
+        drawer.hidden = true;
+    }
+    document.querySelectorAll('[data-form-action="form-settings"]').forEach(el => {
+        el.classList.toggle('is-active', nextOpen && !!pg && formDesignSidebarPageId === pg.id);
+    });
+}
+
+function getFormRadioPlaylist(cfg: any): Array<{ assetId: string; name: string; url: string; releaseStatus: 'unreleased' | 'spotify'; spotifyUrl: string }> {
+    const list = Array.isArray(cfg?.musicTracks) ? cfg.musicTracks.filter((t: any) => t && (t.assetId || t.url || t.name)) : [];
+    if (list.length) {
+        return list.map((t: any) => ({
+            assetId: String(t.assetId || ''),
+            name: String(t.name || 'Track'),
+            url: String(t.url || ''),
+            releaseStatus: t.releaseStatus === 'spotify' ? 'spotify' : 'unreleased',
+            spotifyUrl: String(t.spotifyUrl || '')
+        }));
+    }
+    if (cfg?.musicAssetId || cfg?.musicUrl || cfg?.musicName) {
+        return [{
+            assetId: String(cfg.musicAssetId || ''),
+            name: String(cfg.musicName || 'Track 1'),
+            url: String(cfg.musicUrl || ''),
+            releaseStatus: cfg.musicReleaseStatus === 'spotify' ? 'spotify' : 'unreleased',
+            spotifyUrl: String(cfg.musicSpotifyUrl || '')
+        }];
+    }
+    return [];
+}
+
+function resolveFormRadioReleaseInfo(cfg: any, activeTrack?: any): { status: 'unreleased' | 'spotify'; spotifyUrl: string; trackName: string } {
+    const tracks = getFormRadioPlaylist(cfg);
+    const track = activeTrack || tracks[0] || null;
+    const assetId = track?.assetId || cfg?.musicAssetId || '';
+    const asset = assetId ? ArchitectBackend.readAssetCatalog().find(a => a.id === assetId) : null;
+    const assetStatus = String((asset as any)?.releaseStatus || asset?.metadata?.releaseStatus || '').toLowerCase();
+    const assetSpotify = String((asset as any)?.spotifyUrl || asset?.metadata?.spotifyUrl || '').trim();
+    const cfgSpotify = String(track?.spotifyUrl ?? cfg?.musicSpotifyUrl ?? '').trim();
+    const spotifyUrl = assetSpotify || cfgSpotify;
+    const isSpotify = assetStatus === 'spotify' || Boolean(assetSpotify) || ((track?.releaseStatus || cfg?.musicReleaseStatus) === 'spotify');
+    return {
+        status: isSpotify ? 'spotify' : 'unreleased',
+        spotifyUrl,
+        trackName: track?.name || asset?.name || cfg?.musicName || 'Soul Atlas Radio'
+    };
+}
+
+let formMusicAudioEl: HTMLAudioElement | null = null;
+let formMusicPageId = '';
+let formMusicAssetKey = '';
+let formMusicTrackIdx = 0;
+let formMusicMuted = false;
+let formMusicPlaying = false;
+let formMusicLastError = '';
+let formMusicActiveTracks: any[] = [];
+function stopFormBackgroundMusic() {
+    if (formMusicAudioEl) {
+        try { formMusicAudioEl.pause(); } catch {}
+    }
+    formMusicPageId = '';
+    formMusicAssetKey = '';
+    formMusicPlaying = false;
+    formMusicActiveTracks = [];
+}
+async function syncFormBackgroundMusicState(page, cfg, allowPlayback = isFormResponderActive(page)) {
+    const playlist = getFormRadioPlaylist(cfg);
+    formMusicActiveTracks = playlist;
+    if (!page || !playlist.length || !allowPlayback) {
+        stopFormBackgroundMusic();
+        return;
+    }
+    if (formMusicPageId !== page.id) formMusicTrackIdx = 0;
+    const safeIdx = ((formMusicTrackIdx % playlist.length) + playlist.length) % playlist.length;
+    formMusicTrackIdx = safeIdx;
+    const activeTrack = playlist[safeIdx];
+    const key = `${activeTrack.assetId || activeTrack.url || ''}:${safeIdx}/${playlist.length}`;
+    if (!formMusicAudioEl) {
+        formMusicAudioEl = new Audio();
+        formMusicAudioEl.addEventListener('play', () => { formMusicPlaying = true; });
+        formMusicAudioEl.addEventListener('playing', () => { formMusicPlaying = true; });
+        formMusicAudioEl.addEventListener('pause', () => { formMusicPlaying = false; });
+        formMusicAudioEl.addEventListener('ended', () => {
+            if (formMusicActiveTracks.length > 1) {
+                formMusicTrackIdx = (formMusicTrackIdx + 1) % formMusicActiveTracks.length;
+                const pg = current();
+                if (pg && typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(pg)) {
+                    const { cfg: latestCfg } = ArchitectDatabase.ensureFormConfig(pg);
+                    syncFormBackgroundMusicState(pg, latestCfg, isFormResponderActive(pg)).then(() => render());
+                }
+            } else if (formMusicAudioEl && formMusicAudioEl.src) {
+                formMusicAudioEl.currentTime = 0;
+                formMusicAudioEl.play().catch(() => {});
+            }
+        });
+    }
+    formMusicAudioEl.loop = playlist.length <= 1;
+    const keyChanged = formMusicPageId !== page.id || formMusicAssetKey !== key;
+    if (keyChanged) {
+        formMusicPageId = page.id;
+        formMusicAssetKey = key;
+        const asset = activeTrack.assetId ? ArchitectBackend.readAssetCatalog().find(a => a.id === activeTrack.assetId) : null;
+        let resolvedUrl = activeTrack.url || asset?.externalUrl || asset?.url || '';
+        if (!resolvedUrl && asset) {
+            resolvedUrl = (await ArchitectDatabase.resolveFormAssetUrl(asset)) || '';
+            if (resolvedUrl) activeTrack.url = resolvedUrl;
+            if (formMusicPageId !== page.id || formMusicAssetKey !== key || !isFormResponderActive(page)) return;
+        }
+        if (resolvedUrl && formMusicAudioEl.src !== resolvedUrl) {
+            formMusicAudioEl.src = resolvedUrl;
+        }
+    }
+    formMusicAudioEl.muted = formMusicMuted;
+    if (!formMusicMuted && formMusicAudioEl.src) {
+        if (!formMusicPlaying || formMusicAudioEl.paused) {
+            try {
+                formMusicLastError = '';
+                const playPromise = formMusicAudioEl.play();
+                if (formMusicPageId === page.id && formMusicAssetKey === key && !formMusicAudioEl.paused) {
+                    formMusicPlaying = true;
+                }
+                await playPromise;
+                if (formMusicPageId === page.id && formMusicAssetKey === key) {
+                    formMusicPlaying = true;
+                }
+            } catch (err: any) {
+                formMusicLastError = `${err?.name || 'Error'}: ${err?.message || String(err)}`;
+                formMusicPlaying = false;
+            }
+        }
+    } else if (formMusicMuted) {
+        try { formMusicAudioEl.pause(); } catch {}
+        formMusicPlaying = false;
+    }
+}
+
+function executeFormButtonAction(page, b, anchorEl: HTMLElement) {
+    const { db, cfg } = ArchitectDatabase.ensureFormConfig(page);
+    const session = getFormSessionState(page);
+    const bcfg = { ...ArchitectDatabase.getDefaultFormButtonConfig(b.formButtonConfig?.kind || 'submit', cfg), ...(b.formButtonConfig || {}) };
+    if (bcfg.kind === 'submit') {
+        const res = ArchitectDatabase.validateAndSubmitForm(page, session.draftRow, session.fieldErrors);
+        if (!res.ok) {
+            render();
+            return;
+        }
+        session.submittedRow = res.row;
+        session.draftRow.title = '';
+        session.draftRow.propertyValues = {};
+        if (!isFormResponderActive(page)) {
+            toast(`Saved response “${res.row.title}”`);
+        }
+        render();
+        return;
+    }
+    if (bcfg.kind === 'download') {
+        const target = session.submittedRow || session.draftRow;
+        const payload = {
+            formTitle: cfg.title || page.title || 'Form',
+            exportedAt: new Date().toISOString(),
+            title: target?.title || '',
+            answers: Object.fromEntries(db.schema.map(prop => {
+                const v = prop.type === 'title' ? target?.title : target?.propertyValues?.[prop.id];
+                return [prop.name, v];
+            }))
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(page.title || 'form-response').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('Downloaded response JSON');
+        return;
+    }
+    if (bcfg.kind === 'send_email') {
+        const emailProp = db.schema.find(s => s.type === 'email');
+        const target = session.submittedRow || session.draftRow;
+        const foundEmail = emailProp ? String(target?.propertyValues?.[emailProp.id] || '').trim() : '';
+        if (foundEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(foundEmail)) {
+            ArchitectDatabase.triggerSendResponseToMail(page, target, foundEmail);
+            return;
+        }
+        const pop = openFloatingPopover(anchorEl, 'form-button-mail-popover');
+        pop.innerHTML = '<strong>Send response to my mail</strong><p class="muted-note" style="margin:4px 0 8px">Enter email address to queue a copy of this response:</p>';
+        const inp = document.createElement('input');
+        inp.type = 'email';
+        inp.className = 'db-pop-input';
+        inp.placeholder = 'you@example.com';
+        const row = document.createElement('div');
+        row.className = 'db-form-logic-actions';
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button';
+        sendBtn.className = 'primary-button';
+        sendBtn.textContent = 'Send copy';
+        sendBtn.onclick = () => {
+            if (ArchitectDatabase.triggerSendResponseToMail(page, target, inp.value)) closeRichPopover();
+        };
+        row.append(sendBtn);
+        pop.append(inp, row);
+        requestAnimationFrame(() => inp.focus());
+        return;
+    }
+    if (bcfg.customUrl) {
+        window.open(bcfg.customUrl, '_blank', 'noopener,noreferrer');
+    } else {
+        toast(bcfg.actionNote || `${bcfg.label || 'Button'} clicked`);
+    }
+}
+
+function openFormButtonConfigPopover(anchor: HTMLElement, page, b) {
+    const { cfg } = ArchitectDatabase.ensureFormConfig(page);
+    const cur = { ...ArchitectDatabase.getDefaultFormButtonConfig(b.formButtonConfig?.kind || 'custom', cfg), ...(b.formButtonConfig || {}) };
+    b.formButtonConfig = cur;
+    const pop = openFloatingPopover(anchor, 'form-button-config-popover');
+    pop.style.width = '310px';
+    const commit = (shouldRender = true) => {
+        b.editedBy = getActorDisplayName();
+        b.editedAt = Date.now();
+        if (cur.kind === 'submit' && cur.label) cfg.submitLabel = cur.label;
+        save();
+        if (shouldRender) render();
+    };
+    const mkField = (lbl: string, node: HTMLElement) => {
+        const row = document.createElement('div');
+        row.className = 'db-form-setting-field';
+        const l = document.createElement('label');
+        l.textContent = lbl;
+        row.append(l, node);
+        pop.append(row);
+    };
+    const title = document.createElement('div');
+    title.className = 'db-pop-header';
+    title.innerHTML = '<strong>Customize Form Button</strong>';
+    pop.append(title);
+
+    const kindSel = document.createElement('select');
+    kindSel.className = 'db-pop-select';
+    kindSel.dataset.formBtnField = 'kind';
+    [['submit', 'Submit form'], ['download', 'Download response'], ['send_email', 'Send response to my mail'], ['custom', 'Custom link / action']].forEach(([v, t]) => {
+        const o = document.createElement('option'); o.value = v; o.textContent = t; kindSel.append(o);
+    });
+    kindSel.value = cur.kind || 'submit';
+    kindSel.onchange = () => {
+        const nextDef = ArchitectDatabase.getDefaultFormButtonConfig(kindSel.value as any, cfg);
+        cur.kind = nextDef.kind;
+        if (!cur.label || cur.label === 'Submit' || cur.label === 'Download response' || cur.label === 'Send response to my mail' || cur.label === 'Custom Action') {
+            cur.label = nextDef.label;
+            lblInp.value = cur.label || '';
+        }
+        cur.icon = nextDef.icon;
+        icoInp.value = cur.icon || '';
+        commit(true);
+    };
+    mkField('Action type', kindSel);
+
+    const lblInp = document.createElement('input');
+    lblInp.type = 'text'; lblInp.className = 'db-pop-input'; lblInp.dataset.formBtnField = 'label';
+    lblInp.value = cur.label || '';
+    lblInp.oninput = () => { cur.label = lblInp.value; commit(true); };
+    mkField('Button label', lblInp);
+
+    const colorGrid = document.createElement('div');
+    colorGrid.className = 'form-btn-color-grid';
+    [
+        { key: 'bgColor', label: 'Fill', def: '#2383e2' },
+        { key: 'textColor', label: 'Text', def: '#ffffff' },
+        { key: 'borderColor', label: 'Border', def: '#2383e2' }
+    ].forEach(c => {
+        const item = document.createElement('label');
+        item.className = 'form-btn-color-item';
+        const span = document.createElement('span'); span.textContent = c.label;
+        const inp = document.createElement('input'); inp.type = 'color'; inp.dataset.formBtnField = c.key;
+        inp.value = cur[c.key] || c.def;
+        inp.oninput = () => { cur[c.key] = inp.value; commit(true); };
+        item.append(span, inp);
+        colorGrid.append(item);
+    });
+    pop.append(colorGrid);
+
+    const styleRow = document.createElement('div');
+    styleRow.className = 'db-form-inline-row';
+    const alignSel = document.createElement('select');
+    alignSel.className = 'db-pop-select'; alignSel.dataset.formBtnField = 'align';
+    [['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['full', 'Full width']].forEach(([v, t]) => {
+        const o = document.createElement('option'); o.value = v; o.textContent = t; alignSel.append(o);
+    });
+    alignSel.value = cur.align || 'left';
+    alignSel.onchange = () => { cur.align = alignSel.value as any; commit(true); };
+
+    const fontSel = document.createElement('select');
+    fontSel.className = 'db-pop-select'; fontSel.dataset.formBtnField = 'fontFamily';
+    [['inherit', 'Default font'], ['Inter, sans-serif', 'Sans-serif'], ['Georgia, serif', 'Serif'], ["'JetBrains Mono', monospace", 'Mono']].forEach(([v, t]) => {
+        const o = document.createElement('option'); o.value = v; o.textContent = t; fontSel.append(o);
+    });
+    fontSel.value = cur.fontFamily || 'inherit';
+    fontSel.onchange = () => { cur.fontFamily = fontSel.value; commit(true); };
+
+    const radInp = document.createElement('input');
+    radInp.type = 'number'; radInp.min = '0'; radInp.max = '32'; radInp.className = 'db-pop-input'; radInp.style.width = '64px';
+    radInp.dataset.formBtnField = 'radius';
+    radInp.value = String(cur.radius ?? 8);
+    radInp.oninput = () => {
+        const val = Math.max(0, Math.min(32, Number(radInp.value) || 0));
+        cur.radius = val;
+        cur.roundedCorners = val > 0;
+        syncCornerBtns();
+        commit(true);
+    };
+    styleRow.append(alignSel, fontSel, radInp);
+    mkField('Alignment / Font / Radius', styleRow);
+
+    const cornerSeg = document.createElement('div');
+    cornerSeg.className = 'db-form-seg-group';
+    const syncCornerBtns = () => {
+        const isSharp = cur.roundedCorners === false;
+        cornerSeg.querySelectorAll<HTMLButtonElement>('[data-form-btn-corners]').forEach(btn => {
+            btn.classList.toggle('is-active', (btn.dataset.formBtnCorners === 'sharp') === isSharp);
+        });
+    };
+    ([['rounded', '◯ Rounded corners'], ['sharp', '▢ Sharp corners']] as const).forEach(([mode, label]) => {
+        const cbtn = document.createElement('button');
+        cbtn.type = 'button';
+        cbtn.className = 'db-form-seg-btn';
+        cbtn.dataset.formBtnCorners = mode;
+        cbtn.textContent = label;
+        cbtn.onclick = () => {
+            if (mode === 'sharp') {
+                cur.roundedCorners = false;
+            } else {
+                cur.roundedCorners = true;
+                if (!(Number(cur.radius) > 0)) {
+                    cur.radius = 8;
+                    radInp.value = '8';
+                }
+            }
+            syncCornerBtns();
+            commit(true);
+        };
+        cornerSeg.append(cbtn);
+    });
+    syncCornerBtns();
+    mkField('Button corners', cornerSeg);
+
+    const icoWrap = document.createElement('div');
+    icoWrap.className = 'db-form-inline-row';
+    const icoInp = document.createElement('input');
+    icoInp.type = 'text'; icoInp.className = 'db-pop-input'; icoInp.style.width = '62px'; icoInp.placeholder = 'Emoji';
+    icoInp.value = cur.icon || '';
+    icoInp.oninput = () => { cur.icon = icoInp.value; commit(true); };
+
+    const openBtnCropModal = (srcUrl: string, assetId?: string) => {
+        if (!srcUrl) return;
+        const aspectInfo = getFormButtonCropAspect(b.id, cur);
+        const effRad = cur.roundedCorners === false ? '0px' : `${Math.max(0, Number(cur.radius ?? 8))}px`;
+        openFormImageCropModal({
+            title: 'Crop Button Background Image',
+            subtitle: 'Preview how the background looks on the button and frame your section.',
+            src: srcUrl,
+            aspectRatio: aspectInfo.aspect,
+            dimensionLabel: aspectInfo.label,
+            initialX: cur.imageCropX ?? 50,
+            initialY: cur.imageCropY ?? 50,
+            initialZoom: cur.imageCropZoom ?? 100,
+            previewKind: 'button',
+            buttonPreviewCfg: {
+                label: cur.label,
+                icon: cur.icon,
+                textColor: cur.textColor,
+                borderColor: cur.borderColor,
+                bgColor: cur.bgColor,
+                fontFamily: cur.fontFamily,
+                borderRadius: effRad,
+                fullWidth: cur.align === 'full'
+            },
+            onApply: crop => {
+                cur.imageUrl = srcUrl;
+                if (assetId !== undefined) cur.imageAssetId = assetId;
+                cur.imageCropX = crop.x;
+                cur.imageCropY = crop.y;
+                cur.imageCropZoom = crop.zoom;
+                cur.imageCropAspect = crop.aspect;
+                commit(true);
+            }
+        });
+    };
+
+    const pickImgBtn = document.createElement('button');
+    pickImgBtn.type = 'button'; pickImgBtn.className = 'secondary-button'; pickImgBtn.dataset.formBtnPickImage = 'true';
+    pickImgBtn.textContent = '🖼 Background';
+    pickImgBtn.onclick = () => {
+        closeRichPopover();
+        openAssetLibrary(cur.imageAssetId || null, {
+            selectLabel: 'Use as Button Background',
+            onSelectAsset: async asset => {
+                const url = await ArchitectDatabase.resolveFormAssetUrl(asset);
+                cur.imageAssetId = asset.id;
+                cur.imageUrl = url;
+                cur.imageCropX = 50; cur.imageCropY = 50; cur.imageCropZoom = 100;
+                cur.imageCropAspect = getFormButtonCropAspect(b.id, cur).aspect;
+                commit(true);
+                openBtnCropModal(url, asset.id);
+            }
+        });
+    };
+
+    const upLbl = document.createElement('label');
+    upLbl.className = 'secondary-button file-select';
+    upLbl.textContent = '↑ Upload';
+    const upInp = document.createElement('input');
+    upInp.type = 'file'; upInp.accept = 'image/*'; upInp.hidden = true; upInp.dataset.formBtnUpload = 'true';
+    upInp.onchange = async () => {
+        const file = upInp.files?.[0];
+        if (!file) return;
+        const rec = await ArchitectBackend.ingestLocalFile(file, {
+            creator: getActorDisplayName(),
+            tags: ['form-button-bg'],
+            storageMode: state.assetStorageMode || 'local',
+            previewPolicy: state.assetPreviewPolicy
+        });
+        if (!rec) return;
+        const url = await ArchitectDatabase.resolveFormAssetUrl(rec);
+        cur.imageAssetId = rec.id;
+        cur.imageUrl = url;
+        cur.imageCropX = 50; cur.imageCropY = 50; cur.imageCropZoom = 100;
+        cur.imageCropAspect = getFormButtonCropAspect(b.id, cur).aspect;
+        closeRichPopover();
+        commit(true);
+        openBtnCropModal(url, rec.id);
+    };
+    upLbl.append(upInp);
+
+    const cropBtn = document.createElement('button');
+    cropBtn.type = 'button'; cropBtn.className = 'secondary-button'; cropBtn.dataset.formBtnCropImage = 'true';
+    cropBtn.textContent = '✂ Crop';
+    cropBtn.disabled = !(cur.imageUrl || cur.imageAssetId);
+    cropBtn.onclick = async () => {
+        let u = cur.imageUrl || '';
+        if (!u && cur.imageAssetId) {
+            const asset = ArchitectBackend.readAssetCatalog().find(a => a.id === cur.imageAssetId);
+            if (asset) u = await ArchitectDatabase.resolveFormAssetUrl(asset);
+        }
+        closeRichPopover();
+        if (u) openBtnCropModal(u, cur.imageAssetId);
+    };
+
+    const clrImgBtn = document.createElement('button');
+    clrImgBtn.type = 'button'; clrImgBtn.className = 'secondary-button'; clrImgBtn.dataset.formBtnClearImage = 'true';
+    clrImgBtn.textContent = '×';
+    clrImgBtn.onclick = () => {
+        cur.imageAssetId = ''; cur.imageUrl = '';
+        cur.imageCropX = undefined; cur.imageCropY = undefined; cur.imageCropZoom = undefined; cur.imageCropAspect = undefined;
+        cropBtn.disabled = true;
+        commit(true);
+    };
+    icoWrap.append(icoInp, pickImgBtn, upLbl, cropBtn, clrImgBtn);
+    mkField('Emoji icon & background image', icoWrap);
+
+    if (cur.kind === 'custom') {
+        const urlInp = document.createElement('input');
+        urlInp.type = 'text'; urlInp.className = 'db-pop-input'; urlInp.placeholder = 'Optional URL or note…';
+        urlInp.value = cur.customUrl || '';
+        urlInp.oninput = () => { cur.customUrl = urlInp.value.trim(); commit(false); };
+        mkField('Target URL', urlInp);
+    }
+
+    const foot = document.createElement('div');
+    foot.className = 'db-form-logic-actions';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button'; delBtn.className = 'secondary-button'; delBtn.textContent = 'Remove button';
+    delBtn.onclick = () => {
+        pushUndoBeforeEdit(page);
+        page.blocks = (page.blocks || []).filter(x => x.id !== b.id);
+        closeRichPopover();
+        save(); render();
+    };
+    const doneBtn = document.createElement('button');
+    doneBtn.type = 'button'; doneBtn.className = 'primary-button'; doneBtn.textContent = 'Done';
+    doneBtn.onclick = () => closeRichPopover();
+    foot.append(delBtn, doneBtn);
+    pop.append(foot);
+}
+
+function pruneRemovedFormQuestionBlocks(p: Page, formStateOverride?: any): boolean {
+    if (!p || !Array.isArray(p.blocks)) return false;
+    if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(p)) {
+        return Boolean(ArchitectDatabase.syncFormDocBlocks(p, formStateOverride));
+    }
+    let changed = false;
+    const strip = (blocks: Block[]): Block[] => {
+        const next: Block[] = [];
+        for (const blk of blocks) {
+            if (!blk) continue;
+            if (blk.type === 'form_question') {
+                changed = true;
+                continue;
+            }
+            if (blk.type === 'columns' && Array.isArray(blk.columns)) {
+                blk.columns = blk.columns.map(col => Array.isArray(col) ? strip(col) : []);
+            }
+            if (Array.isArray(blk.children)) {
+                blk.children = strip(blk.children);
+            }
+            next.push(blk);
+        }
+        return next;
+    };
+    p.blocks = strip(p.blocks);
+    if (changed && !p.blocks.length) p.blocks.push(block('text'));
+    return changed;
+}
+
 function render() {
     stopAllAudioPlayers();
+    syncActiveUiIconPack();
     document.body.classList.toggle('ws-rounded-images', !!state.roundedImageCorners);
     const p = current();
     if (!p) return;
@@ -6494,15 +9369,37 @@ function render() {
     if (prevEditorHeight > 0) editor.style.minHeight = `${prevEditorHeight}px`;
 
     const frag = document.createDocumentFragment();
-    const isDbPage = typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isDatabasePage(p);
+    const isFormPage = typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(p);
+    const activeDbView = isFormPage ? ArchitectDatabase.activeViewFor(p) : null;
+    const isFormDocMode = isFormPage && (!activeDbView || activeDbView.type === 'form');
+    const isDbPage = typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isDatabasePage(p) && !isFormDocMode;
     const isBoardPage = typeof ArchitectBoard !== 'undefined' && ArchitectBoard.isBoardPage(p);
+    const isBoardExpanded = isBoardPage && !!p.boardExpanded;
+    if (!isFormDocMode) stopFormBackgroundMusic();
+    const formState = isFormDocMode ? ArchitectDatabase.ensureFormConfig(p) : null;
+    const isFormRespondMode = Boolean(
+        isFormDocMode && formState && (
+            ro || formState.cfg.formMode === 'respond' || (window as any).__architectFormOpenMode === p.id || (formState.cfg.publishedSiteEnabled && formState.cfg.subdomain && formState.cfg.formMode !== 'editor')
+        )
+    );
+    if (!isFormDocMode || isFormRespondMode || (formDesignSidebarPageId && formDesignSidebarPageId !== p.id)) {
+        const fds = $('#form-design-sidebar');
+        if (fds && !fds.hidden) toggleFormDesignSidebar(false);
+    }
+    if (pruneRemovedFormQuestionBlocks(p, formState)) save();
     editor.contentEditable = 'false';
     editor.classList.toggle('is-database-page', isDbPage);
+    editor.classList.toggle('is-form-page', isFormPage);
+    editor.classList.toggle('is-form-doc-editor', isFormDocMode);
+    editor.classList.toggle('is-form-respond-mode', isFormRespondMode);
     editor.classList.toggle('is-board-page', isBoardPage);
-    editor.classList.toggle('full-width', !!p.fullWidth || isDbPage || isBoardPage);
+    editor.classList.toggle('is-board-expanded', isBoardExpanded);
+    editor.classList.toggle('is-small-text', !!p.smallText && !isBoardPage);
+    editor.classList.toggle('full-width', !!p.fullWidth || isDbPage || isBoardPage || isFormDocMode);
     editor.classList.toggle('is-readonly', ro);
 
     const editorWrap = $('#editor-wrap');
+    editorWrap?.classList.toggle('is-board-expanded', isBoardExpanded);
     const coverSlot = ensurePageCoverSlot();
     const setTopbarPageControlsHidden = (hide: boolean) => {
         const cmBtn = document.querySelector('[data-action="toggle-comments"]') as HTMLElement | null;
@@ -6557,7 +9454,7 @@ function render() {
     setTopbarPageControlsHidden(false);
     let coverEl = null;
     if (coverSlot) coverSlot.replaceChildren();
-    if (pageHasCover(p)) {
+    if (!isBoardExpanded && pageHasCover(p)) {
         const c = document.createElement('div');
         c.className = 'page-cover';
         c.contentEditable = 'false';
@@ -6584,7 +9481,7 @@ function render() {
                 }
             });
         }
-        if (!ro) {
+        if (!ro && !isFormRespondMode) {
             const edit = document.createElement('button');
             edit.type = 'button'; edit.className = 'edit-cover'; edit.dataset.action = 'cover'; edit.textContent = 'Edit cover';
             edit.onclick = () => openCoverPicker(p);
@@ -6605,106 +9502,407 @@ function render() {
         editorWrap?.classList.remove('has-page-cover');
     }
 
-    const pageIcon = document.createElement('button');
-    pageIcon.type = 'button'; pageIcon.className = 'page-icon-large';
-    pageIcon.title = ro ? '' : 'Change icon'; pageIcon.setAttribute('aria-label', 'Change page icon');
-    pageIcon.innerHTML = pageIconMarkup(p.icon);
-    if (!ro) pageIcon.onclick = () => iconPicker(p);
+    if (isFormDocMode && formState) {
+        const { db, cfg } = formState;
+        syncFormBackgroundMusicState(p, cfg, isFormRespondMode);
+        const topStrip = document.createElement('div');
+        topStrip.className = 'form-doc-topstrip';
+        topStrip.contentEditable = 'false';
+        topStrip.dataset.formMode = isFormRespondMode ? 'respond' : 'editor';
 
-    const titleRow = document.createElement('div');
-    titleRow.className = 'page-title-row';
-    titleRow.append(pageIcon);
-    const title = document.createElement('h1');
-    title.className = 'page-heading'; title.contentEditable = ro ? 'false' : 'true'; title.spellcheck = true; title.textContent = p.title;
-    if (!ro) wireSingleLineField(title, () => { p.title = title.innerText; save(); renderTabs(); renderNav(); renderBreadcrumbs(p); });
-    titleRow.append(title);
-    frag.append(titleRow);
+        const leftCluster = document.createElement('div');
+        leftCluster.className = 'form-doc-top-left';
+        const modePill = document.createElement('span');
+        modePill.className = 'db-form-mode-badge';
+        modePill.textContent = isFormRespondMode ? '👁 Responder view' : '📝 Form doc editor';
+        leftCluster.append(modePill);
 
-    if (pagePerms.noOneAccess && pagePerms.view) {
-        const ownerBanner = document.createElement('div');
-        ownerBanner.className = 'page-perm-readonly-banner';
-        ownerBanner.contentEditable = 'false';
-        ownerBanner.textContent = '🔒 Locked (Owner only) — No other workspace members have access to this page';
-        frag.append(ownerBanner);
-    } else if (pagePerms.view && !pagePerms.edit) {
-        const roBanner = document.createElement('div');
-        roBanner.className = 'page-perm-readonly-banner';
-        roBanner.contentEditable = 'false';
-        roBanner.textContent = isReadOnlyMirror() ? 'View-only mirror' : `View only — ${pagePerms.comment ? 'comments allowed, editing disabled' : 'editing and comments disabled'}`;
-        frag.append(roBanner);
+        const subUrl = ArchitectDatabase.formSubdomainUrl(cfg.subdomain);
+        if (subUrl && cfg.publishedSiteEnabled) {
+            const subBadge = document.createElement('span');
+            subBadge.className = 'form-subdomain-badge';
+            subBadge.dataset.formSubdomainBadge = 'true';
+            subBadge.textContent = `🌐 ${subUrl}`;
+            leftCluster.append(subBadge);
+        }
+
+        const radioTracks = getFormRadioPlaylist(cfg);
+        if (radioTracks.length > 0) {
+            const safeTrackIdx = ((formMusicTrackIdx % radioTracks.length) + radioTracks.length) % radioTracks.length;
+            const activeTrack = radioTracks[safeTrackIdx];
+            const relInfo = resolveFormRadioReleaseInfo(cfg, activeTrack);
+            const musicBar = document.createElement('div');
+            musicBar.className = 'form-music-bar' + (!isFormRespondMode ? ' is-standby' : '');
+            musicBar.dataset.formMusicBar = 'true';
+            musicBar.dataset.radioState = isFormRespondMode ? (formMusicMuted ? 'muted' : 'playing') : 'preview-only';
+            const trackLbl = document.createElement('span');
+            trackLbl.className = 'form-music-track';
+            trackLbl.dataset.formRadioLabel = 'true';
+            trackLbl.tabIndex = 0;
+            trackLbl.textContent = radioTracks.length > 1
+                ? `🎵 Soul Atlas Radio (${safeTrackIdx + 1}/${radioTracks.length})`
+                : '🎵 Soul Atlas Radio';
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'form-radio-tooltip';
+            tooltip.setAttribute('role', 'tooltip');
+            tooltip.dataset.formRadioTooltip = 'true';
+            const ttTitle = document.createElement('strong');
+            ttTitle.textContent = radioTracks.length > 1
+                ? `Soul Atlas Radio · Track ${safeTrackIdx + 1}/${radioTracks.length}`
+                : 'Soul Atlas Radio';
+            tooltip.append(ttTitle);
+            if (relInfo.status === 'spotify' && /^https?:\/\//i.test(relInfo.spotifyUrl)) {
+                const stBadge = document.createElement('span');
+                stBadge.className = 'form-radio-status-badge is-spotify';
+                stBadge.textContent = 'Spotify track';
+                const spLink = document.createElement('a');
+                spLink.className = 'form-radio-spotify-link';
+                spLink.href = relInfo.spotifyUrl;
+                spLink.target = '_blank';
+                spLink.rel = 'noopener noreferrer';
+                spLink.dataset.formRadioLink = 'true';
+                spLink.textContent = 'Open on Spotify ↗';
+                tooltip.append(stBadge, spLink);
+            } else {
+                const stBadge = document.createElement('span');
+                stBadge.className = 'form-radio-status-badge is-unreleased';
+                stBadge.dataset.formRadioStatus = 'unreleased';
+                stBadge.textContent = 'unreleased';
+                tooltip.append(stBadge);
+            }
+            if (!isFormRespondMode) {
+                const modeHint = document.createElement('small');
+                modeHint.className = 'form-radio-mode-hint';
+                modeHint.textContent = 'Plays in Preview & Published view';
+                tooltip.append(modeHint);
+            }
+
+            if (radioTracks.length > 1) {
+                const prevTrackBtn = document.createElement('button');
+                prevTrackBtn.type = 'button';
+                prevTrackBtn.className = 'db-toolbar-btn form-music-skip-btn';
+                prevTrackBtn.dataset.formMusicPrev = 'true';
+                prevTrackBtn.title = 'Previous track';
+                prevTrackBtn.textContent = '⏮';
+                prevTrackBtn.onclick = () => {
+                    formMusicTrackIdx = (safeTrackIdx - 1 + radioTracks.length) % radioTracks.length;
+                    syncFormBackgroundMusicState(p, cfg, isFormRespondMode).then(() => render());
+                    render();
+                };
+                const nextTrackBtn = document.createElement('button');
+                nextTrackBtn.type = 'button';
+                nextTrackBtn.className = 'db-toolbar-btn form-music-skip-btn';
+                nextTrackBtn.dataset.formMusicNext = 'true';
+                nextTrackBtn.title = 'Next track';
+                nextTrackBtn.textContent = '⏭';
+                nextTrackBtn.onclick = () => {
+                    formMusicTrackIdx = (safeTrackIdx + 1) % radioTracks.length;
+                    syncFormBackgroundMusicState(p, cfg, isFormRespondMode).then(() => render());
+                    render();
+                };
+                musicBar.append(trackLbl, tooltip, prevTrackBtn, nextTrackBtn);
+            } else {
+                musicBar.append(trackLbl, tooltip);
+            }
+
+            const muteBtn = document.createElement('button');
+            muteBtn.type = 'button';
+            muteBtn.className = 'db-toolbar-btn form-music-mute-btn' + (formMusicMuted ? ' is-muted' : '');
+            muteBtn.dataset.formMusicMute = 'true';
+            muteBtn.dataset.muted = String(formMusicMuted);
+            muteBtn.textContent = formMusicMuted ? '🔇 Unmute' : '🔊 Mute';
+            muteBtn.setAttribute('aria-label', formMusicMuted ? 'Unmute Soul Atlas Radio' : 'Mute Soul Atlas Radio');
+            muteBtn.onclick = () => {
+                formMusicMuted = !formMusicMuted;
+                if (isFormRespondMode && formMusicAudioEl) {
+                    formMusicAudioEl.muted = formMusicMuted;
+                    if (!formMusicMuted && !formMusicPlaying) {
+                        formMusicAudioEl.play().then(() => { formMusicPlaying = true; render(); }).catch(() => render());
+                        return;
+                    }
+                    if (formMusicMuted) {
+                        try { formMusicAudioEl.pause(); } catch {}
+                        formMusicPlaying = false;
+                    }
+                } else {
+                    stopFormBackgroundMusic();
+                }
+                render();
+            };
+            musicBar.append(muteBtn);
+            leftCluster.append(musicBar);
+        }
+
+        const rightBtns = document.createElement('div');
+        rightBtns.className = 'db-form-top-btns';
+        if (!ro) {
+            const respCount = ArchitectDatabase.getDatabaseRows(p.id).length;
+            const respBtn = document.createElement('button');
+            respBtn.type = 'button';
+            respBtn.className = 'db-toolbar-btn';
+            respBtn.dataset.formAction = 'view-responses';
+            respBtn.textContent = `📊 Responses (${respCount})`;
+            respBtn.onclick = () => {
+                let tableView = db.views.find(v => v.type === 'table');
+                if (!tableView) return;
+                db.activeViewId = tableView.id;
+                save(); render();
+            };
+
+            const prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.className = 'db-toolbar-btn' + (isFormRespondMode ? ' is-active' : '');
+            prevBtn.dataset.formAction = 'toggle-preview';
+            prevBtn.textContent = isFormRespondMode ? '✎ Edit form' : '👁 Preview';
+            prevBtn.onclick = () => {
+                (window as any).__architectFormOpenMode = null;
+                cfg.formMode = isFormRespondMode ? 'editor' : 'respond';
+                getFormSessionState(p).submittedRow = null;
+                save(); render();
+            };
+
+            const designBtn = document.createElement('button');
+            designBtn.type = 'button';
+            designBtn.className = 'db-toolbar-btn' + (!$('#form-design-sidebar')?.hidden && formDesignSidebarPageId === p.id ? ' is-active' : '');
+            designBtn.dataset.formAction = 'form-settings';
+            designBtn.textContent = '🎨 Design & Settings';
+            designBtn.onclick = () => toggleFormDesignSidebar(null, p, () => render());
+            rightBtns.append(respBtn, prevBtn, designBtn);
+        }
+        topStrip.append(leftCluster, rightBtns);
+        frag.append(topStrip);
     }
 
-    const bar = document.createElement('div');
-    bar.className = 'page-toolbar';
-    bar.contentEditable = 'false';
-    const canCommentToolbar = !isReadOnlyMirror() && pagePerms.view && pagePerms.comment;
-    const pageBacklinks = findPageBacklinks(p.id);
-    const backlinksBtnHtml = pageBacklinks.length
-        ? `<button type="button" class="backlinks-pill" data-action="backlinks" aria-haspopup="dialog" aria-expanded="false"><span class="backlinks-pill-arrow" aria-hidden="true">↙</span> ${pageBacklinks.length} ${pageBacklinks.length === 1 ? 'backlink' : 'backlinks'}</button>`
-        : '';
-    bar.innerHTML = ro
-        ? `${backlinksBtnHtml}<span class="edit-time">${isReadOnlyMirror() ? 'View-only mirror' : 'View only'}</span>${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`
-        : `${pageHasCover(p) ? '' : '<button data-action="cover">＋ Add cover</button>'}<button data-action="icon">☺ ${p.icon ? 'Change icon' : 'Add icon'}</button>${backlinksBtnHtml}${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}<button data-action="favorite">${p.favorite ? '★ Favorited' : '☆ Favorite'}</button><span class="edit-time">Edited just now</span>${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`;
-    frag.append(bar);
-    const backlinksBtn = bar.querySelector('[data-action="backlinks"]') as HTMLButtonElement | null;
-    if (backlinksBtn) {
-        backlinksBtn.addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            const wasOpen = !!(activeBacklinksPopoverEl && activeBacklinksAnchorEl === backlinksBtn);
-            openBacklinksPopover(p, backlinksBtn, pageBacklinks);
-            backlinksBtn.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
-        });
-    }
-    if (canCommentToolbar) {
-        bar.querySelector('[data-action="add-top-comment"]')?.addEventListener('click', () => focusTopCommentComposer());
-    }
-    if (!ro) {
-        bar.querySelector('[data-action="cover"]')?.addEventListener('click', () => openCoverPicker(p));
-        bar.querySelector('[data-action="icon"]')?.addEventListener('click', () => iconPicker(p));
-        bar.querySelector('[data-action="favorite"]')?.addEventListener('click', () => { p.favorite = !p.favorite; save(); render(); });
-    }
+    const formContentTarget = document.createDocumentFragment();
 
-    const props = renderProperties(p);
-    props.contentEditable = 'false';
-    frag.append(props);
+    if (!isBoardExpanded) {
+        const pageIcon = document.createElement('button');
+        pageIcon.type = 'button'; pageIcon.className = 'page-icon-large';
+        pageIcon.title = (ro || isFormRespondMode) ? '' : 'Change icon'; pageIcon.setAttribute('aria-label', 'Change page icon');
+        pageIcon.innerHTML = pageIconMarkup(p.icon);
+        if (!ro && !isFormRespondMode) pageIcon.onclick = () => iconPicker(p);
 
-    const topComments = document.createElement('section');
-    topComments.className = 'page-top-comments';
-    topComments.contentEditable = 'false';
-    frag.append(topComments);
+        const titleRow = document.createElement('div');
+        titleRow.className = 'page-title-row';
+        titleRow.append(pageIcon);
+        const title = document.createElement('h1');
+        title.className = 'page-heading'; title.contentEditable = (ro || isFormRespondMode) ? 'false' : 'true'; title.spellcheck = true; title.textContent = p.title;
+        if (!ro && !isFormRespondMode) wireSingleLineField(title, () => { p.title = title.innerText; save(); renderTabs(); renderNav(); renderBreadcrumbs(p); });
+        titleRow.append(title);
+        formContentTarget.append(titleRow);
+
+        if (pagePerms.noOneAccess && pagePerms.view) {
+            const ownerBanner = document.createElement('div');
+            ownerBanner.className = 'page-perm-readonly-banner';
+            ownerBanner.contentEditable = 'false';
+            ownerBanner.textContent = '🔒 Locked (Owner only) — No other workspace members have access to this page';
+            formContentTarget.append(ownerBanner);
+        } else if (pagePerms.view && !pagePerms.edit) {
+            const roBanner = document.createElement('div');
+            roBanner.className = 'page-perm-readonly-banner';
+            roBanner.contentEditable = 'false';
+            roBanner.textContent = isReadOnlyMirror() ? 'View-only mirror' : `View only — ${pagePerms.comment ? 'comments allowed, editing disabled' : 'editing and comments disabled'}`;
+            formContentTarget.append(roBanner);
+        }
+
+        if (!isFormRespondMode) {
+            const bar = document.createElement('div');
+            bar.className = 'page-toolbar';
+            bar.contentEditable = 'false';
+            const canCommentToolbar = !isReadOnlyMirror() && pagePerms.view && pagePerms.comment;
+            const pageBacklinks = findPageBacklinks(p.id);
+            const backlinksBtnHtml = pageBacklinks.length
+                ? `<button type="button" class="backlinks-pill" data-action="backlinks" aria-haspopup="dialog" aria-expanded="false"><span class="backlinks-pill-arrow" aria-hidden="true">↙</span> ${pageBacklinks.length} ${pageBacklinks.length === 1 ? 'backlink' : 'backlinks'}</button>`
+                : '';
+            bar.innerHTML = ro
+                ? `${backlinksBtnHtml}<span class="edit-time">${isReadOnlyMirror() ? 'View-only mirror' : 'View only'}</span>${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`
+                : `${pageHasCover(p) ? '' : '<button data-action="cover">＋ Add cover</button>'}<button data-action="icon">☺ ${p.icon ? 'Change icon' : 'Add icon'}</button>${backlinksBtnHtml}${canCommentToolbar ? '<button data-action="add-top-comment">💬 Add comment</button>' : ''}<button data-action="favorite">${p.favorite ? '★ Favorited' : '☆ Favorite'}</button><span class="edit-time">Edited just now</span>${p.showWordCount ? `<span class="word-count">${countWords(p)} words</span>` : ''}`;
+            formContentTarget.append(bar);
+            const backlinksBtn = bar.querySelector('[data-action="backlinks"]') as HTMLButtonElement | null;
+            if (backlinksBtn) {
+                backlinksBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const wasOpen = !!(activeBacklinksPopoverEl && activeBacklinksAnchorEl === backlinksBtn);
+                    openBacklinksPopover(p, backlinksBtn, pageBacklinks);
+                    backlinksBtn.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
+                });
+            }
+            if (canCommentToolbar) {
+                bar.querySelector('[data-action="add-top-comment"]')?.addEventListener('click', () => focusTopCommentComposer());
+            }
+            if (!ro) {
+                bar.querySelector('[data-action="cover"]')?.addEventListener('click', () => openCoverPicker(p));
+                bar.querySelector('[data-action="icon"]')?.addEventListener('click', () => iconPicker(p));
+                bar.querySelector('[data-action="favorite"]')?.addEventListener('click', () => { p.favorite = !p.favorite; save(); render(); });
+            }
+        }
+
+        if (!isFormDocMode) {
+            const props = renderProperties(p);
+            props.contentEditable = 'false';
+            formContentTarget.append(props);
+        }
+
+        const topComments = document.createElement('section');
+        topComments.className = 'page-top-comments';
+        topComments.contentEditable = 'false';
+        formContentTarget.append(topComments);
+    }
 
     if (isDbPage) {
         const dbStage = document.createElement('section');
         dbStage.className = 'database-page-stage';
         dbStage.contentEditable = 'false';
         ArchitectDatabase.renderDatabaseWidget(dbStage, p);
-        frag.append(dbStage);
+        frag.append(formContentTarget, dbStage);
     } else if (isBoardPage) {
         const boardStage = document.createElement('section');
         boardStage.className = 'board-page-stage';
         boardStage.contentEditable = 'false';
         ArchitectBoard.renderBoardWidget(boardStage, p);
-        frag.append(boardStage);
+        frag.append(formContentTarget, boardStage);
     } else {
-        const blockStage = document.createElement('div'); blockStage.className = 'block-stage';
-        const blockEditor = document.createElement('div'); blockEditor.className = 'block-editor';
-        blockEditor.contentEditable = ro ? 'false' : 'true';
-        renderBlockList(blockEditor, p.blocks, p, null);
-        const endSpace = document.createElement('div');
-        endSpace.className = 'editor-end'; endSpace.contentEditable = 'false'; endSpace.setAttribute('aria-label', 'Click to add a block');
-        if (!ro) endSpace.onclick = () => { pushUndoBeforeEdit(p); const next = block('text'); p.blocks.push(next); save(); render(); focusBlockById(next.id); };
-        blockEditor.append(endSpace);
-        const commentBadges = document.createElement('div');
-        commentBadges.className = 'comment-gutter-badges';
-        commentBadges.contentEditable = 'false';
-        const rail = createBlockRail(p);
-        blockStage.append(blockEditor, commentBadges, rail);
-        if (!ro) {
-            blockEditor.addEventListener('mousemove', e => { const b = resolveHoveredBlock(e.target, e.clientX, e.clientY); if (b) showBlockRail(b); });
-            blockStage.addEventListener('mouseleave', () => { if (!activeMenu?.classList.contains('block-actions')) rail.hidden = true; });
+        const effectiveBlockRo = ro || isFormRespondMode;
+        const buildBlockStage = () => {
+            const blockStage = document.createElement('div'); blockStage.className = 'block-stage';
+            const blockEditor = document.createElement('div'); blockEditor.className = 'block-editor';
+            blockEditor.contentEditable = effectiveBlockRo ? 'false' : 'true';
+            renderBlockList(blockEditor, p.blocks, p, null);
+            const endSpace = document.createElement('div');
+            endSpace.className = 'editor-end'; endSpace.contentEditable = 'false'; endSpace.setAttribute('aria-label', 'Click to add a block');
+            if (!effectiveBlockRo) endSpace.onclick = () => { pushUndoBeforeEdit(p); const next = block('text'); p.blocks.push(next); save(); render(); focusBlockById(next.id); };
+            blockEditor.append(endSpace);
+            const commentBadges = document.createElement('div');
+            commentBadges.className = 'comment-gutter-badges';
+            commentBadges.contentEditable = 'false';
+            const rail = createBlockRail(p);
+            blockStage.append(blockEditor, commentBadges, rail);
+            if (!effectiveBlockRo) {
+                blockEditor.addEventListener('mousemove', e => { const b = resolveHoveredBlock(e.target, e.clientX, e.clientY); if (b) showBlockRail(b); });
+                blockStage.addEventListener('mouseleave', () => { if (!activeMenu?.classList.contains('block-actions')) rail.hidden = true; });
+            }
+            return blockStage;
+        };
+
+        if (isFormDocMode && formState) {
+            const { cfg } = formState;
+            const session = getFormSessionState(p);
+            const canvasOuter = document.createElement('div');
+            canvasOuter.className = 'form-canvas-outer';
+            canvasOuter.dataset.formBgMode = cfg.backgroundMode || 'default';
+            canvasOuter.style.backgroundColor = cfg.backgroundColor || '#f4f6fb';
+            const qBgCss = cfg.questionCardBgTransparent
+                ? 'transparent'
+                : formHexColorWithOpacity(cfg.questionCardBgColor || '#ffffff', cfg.questionCardBgOpacity ?? 1);
+            canvasOuter.style.setProperty('--form-qcard-bg', qBgCss);
+            const outlineKey = cfg.questionCardOutlineColor || 'default';
+            if (outlineKey === 'none') {
+                canvasOuter.style.setProperty('--form-qcard-border', 'transparent');
+            } else if (outlineKey !== 'default') {
+                const oc = BLOCK_COLORS.find(c => c.key === outlineKey);
+                canvasOuter.style.setProperty('--form-qcard-border', oc?.textHex || 'rgba(15, 23, 42, 0.1)');
+            } else {
+                canvasOuter.style.setProperty('--form-qcard-border', 'rgba(15, 23, 42, 0.1)');
+            }
+            const hasBgImg = !!(cfg.backgroundImageUrl || cfg.backgroundAssetId);
+            if (hasBgImg) {
+                const bgLayer = document.createElement('div');
+                bgLayer.className = 'form-canvas-bg-image-layer';
+                bgLayer.dataset.formBgImageLayer = 'true';
+                const bgOpacity = cfg.backgroundImageOpacity !== undefined ? Math.max(0, Math.min(1, Number(cfg.backgroundImageOpacity))) : 1;
+                bgLayer.style.opacity = String(bgOpacity);
+                const applyBgLayer = (resolvedUrl: string) => {
+                    if (!resolvedUrl) return;
+                    applyCroppedBgStyle(bgLayer, resolvedUrl, {
+                        x: cfg.backgroundCropX ?? 50,
+                        y: cfg.backgroundCropY ?? 50,
+                        zoom: cfg.backgroundCropZoom ?? 100,
+                        aspect: cfg.backgroundCropAspect
+                    });
+                };
+                if (cfg.backgroundImageUrl) {
+                    applyBgLayer(cfg.backgroundImageUrl);
+                } else if (cfg.backgroundAssetId) {
+                    const bgAsset = ArchitectBackend.readAssetCatalog().find(a => a.id === cfg.backgroundAssetId);
+                    if (bgAsset) {
+                        ArchitectDatabase.resolveFormAssetUrl(bgAsset).then(u => {
+                            if (u && bgLayer.isConnected) {
+                                cfg.backgroundImageUrl = u;
+                                applyBgLayer(u);
+                            }
+                        });
+                    }
+                }
+                canvasOuter.append(bgLayer);
+            }
+            const surface = document.createElement('div');
+            surface.className = 'form-canvas-surface ' + (cfg.containerStyle === 'loose' ? 'is-loose-surface' : 'is-outlined-surface');
+            surface.dataset.formSurfaceStyle = cfg.containerStyle === 'loose' ? 'loose' : 'outlined';
+            surface.append(formContentTarget);
+
+            if (isFormRespondMode && cfg.isClosed) {
+                const closed = document.createElement('div');
+                closed.className = 'db-form-closed-banner';
+                closed.contentEditable = 'false';
+                closed.innerHTML = '<strong>This form is closed.</strong><span>No new responses can be submitted.</span>';
+                surface.append(closed);
+            } else if (isFormRespondMode && session.submittedRow) {
+                const doneBox = document.createElement('div');
+                doneBox.className = 'db-form-submitted';
+                doneBox.contentEditable = 'false';
+                doneBox.innerHTML = `<strong>✓ ${esc(cfg.confirmationTitle || 'Thank you!')}</strong><span>${esc(cfg.confirmationBody || `Submitted “${session.submittedRow.title}”`)}</span>`;
+                const btnRow = document.createElement('div');
+                btnRow.className = 'db-form-submitted-actions';
+                if (cfg.allowSendToEmail !== false) {
+                    const emailWrap = document.createElement('div');
+                    emailWrap.className = 'db-form-sendmail-inline';
+                    const emailToggle = document.createElement('button');
+                    emailToggle.type = 'button';
+                    emailToggle.className = 'secondary-button';
+                    emailToggle.dataset.formAction = 'send-to-email';
+                    emailToggle.textContent = '✉ Send response to my mail';
+                    emailToggle.onclick = () => {
+                        if (emailWrap.querySelector('input')) return;
+                        const inp = document.createElement('input');
+                        inp.type = 'email'; inp.className = 'db-form-input'; inp.placeholder = 'you@example.com';
+                        const sendBtn = document.createElement('button');
+                        sendBtn.type = 'button'; sendBtn.className = 'primary-button'; sendBtn.textContent = 'Send copy';
+                        sendBtn.onclick = () => {
+                            if (ArchitectDatabase.triggerSendResponseToMail(p, session.submittedRow, inp.value)) {
+                                emailWrap.replaceChildren(document.createTextNode(`✓ Sent copy to ${inp.value.trim()}`));
+                            }
+                        };
+                        emailWrap.append(inp, sendBtn);
+                        inp.focus();
+                    };
+                    emailWrap.append(emailToggle);
+                    btnRow.append(emailWrap);
+                }
+                if (cfg.allowSubmitAnotherResponse !== false) {
+                    const anotherBtn = document.createElement('button');
+                    anotherBtn.type = 'button'; anotherBtn.className = 'primary-button';
+                    anotherBtn.textContent = 'Submit another response';
+                    anotherBtn.onclick = () => {
+                        session.submittedRow = null;
+                        session.draftRow.title = '';
+                        session.draftRow.propertyValues = {};
+                        Object.keys(session.fieldErrors).forEach(k => delete session.fieldErrors[k]);
+                        render();
+                    };
+                    btnRow.append(anotherBtn);
+                }
+                doneBox.append(btnRow);
+                surface.append(doneBox);
+            } else {
+                surface.append(buildBlockStage());
+            }
+            canvasOuter.append(surface);
+            frag.append(canvasOuter);
+        } else {
+            frag.append(formContentTarget, buildBlockStage());
         }
-        frag.append(blockStage);
     }
 
     editor.replaceChildren(frag);
@@ -6712,18 +9910,18 @@ function render() {
     editor.style.minHeight = '';
     window.scrollTo({ top: prevScrollY, left: prevScrollX, behavior: 'auto' });
 
-    editor.onkeydown = ro ? null : editorKeys;
+    editor.onkeydown = (ro || isFormRespondMode) ? null : editorKeys;
     if (!typingBurstOpen) lastStablePageState.set(p.id, snapshotForPage(p));
     updateHistoryControls();
     updatePageOptions();
     syncCommentViews();
+    initFeatureRailIcons();
+    syncAppModeUi({ skipChromeSync: true });
     if (typeof ArchitectToolbar !== 'undefined') {
         ArchitectToolbar.syncCustomFontStyles();
         ArchitectToolbar.renderToolbar();
         ArchitectToolbar.updateToolbarState();
     }
-    initFeatureRailIcons();
-    syncAppModeUi();
 }
 /** Render collapsible Page properties panel (closed to heading + arrow by default, including Description). */
 function renderProperties(p) {
@@ -7838,6 +11036,7 @@ async function openImageCropModal(p: Page, b: Block) {
             <div class="img-crop-stage">
                 <div class="img-crop-canvas-box">
                     <img class="img-crop-source" src="${esc(src)}" alt="" draggable="false">
+                    <div class="img-crop-scrim-clip" aria-hidden="true"><div class="img-crop-scrim-hole"></div></div>
                     <div class="img-crop-selection" role="region" aria-label="Crop selection area">
                         <div class="img-crop-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
                         <button type="button" class="crop-handle crop-corner is-nw" data-handle="nw" aria-label="Crop top-left corner"></button>
@@ -7857,6 +11056,7 @@ async function openImageCropModal(p: Page, b: Block) {
 
     const canvasBox = dlg.querySelector('.img-crop-canvas-box') as HTMLElement;
     const sourceImg = dlg.querySelector('.img-crop-source') as HTMLImageElement;
+    const scrimHole = dlg.querySelector('.img-crop-scrim-hole') as HTMLElement;
     const selBox = dlg.querySelector('.img-crop-selection') as HTMLElement;
     const ratioSelect = dlg.querySelector('.img-crop-ratio-select') as HTMLSelectElement;
 
@@ -7889,6 +11089,12 @@ async function openImageCropModal(p: Page, b: Block) {
         selBox.style.top = `${rect.y}%`;
         selBox.style.width = `${rect.w}%`;
         selBox.style.height = `${rect.h}%`;
+        if (scrimHole) {
+            scrimHole.style.left = `${rect.x}%`;
+            scrimHole.style.top = `${rect.y}%`;
+            scrimHole.style.width = `${rect.w}%`;
+            scrimHole.style.height = `${rect.h}%`;
+        }
     };
     syncOverlay();
 
@@ -8041,8 +11247,10 @@ function renderBlock(p, b, i, list = p.blocks) {
     el.classList.toggle('is-empty', !(b.text || '').trim());
     if (b.color) el.dataset.textColor = b.color;
     if (b.bgColor) el.dataset.bgColor = b.bgColor;
+    if (b.outlineColor) el.dataset.outlineColor = b.outlineColor;
     if (b.align && b.align !== 'left') el.dataset.align = b.align;
     if (b.font && b.font !== 'default') el.dataset.font = b.font;
+    if (b.fontSize && b.fontSize !== 'default') el.dataset.fontSize = b.fontSize;
     el.addEventListener('dragover', event => {
         const isAssetRef = hasDraggedAsset(event.dataTransfer);
         const isExtFiles = hasExternalFiles(event.dataTransfer);
@@ -8096,6 +11304,9 @@ function renderBlock(p, b, i, list = p.blocks) {
             target.list.splice(Math.max(0, extracted.adjustedInsertAt), 0, ...extracted.moved);
             extracted.emptiedLists.forEach(srcList => { if (srcList !== target.list) pruneEmptyColumn(p, srcList); });
         }
+        if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(p)) {
+            ArchitectDatabase.syncFormQuestionOrderFromBlocks(p);
+        }
         save(); render();
         const keep = dragScrollY || window.scrollY;
         window.scrollTo({ top: keep, left: window.scrollX });
@@ -8103,7 +11314,7 @@ function renderBlock(p, b, i, list = p.blocks) {
     });
     return el;
 }
-function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePageReadOnly(p); const el = document.createElement('div'); el.className = 'block ' + b.type + (isToggleBlock(b) ? ' is-toggle' : '') + (isToggleBlock(b) && b.open ? ' expanded' : ''); el.contentEditable = ro ? 'false' : 'true'; el.dataset.index = String(i); el.dataset.blockId = b.id; const listIndent = normalizedListIndent(b); if (listIndent > 0) {
+function renderBlockContent(p, b, i, list = p.blocks) { const pageRo = effectivePageReadOnly(p); const ro = pageRo || isFormResponderActive(p); const el = document.createElement('div'); el.className = 'block ' + b.type + (isToggleBlock(b) ? ' is-toggle' : '') + (isToggleBlock(b) && b.open ? ' expanded' : ''); el.contentEditable = ro ? 'false' : 'true'; el.dataset.index = String(i); el.dataset.blockId = b.id; const listIndent = normalizedListIndent(b); if (listIndent > 0) {
     el.style.setProperty('--list-indent', String(listIndent));
     el.dataset.indent = String(listIndent);
     if (b.type === 'bullet') el.dataset.bulletLevel = String(listIndent % 3);
@@ -8198,7 +11409,11 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
     const dimAttrs = (!b.cropRect && !b.widthPx && asset?.width && asset?.height) ? ` width="${asset.width}" height="${asset.height}"` : '';
     const hasCaption = b.caption !== undefined;
     const canCommentImg = canCommentOnPage(p);
-    el.innerHTML = `<div class="image-frame${b.cropRect ? ' is-cropped' : ''}${isBlockImageRounded(b) ? ' is-rounded' : ''}"${widthStyle}><div class="image-media-wrap"><img class="content-image" src="${esc(fallbackPreview)}" alt="${esc(altDisplay)}"${dimAttrs}${imgInlineStyle ? ` style="${imgInlineStyle}"` : ''}>${b.linkUrl ? `<a class="image-link-badge" href="${esc(b.linkUrl)}" target="_blank" rel="noopener noreferrer" title="Open link: ${esc(b.linkUrl)}">↗</a>` : ''}${!ro ? '<button type="button" class="image-resize-handle is-left" data-img-resize="left" aria-label="Resize image from left" title="Drag to resize"></button><button type="button" class="image-resize-handle is-right" data-img-resize="right" aria-label="Resize image from right" title="Drag to resize"></button>' : ''}<div class="image-resize-readout" hidden></div><div class="image-actions-bar">${canCommentImg ? '<button type="button" class="asset-pill-btn" data-img-comment title="Comment">💬</button>' : ''}${!ro ? '<button type="button" class="asset-pill-btn" data-img-caption title="Caption (Ctrl+Alt+M)">Caption</button><button type="button" class="asset-pill-btn" data-img-crop title="Crop image">✂ Crop</button>' : ''}<button type="button" class="asset-pill-btn" data-img-expand title="Fullscreen high-quality preview">⤢ Fullscreen</button><button type="button" class="asset-pill-btn" data-img-download title="Download original file">↓</button><button type="button" class="asset-pill-btn image-more-btn" data-img-more title="More actions">•••</button></div></div>${(hasCaption && (!ro || b.caption)) ? `<div class="image-caption-row"><input type="text" class="image-caption-input" placeholder="Write a caption…" value="${esc(b.caption || '')}"${ro ? ' readonly' : ''} aria-label="Image caption"></div>` : ''}</div>`;
+    const captionIcoSvg = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5H13.5M2.5 8H11M2.5 11.5H8.5"/></svg>';
+    const cropIcoSvg = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2V11.5H14M2 4.5H11.5V14"/></svg>';
+    const expandIcoSvg = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5H13.5V6.5M6.5 13.5H2.5V9.5M13.5 2.5L9 7M2.5 13.5L7 9"/></svg>';
+    const dlIcoSvg = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5V10.5M8 10.5L5 7.5M8 10.5L11 7.5M3 13.5H13"/></svg>';
+    el.innerHTML = `<div class="image-frame${b.cropRect ? ' is-cropped' : ''}${isBlockImageRounded(b) ? ' is-rounded' : ''}"${widthStyle}><div class="image-media-wrap"><img class="content-image" src="${esc(fallbackPreview)}" alt="${esc(altDisplay)}"${dimAttrs}${imgInlineStyle ? ` style="${imgInlineStyle}"` : ''}>${b.linkUrl ? `<a class="image-link-badge" href="${esc(b.linkUrl)}" target="_blank" rel="noopener noreferrer" title="Open link: ${esc(b.linkUrl)}">↗</a>` : ''}${!ro ? '<button type="button" class="image-resize-handle is-left" data-img-resize="left" aria-label="Resize image from left" title="Drag to resize"></button><button type="button" class="image-resize-handle is-right" data-img-resize="right" aria-label="Resize image from right" title="Drag to resize"></button>' : ''}<div class="image-resize-readout" hidden></div></div><div class="image-actions-bar">${canCommentImg ? '<button type="button" class="asset-pill-btn is-icon" data-img-comment title="Comment" aria-label="Comment">💬</button>' : ''}${!ro ? `<button type="button" class="asset-pill-btn is-icon" data-img-caption title="Caption (Ctrl+Alt+M)" aria-label="Caption">${captionIcoSvg}</button><button type="button" class="asset-pill-btn is-icon" data-img-crop title="Crop image" aria-label="Crop image">${cropIcoSvg}</button>` : ''}<button type="button" class="asset-pill-btn is-icon" data-img-expand title="Fullscreen high-quality preview" aria-label="Fullscreen preview">${expandIcoSvg}</button><button type="button" class="asset-pill-btn is-icon" data-img-download title="Download original file" aria-label="Download original file">${dlIcoSvg}</button><button type="button" class="asset-pill-btn is-icon image-more-btn" data-img-more title="More actions" aria-label="More actions">•••</button></div>${(hasCaption && (!ro || b.caption)) ? `<div class="image-caption-row"><input type="text" class="image-caption-input" placeholder="Write a caption…" value="${esc(b.caption || '')}"${ro ? ' readonly' : ''} aria-label="Image caption"></div>` : ''}</div>`;
     const frameEl = el.querySelector('.image-frame') as HTMLElement;
     const mediaWrap = el.querySelector('.image-media-wrap') as HTMLElement;
     const imgEl = el.querySelector('img') as HTMLImageElement;
@@ -8220,7 +11435,7 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
             if (url && imgEl.isConnected && imgEl.getAttribute('src') !== url) imgEl.src = url;
         });
     }
-    const openLb = () => openImageLightbox(asset || { id: b.id, name: displayName, fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || 'Jordan Davis', uploadedBy: 'Jordan Davis', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() });
+    const openLb = () => openImageLightbox(asset || { id: b.id, name: displayName, fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || 'Raphael', uploadedBy: 'Raphael', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() });
     imgEl.ondblclick = e => { e.preventDefault(); e.stopPropagation(); openLb(); };
     el.querySelector('[data-img-expand]')?.addEventListener('click', e => { e.stopPropagation(); openLb(); });
     el.querySelector('[data-img-download]')?.addEventListener('click', e => { e.stopPropagation(); downloadAssetOrBlock(asset, b, displayName); });
@@ -8246,6 +11461,8 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
     const capInput = el.querySelector('.image-caption-input') as HTMLInputElement | null;
     if (capInput && !ro) {
         let capHadFocus = false;
+        let explicitDismiss = false;
+        const capCreatedAt = Date.now();
         capInput.addEventListener('focus', () => { capHadFocus = true; });
         capInput.addEventListener('input', () => {
             b.caption = capInput.value;
@@ -8256,15 +11473,42 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
         capInput.addEventListener('keydown', e => {
             if (e.key === 'Enter' || e.key === 'Escape') {
                 e.preventDefault();
+                explicitDismiss = true;
                 capInput.blur();
             }
         });
-        capInput.addEventListener('blur', () => {
-            if (capHadFocus && capInput.value.trim() === '' && b.caption === '') {
-                b.caption = undefined;
-                save();
-                render();
+        capInput.addEventListener('blur', ev => {
+            if (explicitDismiss) {
+                if (capHadFocus && capInput.value.trim() === '' && b.caption === '') {
+                    b.caption = undefined;
+                    save();
+                    render();
+                }
+                return;
             }
+            const relTag = (ev.relatedTarget as HTMLElement | null)?.tagName;
+            if (relTag === 'IFRAME') {
+                requestAnimationFrame(() => {
+                    if (capInput.isConnected && !capInput.value) capInput.focus();
+                });
+                return;
+            }
+            // Per the DOM Focus spec, blur fires before document.activeElement updates to the new target (such as a newly loaded PDF <iframe>).
+            setTimeout(() => {
+                if (!capInput.isConnected) return;
+                if (document.activeElement === capInput) return;
+                if (capInput.value.trim() !== '' || b.caption !== '') return;
+                const activeTag = document.activeElement?.tagName;
+                if (activeTag === 'IFRAME' || ((Date.now() - capCreatedAt) < 500 && (!document.activeElement || document.activeElement === document.body || !document.hasFocus()))) {
+                    capInput.focus();
+                    return;
+                }
+                if (capHadFocus) {
+                    b.caption = undefined;
+                    save();
+                    render();
+                }
+            }, 0);
         });
     }
     if (!ro) {
@@ -8319,6 +11563,94 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
     el.contentEditable = 'false';
     ensureColumnBlocks(b);
     el.replaceChildren();
+    if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(p)) {
+        const linkedFields: any[] = [];
+        const walkCol = (arr: any[]) => {
+            if (!Array.isArray(arr)) return;
+            for (const item of arr) {
+                if (!item) continue;
+                if (item.type === 'form_question') linkedFields.push(item);
+                if (Array.isArray(item.children)) walkCol(item.children);
+            }
+        };
+        (b.children || []).forEach(c => walkCol(c?.children || []));
+        if (linkedFields.length >= 2) {
+            const isRespCols = isFormResponderActive(p) || ro;
+            const curRule = b.columnLinkRule || { mode: 'none' };
+            if (!isRespCols) {
+                const linkBar = document.createElement('div');
+                linkBar.className = 'form-columns-link-bar';
+                linkBar.contentEditable = 'false';
+                linkBar.dataset.formColumnsLinkBar = 'true';
+                const lbl = document.createElement('span');
+                lbl.className = 'form-columns-link-lbl';
+                lbl.textContent = `🔗 Link ${linkedFields.length} columns:`;
+                const sel = document.createElement('select');
+                sel.className = 'form-columns-link-select';
+                sel.dataset.formColLinkMode = 'true';
+                [
+                    { id: 'none', label: 'No link rule' },
+                    { id: 'all_if_any', label: 'If user fills one, fill all' },
+                    { id: 'at_least_one', label: 'Must fill at least 1' },
+                    { id: 'at_least_n', label: 'Must fill at least N…' }
+                ].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt.id;
+                    o.textContent = opt.label;
+                    sel.append(o);
+                });
+                sel.value = curRule.mode || 'none';
+                const cntInp = document.createElement('input');
+                cntInp.type = 'number';
+                cntInp.min = '1';
+                cntInp.max = String(linkedFields.length);
+                cntInp.className = 'form-columns-link-count';
+                cntInp.dataset.formColLinkCount = 'true';
+                cntInp.value = String(Math.max(1, Math.min(linkedFields.length, Number(curRule.count) || 2)));
+                cntInp.hidden = sel.value !== 'at_least_n';
+                sel.onchange = () => {
+                    const mode = sel.value as 'none' | 'all_if_any' | 'at_least_one' | 'at_least_n';
+                    pushUndoBeforeEdit(p);
+                    if (mode === 'none') {
+                        b.columnLinkRule = undefined;
+                    } else if (mode === 'at_least_n') {
+                        const n = Math.max(1, Math.min(linkedFields.length, Math.floor(Number(cntInp.value) || 2)));
+                        cntInp.value = String(n);
+                        b.columnLinkRule = { mode, count: n };
+                    } else {
+                        b.columnLinkRule = { mode };
+                    }
+                    cntInp.hidden = mode !== 'at_least_n';
+                    save();
+                };
+                cntInp.oninput = () => {
+                    const n = Math.max(1, Math.min(linkedFields.length, Math.floor(Number(cntInp.value) || 1)));
+                    if (b.columnLinkRule?.mode === 'at_least_n') {
+                        b.columnLinkRule.count = n;
+                        save();
+                    }
+                };
+                cntInp.onchange = () => {
+                    const n = Math.max(1, Math.min(linkedFields.length, Math.floor(Number(cntInp.value) || 1)));
+                    cntInp.value = String(n);
+                    b.columnLinkRule = { mode: 'at_least_n', count: n };
+                    save();
+                };
+                linkBar.append(lbl, sel, cntInp);
+                el.append(linkBar);
+            } else if (curRule.mode && curRule.mode !== 'none') {
+                const hintBar = document.createElement('div');
+                hintBar.className = 'form-columns-link-hint';
+                hintBar.dataset.formColumnsLinkHint = 'true';
+                hintBar.textContent = curRule.mode === 'all_if_any'
+                    ? `🔗 Linked fields: fill all ${linkedFields.length} fields if you enter one`
+                    : curRule.mode === 'at_least_one'
+                        ? '🔗 Linked fields: complete at least 1 field in this row'
+                        : `🔗 Linked fields: complete at least ${Math.max(1, Math.min(linkedFields.length, Number(curRule.count) || 2))} of ${linkedFields.length} fields`;
+                el.append(hintBar);
+            }
+        }
+    }
     const grid = document.createElement('div');
     grid.className = 'column-grid';
     grid.style.gridTemplateColumns = gridTemplateForWidths(b.columnWidths);
@@ -8484,7 +11816,7 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
         if (!ro) el.querySelector('button')?.addEventListener('click', () => uploadForBlock(b, p, 'audio'));
         return el;
     }
-    const card = buildAudioPlayerElement(asset || { id: b.id, name: b.text || 'Audio track', fileType: b.mimeType || 'audio/*', category: b.category || 'music', creator: b.creator || 'Jordan Davis', uploadedBy: 'Jordan Davis', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline audio', url: b.url, externalUrl: /^https?:\/\//i.test(b.url || '') ? b.url : undefined, createdAt: Date.now(), updatedAt: Date.now() }, b);
+    const card = buildAudioPlayerElement(asset || { id: b.id, name: b.text || 'Audio track', fileType: b.mimeType || 'audio/*', category: b.category || 'music', creator: b.creator || 'Raphael', uploadedBy: 'Raphael', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline audio', url: b.url, externalUrl: /^https?:\/\//i.test(b.url || '') ? b.url : undefined, createdAt: Date.now(), updatedAt: Date.now() }, b);
     el.append(card);
     return el;
 } if (['video', 'bookmark', 'embed', 'file', 'pdf'].includes(b.type)) {
@@ -8573,6 +11905,132 @@ function renderBlockContent(p, b, i, list = p.blocks) { const ro = effectivePage
         }
     });
     el.append(hostWrap);
+    return el;
+} if (b.type === 'form_question') {
+    el.contentEditable = 'false';
+    if (typeof ArchitectDatabase === 'undefined' || !ArchitectDatabase.isFormPage(p)) {
+        el.hidden = true;
+        el.style.display = 'none';
+        return el;
+    }
+    const { db, cfg } = ArchitectDatabase.ensureFormConfig(p);
+    const q = cfg.questions?.find((x: any) => x.id === b.questionId);
+    const prop = q ? db.schema.find((s: any) => s.id === q.propertyId) : null;
+    if (!q || !prop) {
+        el.hidden = true;
+        el.style.display = 'none';
+        return el;
+    }
+    const session = getFormSessionState(p);
+    const isResp = isFormResponderActive(p);
+    const card = ArchitectDatabase.renderFormQuestionCard({
+        dbPage: p,
+        q,
+        prop,
+        blockId: b.id,
+        draftRow: session.draftRow,
+        fieldErrors: session.fieldErrors,
+        isRespondMode: isResp,
+        isReadOnly: pageRo,
+        isFocused: session.activeQuestionId === q.id,
+        onFocus: () => {
+            if (!isResp && session.activeQuestionId !== q.id) {
+                session.activeQuestionId = q.id;
+                savedEditorRange = null;
+                editor.querySelectorAll('.db-form-field-card').forEach(elCard => elCard.classList.toggle('is-focused', (elCard as HTMLElement).dataset.questionId === q.id));
+            }
+        },
+        onRedraw: () => render(),
+        onAnswerUpdated: () => {
+            if (['select', 'multi_select', 'status'].includes(prop.type) && isResp) render();
+        },
+        onAddTextBelow: () => {
+            pushUndoBeforeEdit(p);
+            const nb = block('text', '');
+            const idx = list.indexOf(b);
+            list.splice((idx >= 0 ? idx : i) + 1, 0, nb);
+            save(); render(); focusBlockById(nb.id);
+        },
+        onDuplicate: () => {
+            pushUndoBeforeEdit(p);
+            ArchitectDatabase.duplicateFormQuestionBlock(p, q.id);
+            save(); render();
+        },
+        onDelete: () => {
+            pushUndoBeforeEdit(p);
+            ArchitectDatabase.deleteFormQuestionBlock(p, q.id, b.id);
+            save(); render();
+        }
+    });
+    if (card) el.append(card);
+    else el.hidden = true;
+    return el;
+} if (b.type === 'form_button') {
+    el.contentEditable = 'false';
+    const { cfg } = ArchitectDatabase.ensureFormConfig(p);
+    const isResp = isFormResponderActive(p);
+    const bcfg = { ...ArchitectDatabase.getDefaultFormButtonConfig(b.formButtonConfig?.kind || 'submit', cfg), ...(b.formButtonConfig || {}) };
+    const wrap = document.createElement('div');
+    wrap.className = 'form-button-wrap' + (bcfg.align ? ` is-align-${bcfg.align}` : '');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'form-custom-btn';
+    btn.dataset.formButtonKind = bcfg.kind || 'custom';
+    btn.style.backgroundColor = bcfg.bgColor || '#2383e2';
+    btn.style.color = bcfg.textColor || '#ffffff';
+    btn.style.borderColor = bcfg.borderColor || bcfg.bgColor || '#2383e2';
+    const isSharpCorners = bcfg.roundedCorners === false;
+    btn.style.borderRadius = `${isSharpCorners ? 0 : Math.max(0, Number(bcfg.radius ?? 8))}px`;
+    btn.dataset.formButtonCorners = isSharpCorners ? 'sharp' : 'rounded';
+    if (bcfg.fontFamily && bcfg.fontFamily !== 'inherit') btn.style.fontFamily = bcfg.fontFamily;
+    if (bcfg.align === 'full') btn.style.width = '100%';
+    if (bcfg.imageUrl || bcfg.imageAssetId) {
+        btn.classList.add('has-bg-image');
+        const applyBtnImg = (resolvedUrl: string) => {
+            if (!resolvedUrl) return;
+            applyCroppedBgStyle(btn, resolvedUrl, {
+                x: bcfg.imageCropX ?? 50,
+                y: bcfg.imageCropY ?? 50,
+                zoom: bcfg.imageCropZoom ?? 100,
+                aspect: bcfg.imageCropAspect
+            });
+        };
+        if (bcfg.imageUrl) {
+            applyBtnImg(bcfg.imageUrl);
+        } else if (bcfg.imageAssetId) {
+            const bgAsset = ArchitectBackend.readAssetCatalog().find(a => a.id === bcfg.imageAssetId);
+            if (bgAsset) {
+                ArchitectDatabase.resolveFormAssetUrl(bgAsset).then(u => {
+                    if (u && btn.isConnected) {
+                        bcfg.imageUrl = u;
+                        applyBtnImg(u);
+                    }
+                });
+            }
+        }
+    }
+    if (bcfg.icon) {
+        const ico = document.createElement('span');
+        ico.className = 'form-custom-btn-ico';
+        ico.textContent = bcfg.icon;
+        btn.append(ico);
+    }
+    const lblSpan = document.createElement('span');
+    lblSpan.textContent = bcfg.label || 'Submit';
+    btn.append(lblSpan);
+    btn.onclick = () => executeFormButtonAction(p, b, btn);
+    wrap.append(btn);
+    if (!isResp && !pageRo) {
+        const gear = document.createElement('button');
+        gear.type = 'button';
+        gear.className = 'db-form-ctrl-btn form-btn-customize-gear';
+        gear.dataset.formBtnCustomize = 'true';
+        gear.title = 'Customize button style & action';
+        gear.textContent = '⚙ Style';
+        gear.onclick = ev => { ev.stopPropagation(); openFormButtonConfigPopover(gear, p, b); };
+        wrap.append(gear);
+    }
+    el.append(wrap);
     return el;
 } if (b.type === 'database_view') {
     el.contentEditable = 'false';
@@ -9530,7 +12988,7 @@ function openButtonConfigPopover(p: Page, b: Block, _anchorEl?: HTMLElement) {
 
     const renderStepCards = (container: HTMLElement, listRef: BlockButtonStep[], depth = 0) => {
         const dbs = state.pages.filter(pg => ArchitectDatabase.isDatabasePage(pg));
-        const viewablePages = state.pages.filter(pg => !pg.databaseId && resolvePagePermissions(pg).view);
+        const viewablePages = state.pages.filter(pg => isVisibleDocsPage(pg, true));
         const users = state.users || [];
         const chats = state.chats || [];
 
@@ -10293,9 +13751,14 @@ function renderSimpleTableBlock(el: HTMLElement, b: Block, p: Page, ro: boolean)
     }
     el.append(wrap);
 }
-const activeAudioPlayers = new Set();
+const activeAudioPlayers = new Set<{ audio: HTMLAudioElement; resetUi: () => void; card?: HTMLElement }>();
 function stopAllAudioPlayers(exceptAudio = null) {
     activeAudioPlayers.forEach(entry => {
+        if (entry.card && !entry.card.isConnected) {
+            try { entry.audio.pause(); } catch {}
+            activeAudioPlayers.delete(entry);
+            return;
+        }
         if (exceptAudio && entry.audio === exceptAudio) return;
         try { entry.audio.pause(); } catch {}
         entry.resetUi();
@@ -10310,7 +13773,7 @@ function buildAudioPlayerElement(asset, blockItem = null) {
     const timeEl = card.querySelector('.audio-time');
     const audio = new Audio();
     audio.preload = 'metadata';
-    const playerEntry = { audio, resetUi: () => { playBtn.textContent = '▶'; } };
+    const playerEntry = { audio, card, resetUi: () => { playBtn.textContent = '▶'; } };
     activeAudioPlayers.add(playerEntry);
     let loaded = false;
     const ensureLoaded = async () => {
@@ -10415,7 +13878,7 @@ function insertPlainTextIntoPre(pre, insertedText) {
 function updateBlockFromDOM(outer) {
     const ctx = blockContext(outer);
     const item = ctx?.item;
-    if (!item || !outer || ['divider','page_link','mention','image','toc','breadcrumb','button','date','equation','video','audio','bookmark','embed','file','pdf','columns','table','database_view','board_view'].includes(item.type)) return;
+    if (!item || !outer || ['divider','page_link','mention','image','toc','breadcrumb','button','date','equation','video','audio','bookmark','embed','file','pdf','columns','table','database_view','board_view','form_question','form_button'].includes(item.type)) return;
     const target = editableTarget(outer);
     if (!target || target.getAttribute('contenteditable') === 'false') return;
     if (item.type === 'code') {
@@ -10445,7 +13908,7 @@ function ensureBlockInViewport(outer) {
         window.scrollBy({ top: rect.bottom - (window.innerHeight - bottomMargin), left: 0, behavior: 'auto' });
     }
 }
-function focusBlockEl(outer, atStart = true) { if (!outer) { editor.querySelector('.block-editor')?.focus({ preventScroll: true }); return; } setActiveEditorBlock(outer); const target = editableTarget(outer); const textLen = target.tagName === 'PRE' ? readPlainTextFromNode(target).length : (target.innerText || '').replace(/\u200b/g, '').length; setCaretAtTextOffset(target, atStart ? 0 : textLen); ensureBlockInViewport(outer); }
+function focusBlockEl(outer, atStart = true) { if (!outer) { editor.querySelector('.block-editor')?.focus({ preventScroll: true }); return; } setActiveEditorBlock(outer); const target = editableTarget(outer); if (outer.getAttribute('contenteditable') === 'false' || target.getAttribute('contenteditable') === 'false') { outer.focus?.({ preventScroll: true }); ensureBlockInViewport(outer); return; } const textLen = target.tagName === 'PRE' ? readPlainTextFromNode(target).length : (target.innerText || '').replace(/\u200b/g, '').length; setCaretAtTextOffset(target, atStart ? 0 : textLen); ensureBlockInViewport(outer); }
 function focusBlockById(blockId, atStart = true) { focusBlockEl(editor.querySelector(`[data-block-id="${CSS.escape(blockId)}"]`), atStart); }
 function focusBlockAt(index, atStart = true) { focusBlockEl(editor.querySelector(`.block-editor > .block[data-index="${index}"]`), atStart); }
 function expandAncestorsForBlock(list, targetId) {
@@ -10615,7 +14078,7 @@ function mergeOrRemoveBlock(ctx, target) {
     }
     if (index <= 0) return;
     const previous = list[index - 1];
-    if (isToggleBlock(previous) || ['divider','page_link','mention','image','table','columns','toc','breadcrumb','button','date','equation','video','audio','bookmark','embed','file','pdf','code'].includes(previous.type)) return;
+    if (isToggleBlock(previous) || ['divider','page_link','mention','image','table','columns','toc','breadcrumb','button','date','equation','video','audio','bookmark','embed','file','pdf','code','form_question','form_button','embedded_database','board_view'].includes(previous.type)) return;
     const previousText = previous.text || '', previousHTML = previous.html || esc(previousText), itemHTML = item.html || esc(item.text || '');
     previous.text = previousText + (item.text || '');
     previous.html = cleanInlineHtml(previousHTML + itemHTML);
@@ -10641,7 +14104,7 @@ function markdownEntryToContainerHtml(entry) {
     return bodyHtml;
 }
 function handleMarkdownPaste(event) { const clipboard = event.clipboardData, raw = clipboard?.getData('text/plain'); if (!raw) return; const blockElement = activeBlockFromSelection(), ctx = blockContext(blockElement), target = editableTarget(blockElement), selection = getSelection(); if (!blockElement || !ctx || !selection?.rangeCount) return; const selected = selection.getRangeAt(0); if (!target.contains(selected.startContainer) || !target.contains(selected.endContainer)) return; const { page, list, index, item } = ctx; if (item.type === 'code') { event.preventDefault(); pushUndoBeforeEdit(page); insertPlainTextIntoPre(target, raw.replace(/\r\n?/g, '\n')); updateBlockFromDOM(blockElement); save(); return; } const pastedUrl = isStandaloneHttpUrl(raw); if (pastedUrl) { event.preventDefault(); pushUndoBeforeEdit(page); selected.deleteContents(); const a = document.createElement('a'); a.href = pastedUrl; a.rel = 'noopener noreferrer'; a.textContent = pastedUrl; selected.insertNode(a); const sp = document.createTextNode(' '); a.after(sp); const caret = document.createRange(); caret.setStart(sp, 1); caret.collapse(true); selection.removeAllRanges(); selection.addRange(caret); updateBlockFromDOM(blockElement); save(); const anchorRect = a.getBoundingClientRect(); openLinkPreviewMenu({ page, list, item, blockElement, target, linkEl: a, url: pastedUrl, anchorRect }); return; } const lines = raw.replace(/\r\n?/g, '\n').split('\n'), looksLikeMarkdown = lines.some(line => /^(#{1,6}\s|\s*[-*+]\s|\s*\d+\.\s|>\s?|---\s*$|___\s*$|\*\*\*\s*$)/.test(line)); if (lines.length === 1 && !looksLikeMarkdown && !/\*\*|\*[^*\s][^*]*\*|~~|`|\[[^\]]+\]\(https?:\/\//.test(raw)) return; event.preventDefault(); pushUndoBeforeEdit(page); const prefixRange = document.createRange(), suffixRange = document.createRange(); prefixRange.selectNodeContents(target); prefixRange.setEnd(selected.startContainer, selected.startOffset); suffixRange.selectNodeContents(target); suffixRange.setStart(selected.endContainer, selected.endOffset); const prefix = fragmentAsEditableHTML(prefixRange.cloneContents()), suffix = fragmentAsEditableHTML(suffixRange.cloneContents()), parsed = lines.map(parseMarkdownLine); if (item.type === 'callout' || item.type === 'quote') { const midHtml = parsed.map(markdownEntryToContainerHtml).join('<br>'); item.html = cleanInlineHtml((prefix.html || '') + midHtml + (suffix.html || '')) || undefined; const plainLines = parsed.map(entry => entry.type === 'bullet' ? `• ${entry.text}` : entry.type === 'todo' ? `${entry.checked ? '☑' : '☐'} ${entry.text}` : entry.type === 'divider' ? '───' : (entry.text || '')).join('\n'); item.text = (prefix.text || '') + plainLines + (suffix.text || ''); save(); render(); const pastedEl = editor.querySelector(`[data-block-id="${CSS.escape(item.id)}"]`); if (pastedEl) setCaretAtTextOffset(editableTarget(pastedEl), Math.min((prefix.text || '').length + plainLines.length, (item.text || '').length)); return; } if (prefix.text) { parsed[0].text = prefix.text + parsed[0].text; parsed[0].html = cleanInlineHtml(prefix.html + parsed[0].html); parsed[0].type = item.type; parsed[0].id = item.id; } else parsed[0].id = item.id; if (suffix.text) { const last = parsed[parsed.length - 1]; last.text += suffix.text; last.html = cleanInlineHtml(last.html + suffix.html); } const inserted = parsed.map(entry => ({ ...block(entry.type, entry.text), ...entry })); list.splice(index, 1, ...inserted); save(); render(); const caretOffset = (prefix.text && parsed.length === 1 ? prefix.text.length : 0) + (lines[lines.length - 1]?.length || 0); const lastInserted = inserted[inserted.length - 1]; focusBlockById(lastInserted.id); const lastEl = editor.querySelector(`[data-block-id="${CSS.escape(lastInserted.id)}"]`); if (lastEl) setCaretAtTextOffset(editableTarget(lastEl), Math.min(caretOffset, (lastInserted.text || '').length)); }
-const MENU_GLYPHS = { 'Text':'T', 'Page':'▤', 'Board':'◩', 'Board - Inline':'⊞', 'Linked view of board':'↗', 'Turn into board':'◩', 'Database':'🗃️', 'Database - Inline':'⊞', 'Linked view of database':'↗', 'Board view':'▥', 'Gallery view':'◫', 'List view':'☰', 'Calendar view':'📅', 'Timeline view':'↦', 'Chart view':'◔', 'Feed view':'▤', 'Form view':'📝', 'Button':'🔘', 'Heading 1':'H1', 'Heading 2':'H2', 'Heading 3':'H3', 'Heading 4':'H4', 'Heading 5':'H5', 'Heading 6':'H6', 'Toggle heading 1':'▸H1', 'Toggle heading 2':'▸H2', 'Toggle heading 3':'▸H3', 'Make toggleable':'▸', 'Turn off toggle':'↩', 'Bulleted list':'•', 'Numbered list':'1.', 'To-do list':'☑', 'Toggle list':'▸', 'Quote':'❝', 'Callout':'☀', 'Divider':'—', 'Image':'▧', 'Video':'▶', 'Audio':'♪', 'File':'⌑', 'PDF':'PDF', 'Web bookmark':'⚑', 'Embed':'◇', 'Code':'</>', 'Mermaid diagram':'🧜', '2 columns':'▥', '3 columns':'▥', '4 columns':'▥', '5 columns':'▥', 'Add column left':'▥', 'Add column right':'▥', 'Add column':'▥', 'Delete column':'🗑', 'Table':'▦', 'Table of contents':'☰', 'Breadcrumb':'›', 'Mention':'@', 'Date / reminder':'▦', 'Equation':'∑', 'Emoji':'☺', 'Link to page':'↗', 'Comment':'💬', 'Duplicate block':'⧉', 'Move to page':'↪', 'Delete block':'🗑', 'Open page':'→', 'Open link':'↗', 'Open in new tab':'↗', 'Open in Peek':'◨', 'Open as full page':'⤢', 'New tab':'＋', 'Duplicate tab':'⧉', 'Pin tab':'📌', 'Unpin tab':'📌', 'Close tab':'×', 'Close other tabs':'×', 'Close tabs to the right':'×', 'Cut':'✂', 'Copy':'⧉', 'Paste':'📋', 'Copy image URL':'🔗', 'Add row':'＋', 'Add block':'＋', 'New page':'＋', 'New board':'◩', 'New database':'🗃️', 'Search workspace':'⌕', 'Workspace settings':'⚙', 'Back':'←', 'Forward':'→', 'Toggle full width':'↔', 'Open comments':'💬', 'Rename':'✎', 'Duplicate':'⧉', 'Copy link':'🔗', 'Copy link to block':'🔗', 'Add to favorites':'★', 'Remove from favorites':'★', 'Change icon':'☺', 'Edit icon':'☺', 'Color':'🖌', 'Delete':'🗑', 'Move to':'↪', 'Turn into':'⇄', 'Permissions':'🔒', 'Replace':'↻', 'Copy image':'⧉', 'Download':'↓', 'Caption':'▤', 'More options':'•••', 'Crop image':'✂', 'Edit link to image':'🔗', 'Alt text':'ALT', 'Full screen':'⤢', 'Open in browser':'↗', 'Select all':'▣' };
+const MENU_GLYPHS = { 'Text':'T', 'Page':'▤', 'Board':'◩', 'Board - Inline':'⊞', 'Linked view of board':'↗', 'Turn into board':'◩', 'Form':'📝', 'Turn into form':'📝', 'New form':'📝', 'Task Tracker':'⚔️', 'New task tracker':'⚔️', 'Database':'🗃️', 'Database - Inline':'⊞', 'Linked view of database':'↗', 'Board view':'▥', 'Gallery view':'◫', 'List view':'☰', 'Calendar view':'📅', 'Timeline view':'↦', 'Chart view':'◔', 'Feed view':'▤', 'Form view':'📝', 'Button':'🔘', 'Heading 1':'H1', 'Heading 2':'H2', 'Heading 3':'H3', 'Heading 4':'H4', 'Heading 5':'H5', 'Heading 6':'H6', 'Toggle heading 1':'▸H1', 'Toggle heading 2':'▸H2', 'Toggle heading 3':'▸H3', 'Make toggleable':'▸', 'Turn off toggle':'↩', 'Bulleted list':'•', 'Numbered list':'1.', 'To-do list':'☑', 'Toggle list':'▸', 'Quote':'❝', 'Callout':'☀', 'Divider':'—', 'Image':'▧', 'Video':'▶', 'Audio':'♪', 'File':'⌑', 'PDF':'PDF', 'Web bookmark':'⚑', 'Embed':'◇', 'Code':'</>', 'Mermaid diagram':'🧜', '2 columns':'▥', '3 columns':'▥', '4 columns':'▥', '5 columns':'▥', 'Add column left':'▥', 'Add column right':'▥', 'Add column':'▥', 'Delete column':'🗑', 'Table':'▦', 'Table of contents':'☰', 'Breadcrumb':'›', 'Mention':'@', 'Date / reminder':'▦', 'Equation':'∑', 'Emoji':'☺', 'Link to page':'↗', 'Comment':'💬', 'Reply in private':'💬', 'Duplicate block':'⧉', 'Move to page':'↪', 'Delete block':'🗑', 'Open page':'→', 'Open link':'↗', 'Open in new tab':'↗', 'Open in Peek':'◨', 'Open as full page':'⤢', 'New tab':'＋', 'Duplicate tab':'⧉', 'Pin tab':'📌', 'Unpin tab':'📌', 'Close tab':'×', 'Close other tabs':'×', 'Close tabs to the right':'×', 'Cut':'✂', 'Copy':'⧉', 'Paste':'📋', 'Copy image URL':'🔗', 'Add row':'＋', 'Add block':'＋', 'New page':'＋', 'New board':'◩', 'New database':'🗃️', 'Search workspace':'⌕', 'Workspace settings':'⚙', 'Back':'←', 'Forward':'→', 'Toggle full width':'↔', 'Open comments':'💬', 'Rename':'✎', 'Duplicate':'⧉', 'Copy link':'🔗', 'Copy link to block':'🔗', 'Add to favorites':'★', 'Remove from favorites':'★', 'Change icon':'☺', 'Edit icon':'☺', 'Color':'🖌', 'Delete':'🗑', 'Move to':'↪', 'Turn into':'⇄', 'Permissions':'🔒', 'Replace':'↻', 'Copy image':'⧉', 'Download':'↓', 'Caption':'▤', 'More options':'•••', 'Crop image':'✂', 'Edit link to image':'🔗', 'Alt text':'ALT', 'Full screen':'⤢', 'Open in browser':'↗', 'Select all':'▣' };
 const BLOCK_COLORS = [
     { key: 'default', label: 'Default', textHex: '#37352f', bgHex: '#ffffff' },
     { key: 'gray', label: 'Gray', textHex: '#787774', bgHex: '#f1f1ef' },
@@ -10706,14 +14169,34 @@ function placeFloatingMenu(menu, x, y) {
 }
 function placeCommandMenu(menu,anchor){if(!anchor)return;menu.hidden=false;menu.style.maxHeight='';const rect=anchor.getBoundingClientRect(),box=menu.getBoundingClientRect();const left=Math.max(12,Math.min(window.innerWidth-box.width-12,rect.left+22));const below=rect.bottom+5;const above=rect.top-5;const spaceBelow=window.innerHeight-below-12;const spaceAbove=above-12;if(spaceBelow>=220||spaceBelow>=spaceAbove){menu.style.maxHeight=`${Math.max(180,Math.min(box.height,spaceBelow))}px`;menu.style.top=`${Math.max(12,below)}px`}else{const height=Math.max(180,Math.min(box.height,spaceAbove));menu.style.maxHeight=`${height}px`;menu.style.top=`${Math.max(12,above-height)}px`}menu.style.left=`${left}px`}
 function cmdCatalog() {
+    const curPage = current();
+    const onFormPage = typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(curPage);
     return [
         ['Text', 'text', 'Basic blocks', 'T'], ['Page', 'page_link', 'Basic blocks', '▤'], ['Button', 'button', 'Basic blocks', '🔘'],
+        ...(onFormPage ? [
+            ['Question (Text)', 'form_question', 'Form questions', '¶', undefined, undefined, undefined, 'text'],
+            ['Select question', 'form_question', 'Form questions', '▾', undefined, undefined, undefined, 'multi_select'],
+            ['Phone (+country) question', 'form_question', 'Form questions', '☎', undefined, undefined, undefined, 'phone'],
+            ['Number question', 'form_question', 'Form questions', '#', undefined, undefined, undefined, 'number'],
+            ['Date question', 'form_question', 'Form questions', '📅', undefined, undefined, undefined, 'date'],
+            ['Email question', 'form_question', 'Form questions', '@', undefined, undefined, undefined, 'email'],
+            ['URL question', 'form_question', 'Form questions', '🔗', undefined, undefined, undefined, 'url'],
+            ['Upload question', 'form_question', 'Form questions', '📎', undefined, undefined, undefined, 'files'],
+            ['Relation question', 'form_question', 'Form questions', '↗', undefined, undefined, undefined, 'relation'],
+            ['Submit button', 'form_button', 'Form buttons', '✓', undefined, undefined, undefined, undefined, 'submit'],
+            ['Download button', 'form_button', 'Form buttons', '↓', undefined, undefined, undefined, undefined, 'download'],
+            ['Mail button (Send response)', 'form_button', 'Form buttons', '✉', undefined, undefined, undefined, undefined, 'send_email'],
+            ['Form button (Custom)', 'form_button', 'Form buttons', '✦', undefined, undefined, undefined, undefined, 'custom']
+        ] : []),
         ['Board', 'board_page', 'Board', '◩'],
         ['Board - Inline', 'board_view', 'Board', '⊞', undefined, undefined, 'inline-board'],
         ['Linked view of board', 'board_view', 'Board', '↗', undefined, undefined, 'linked-board'],
         ['Database', 'database_page', 'Database', '🗃️'],
+        ['Task Tracker', 'questboard_page', 'Database', '⚔️'],
+        ['Form', 'form_page', 'Database', '📝'],
         ['Database - Inline', 'database_view', 'Database', '⊞', undefined, undefined, 'table'],
         ['Linked view of database', 'database_view', 'Database', '↗', undefined, undefined, 'linked'],
+        ['Master Questboard (Linked view)', 'database_view', 'Database', '⚔️', undefined, undefined, 'linked-official-taskboard'],
         ['Board view', 'database_view', 'Database views', '▥', undefined, undefined, 'board'],
         ['Gallery view', 'database_view', 'Database views', '◫', undefined, undefined, 'gallery'],
         ['List view', 'database_view', 'Database views', '☰', undefined, undefined, 'list'],
@@ -10722,6 +14205,10 @@ function cmdCatalog() {
         ['Chart view', 'database_view', 'Database views', '◔', undefined, undefined, 'chart'],
         ['Feed view', 'database_view', 'Database views', '▤', undefined, undefined, 'feed'],
         ['Form view', 'database_view', 'Database views', '📝', undefined, undefined, 'form'],
+        ...(!onFormPage ? [
+            ['Question', 'form_question', 'Form', '❓'],
+            ['Upload', 'form_upload', 'Media', '📤']
+        ] : []),
         ['Heading 1', 'h1', 'Headings', 'H1'], ['Heading 2', 'h2', 'Headings', 'H2'], ['Heading 3', 'h3', 'Headings', 'H3'], ['Heading 4', 'h4', 'Headings', 'H4'], ['Heading 5', 'h5', 'Headings', 'H5'], ['Heading 6', 'h6', 'Headings', 'H6'],
         ['Toggle heading 1', 'h1', 'Headings', '▸H1', undefined, true], ['Toggle heading 2', 'h2', 'Headings', '▸H2', undefined, true], ['Toggle heading 3', 'h3', 'Headings', '▸H3', undefined, true],
         ['Bulleted list', 'bullet', 'Lists', '•'], ['Numbered list', 'numbered', 'Lists', '1.'], ['To-do list', 'todo', 'Lists', '☑'], ['Toggle list', 'toggle', 'Lists', '▸', undefined, true],
@@ -10730,7 +14217,7 @@ function cmdCatalog() {
         ['2 columns', 'columns', 'Layout', '▥', 2], ['3 columns', 'columns', 'Layout', '▥', 3], ['4 columns', 'columns', 'Layout', '▥', 4], ['5 columns', 'columns', 'Layout', '▥', 5], ['Table', 'table', 'Layout', '▦'], ['Table of contents', 'toc', 'Layout', '☰'], ['Breadcrumb', 'breadcrumb', 'Layout', '›'],
         ['Mention', 'mention', 'Inline', '@'], ['Date / reminder', 'date', 'Inline', '▦'], ['Equation', 'equation', 'Inline', '∑'], ['Emoji', 'mention', 'Inline', '☺'], ['Link to page', 'page_link', 'Inline', '↗'],
         ['Duplicate block', 'text', 'Actions', '⧉'], ['Move to page', 'text', 'Actions', '↪'], ['Delete block', 'text', 'Actions', '🗑']
-    ].map(([name, type, category, icon, columns, toggle, dbViewType]) => ({ name, type, category, icon, columns, toggle, dbViewType }));
+    ].map(([name, type, category, icon, columns, toggle, dbViewType, formPropType, formButtonKind]) => ({ name, type, category, icon, columns, toggle, dbViewType, formPropType, formButtonKind }));
 }
 function showMenu(query, blockAt) { const menu = $('#command-menu'), q = query.trim(); menu.className = 'command-menu'; menu.innerHTML = ''; menu.scrollTop = 0; const cmds = cmdCatalog().filter(c => menuMatches(c.name + ' ' + c.category, q)); const list = document.createElement('div'); list.className = 'command-list'; if (!cmds.length) { const empty = document.createElement('div'); empty.className = 'command-empty'; empty.textContent = 'No matching blocks'; list.append(empty); } [...new Set(cmds.map(c => c.category))].forEach(category => { const group = document.createElement('section'); group.className = 'command-group'; const label = document.createElement('div'); label.className = 'command-group-label'; label.textContent = category; group.append(label); cmds.filter(c => c.category === category).forEach(c => { const row = menuRow(c.name, menuGlyph(c.name, c.type), () => runCommand(c.name, c.type, blockAt, c), '', ''); group.append(row); }); list.append(group); }); menu.append(list); menuOptions = cmds; placeCommandMenu(menu, editor.querySelector(`[data-block-id="${CSS.escape(blockAt.id)}"]`)); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
 function runCommand(name, type, b, cmd) {
@@ -10788,7 +14275,123 @@ function runCommand(name, type, b, cmd) {
             save(); navigateToPage(dbPage.id);
         }
         return;
+    } if (name === 'Form') {
+        const isPageEmpty = !ArchitectDatabase.isDatabasePage(p)
+            && !ArchitectBoard.isBoardPage(p)
+            && !p.databaseId
+            && list === p.blocks
+            && p.blocks.every(x => x.id === b.id || (!(x.text || '').trim() && !(x.children || []).length && x.type === 'text'));
+        if (isPageEmpty) {
+            b.text = '';
+            b.html = undefined;
+            ArchitectDatabase.convertPageToForm(p);
+            save(); render();
+        } else {
+            pushUndoBeforeEdit(p);
+            const formPage = ArchitectDatabase.createFormPage(p.id, 'New form');
+            list[idx] = { id: id(), type: 'page_link', text: formPage.title, targetId: formPage.id };
+            save(); navigateToPage(formPage.id);
+        }
+        return;
+    } if (type === 'form_question') {
+        const pType = cmd?.formPropType || 'text';
+        if (ArchitectDatabase.isFormPage(p)) {
+            pushUndoBeforeEdit(p);
+            const isTopLevel = list === p.blocks;
+            const insertAt = isTopLevel ? (b.type === 'text' && !b.text.trim() ? idx : idx + 1) : undefined;
+            if (isTopLevel && b.type === 'text' && !b.text.trim()) {
+                p.blocks.splice(idx, 1);
+            }
+            const res = ArchitectDatabase.addFormQuestionBlock(p, pType, insertAt);
+            if (!isTopLevel && res?.block) {
+                const movedIdx = p.blocks.findIndex(x => x.id === res.block.id);
+                if (movedIdx >= 0) p.blocks.splice(movedIdx, 1);
+                list.splice(idx + (b.type === 'text' && !b.text.trim() ? 0 : 1), b.type === 'text' && !b.text.trim() ? 1 : 0, res.block);
+                ArchitectDatabase.syncFormQuestionOrderFromBlocks(p);
+            }
+            if (res?.question?.id) {
+                getFormSessionState(p).activeQuestionId = res.question.id;
+                savedEditorRange = null;
+            }
+            save(); render();
+            requestAnimationFrame(() => {
+                if (res?.question?.id) {
+                    const inp = editor.querySelector(`[data-question-id="${CSS.escape(res.question.id)}"] .db-form-q-label`) as HTMLInputElement | null;
+                    if (inp) { inp.focus({ preventScroll: true }); inp.select(); }
+                }
+            });
+            return;
+        }
+        const isPageEmpty = !ArchitectDatabase.isDatabasePage(p)
+            && !ArchitectBoard.isBoardPage(p)
+            && !p.databaseId
+            && list === p.blocks
+            && p.blocks.every(x => x.id === b.id || (!(x.text || '').trim() && !(x.children || []).length && x.type === 'text'));
+        if (isPageEmpty) {
+            b.text = '';
+            b.html = undefined;
+            ArchitectDatabase.convertPageToForm(p);
+            save(); render();
+        } else {
+            pushUndoBeforeEdit(p);
+            const formPage = ArchitectDatabase.createFormPage(p.id, 'New form');
+            list[idx] = { id: id(), type: 'page_link', text: formPage.title, targetId: formPage.id };
+            save(); navigateToPage(formPage.id);
+        }
+        return;
+    } if (type === 'form_button') {
+        const bKind = cmd?.formButtonKind || 'custom';
+        const { cfg } = ArchitectDatabase.ensureFormConfig(p);
+        pushUndoBeforeEdit(p);
+        const btnBlock = {
+            id: id(),
+            type: 'form_button' as BlockType,
+            text: '',
+            formButtonConfig: ArchitectDatabase.getDefaultFormButtonConfig(bKind, cfg)
+        };
+        if (b.type === 'text' && !b.text.trim()) list.splice(idx, 1, btnBlock);
+        else list.splice(idx + 1, 0, btnBlock);
+        save(); render();
+        return;
+    } if (type === 'form_upload') {
+        if (ArchitectDatabase.isFormPage(p)) {
+            pushUndoBeforeEdit(p);
+            const insertAt = list === p.blocks ? (b.type === 'text' && !b.text.trim() ? idx : idx + 1) : undefined;
+            if (list === p.blocks && b.type === 'text' && !b.text.trim()) {
+                p.blocks.splice(idx, 1);
+            }
+            const res = ArchitectDatabase.addFormQuestionBlock(p, 'files', insertAt);
+            if (res?.question?.id) {
+                getFormSessionState(p).activeQuestionId = res.question.id;
+                savedEditorRange = null;
+            }
+            save(); render();
+            requestAnimationFrame(() => {
+                if (res?.question?.id) {
+                    const inp = editor.querySelector(`[data-question-id="${CSS.escape(res.question.id)}"] .db-form-q-label`) as HTMLInputElement | null;
+                    if (inp) { inp.focus({ preventScroll: true }); inp.select(); }
+                }
+            });
+            return;
+        }
+        uploadForBlock(b, p, 'file');
+        return;
+    } if (name === 'Task Tracker') {
+        pushUndoBeforeEdit(p);
+        const qbPage = ArchitectDatabase.createQuestboardPage(p.id, 'Task Tracker', true);
+        list[idx] = { id: id(), type: 'page_link', text: qbPage.title, targetId: qbPage.id };
+        save(); navigateToPage(qbPage.id);
+        return;
     } if (type === 'database_view') {
+        if (cmd?.dbViewType === 'linked-official-taskboard') {
+            const qb = ArchitectDatabase.ensureOfficialQuestboardPage();
+            if (qb) {
+                pushUndoBeforeEdit(p);
+                list[idx] = { id: b.id, type: 'database_view', text: qb.title || 'Master Questboard | OS', targetId: qb.id };
+                save(); render();
+            }
+            return;
+        }
         if (cmd?.dbViewType === 'linked') {
             const anchorEl = editor.querySelector(`[data-block-id="${CSS.escape(b.id)}"]`) || editor;
             ArchitectDatabase.openLinkSourcePopover(anchorEl, chosenDb => {
@@ -10940,7 +14543,8 @@ const TURN_INTO_TARGETS = [['Text', 'text'], ['Heading 1', 'h1'], ['Heading 2', 
 const EXTRA_BLOCK_LABELS: Record<string, string> = {
     image: 'Image', video: 'Video', audio: 'Audio', file: 'File', pdf: 'PDF',
     page_link: 'Page', columns: 'Columns', database_view: 'Database', board_view: 'Board',
-    toc: 'Table of contents', breadcrumb: 'Breadcrumb', date: 'Date / reminder', mention: 'Mention'
+    toc: 'Table of contents', breadcrumb: 'Breadcrumb', date: 'Date / reminder', mention: 'Mention',
+    form_question: 'Question', form_button: 'Form button'
 };
 function blockTypeLabel(type, toggle = false) {
     if (toggle && isHeadingType(type)) return `Toggle heading ${type.slice(1)}`;
@@ -10956,8 +14560,9 @@ function deletePageTree(pageId) { const ids = new Set([pageId]); let changed = t
 function applyBlockColorChoice(p, b, kind, c) {
     pushUndoBeforeEdit(p);
     if (kind === 'text') b.color = c.key === 'default' ? undefined : c.key;
+    else if (kind === 'outline') b.outlineColor = c.key === 'default' ? undefined : c.key;
     else b.bgColor = c.key === 'default' ? (b.type === 'callout' ? 'default' : undefined) : c.key;
-    lastUsedColor = { kind, key: c.key, label: `${c.label} ${kind === 'text' ? 'text' : 'background'}`, textHex: c.textHex, bgHex: c.bgHex };
+    lastUsedColor = { kind, key: c.key, label: `${c.label} ${kind === 'text' ? 'text' : kind === 'outline' ? 'outline' : 'background'}`, textHex: c.textHex, bgHex: c.bgHex };
     save(); render();
 }
 function colorSwatchIcon(kind, c) {
@@ -11080,9 +14685,28 @@ function showBlockMenu(p, b, anchor, commentDraftContext = null) {
         }] : []),
         { label: 'Copy link to block', group: 'Actions', icon: menuGlyph('Copy link to block'), shortcut: 'Alt+⇧+L', run: () => copyBlockLink(p, b) },
         ...(!ro ? [
-            { label: 'Duplicate', group: 'Actions', icon: menuGlyph('Duplicate'), shortcut: 'Ctrl+D', run: () => { pushUndoBeforeEdit(p); const index = parentList.indexOf(b); parentList.splice(index + 1, 0, cloneBlockTree(b)); save(); render(); } },
+            { label: 'Duplicate', group: 'Actions', icon: menuGlyph('Duplicate'), shortcut: 'Ctrl+D', run: () => {
+                pushUndoBeforeEdit(p);
+                if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(p) && b.type === 'form_question' && b.questionId) {
+                    ArchitectDatabase.duplicateFormQuestionBlock(p, b.questionId);
+                } else {
+                    const index = parentList.indexOf(b);
+                    parentList.splice(index + 1, 0, cloneBlockTree(b));
+                }
+                save(); render();
+            } },
             { label: 'Move to', group: 'Actions', icon: menuGlyph('Move to'), shortcut: 'Ctrl+⇧+P', run: () => showMovePicker(p, b) },
-            { label: 'Delete', group: 'Actions', icon: menuGlyph('Delete'), shortcut: 'Del', run: () => { pushUndoBeforeEdit(p); const index = parentList.indexOf(b); if (index >= 0) parentList.splice(index, 1); const focusId = pruneEmptyColumn(p, parentList); save(); render(); if (focusId) focusBlockById(focusId, false); } }
+            { label: 'Delete', group: 'Actions', icon: menuGlyph('Delete'), shortcut: 'Del', run: () => {
+                pushUndoBeforeEdit(p);
+                if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(p) && b.type === 'form_question') {
+                    ArchitectDatabase.deleteFormQuestionBlock(p, b.questionId, b.id);
+                }
+                const index = parentList.indexOf(b);
+                if (index >= 0) parentList.splice(index, 1);
+                const focusId = pruneEmptyColumn(p, parentList);
+                save(); render();
+                if (focusId) focusBlockById(focusId, false);
+            } }
         ] : [])
     ];
 
@@ -11308,7 +14932,7 @@ function createPage(parentId, title = 'Untitled') {
     state.pages.push(p);
     return p;
 }
-function showPageLinkPicker(p, b) { const query = prompt('Search pages or type a new page title', ''); if (query === null)
+function showPageLinkPicker(p, b) { if (typeof ArchitectDatabase !== 'undefined') ArchitectDatabase.ensureOfficialQuestboardPage?.(); const query = prompt('Search pages or type a new page title', ''); if (query === null)
     return; pushUndoBeforeEdit(p); const found = state.pages.find(x => x.title.toLowerCase() === query.toLowerCase()); if (found) {
     b.type = 'page_link';
     b.targetId = found.id;
@@ -11643,8 +15267,8 @@ function getMentionTriggerBeforeCaret(target: HTMLElement): { isPageLink: boolea
     }
     return null;
 }
-function showMentionPicker(p, b) { const menu = $('#command-menu'); menu.className = 'command-menu'; menu.dataset.owner = 'doc-mention'; const suggestions = [...buildMentionUserSuggestions().map(u => ({ label: u.label, id: u.id, kind: 'person' as const })), ...state.pages.filter(pg => resolvePagePermissions(pg).view).map(x => ({ label: x.title || 'Untitled', id: x.id, kind: 'page' as const }))]; menu.innerHTML = ''; suggestions.forEach((x, i) => { const row = document.createElement('button'); row.type = 'button'; row.className = 'command-row' + (!i ? ' selected' : ''); row.textContent = (x.kind === 'page' ? '📄 ' : '👤 ') + x.label; row.onclick = () => { pushUndoBeforeEdit(p); const chipHtml = `<span class="inline-mention-chip" contenteditable="false" data-mention-kind="${x.kind}" data-mention-id="${esc(x.id)}">${x.kind === 'page' ? '📄 ' + esc(x.label) : '@' + esc(x.label)}</span> `; b.type = b.type === 'mention' ? 'text' : b.type; b.text = ((b.text || '').trim() ? b.text + ' ' : '') + (x.kind === 'page' ? x.label : '@' + x.label) + ' '; b.html = cleanInlineHtml((b.html || esc(b.text === `@${x.label} ` ? '' : b.text)) + chipHtml); b.mentions = [{ kind: x.kind, id: x.id, label: x.label }]; if (x.kind === 'person') notifyPageMentionIfSelf(p, b.id, x.id || x.label, commentUserProfile().name); save(); render(); menu.hidden = true; activeMenu = null; }; menu.append(row); }); const blkEl = editor.querySelector(`[data-block-id="${CSS.escape(b.id)}"]`); placeCommandMenu(menu, blkEl || editor); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
-function showMovePicker(p, b) { const dest = state.pages.filter(x => x.id !== p.id); const choice = prompt('Move block to which page?\n' + dest.map(x => x.title).join('\n')); const target = dest.find(x => x.title === choice); if (target) {
+function showMentionPicker(p, b) { if (typeof ArchitectDatabase !== 'undefined') ArchitectDatabase.ensureOfficialQuestboardPage?.(); const menu = $('#command-menu'); menu.className = 'command-menu'; menu.dataset.owner = 'doc-mention'; const suggestions = [...buildMentionUserSuggestions().map(u => ({ label: u.label, id: u.id, kind: 'person' as const, subLabel: '' })), ...state.pages.filter(pg => !pg.databaseId && resolvePagePermissions(pg).view).map(x => ({ label: x.title || 'Untitled', id: x.id, kind: 'page' as const, subLabel: isHiddenBaseDocsPage(x) ? 'Base DB' : '' }))]; menu.innerHTML = ''; suggestions.forEach((x, i) => { const row = document.createElement('button'); row.type = 'button'; row.className = 'command-row' + (!i ? ' selected' : ''); row.textContent = (x.kind === 'page' ? '📄 ' : '👤 ') + x.label + (x.subLabel ? ` (${x.subLabel})` : ''); row.onclick = () => { pushUndoBeforeEdit(p); const chipHtml = `<span class="inline-mention-chip" contenteditable="false" data-mention-kind="${x.kind}" data-mention-id="${esc(x.id)}">${x.kind === 'page' ? '📄 ' + esc(x.label) : '@' + esc(x.label)}</span> `; b.type = b.type === 'mention' ? 'text' : b.type; b.text = ((b.text || '').trim() ? b.text + ' ' : '') + (x.kind === 'page' ? x.label : '@' + x.label) + ' '; b.html = cleanInlineHtml((b.html || esc(b.text === `@${x.label} ` ? '' : b.text)) + chipHtml); b.mentions = [{ kind: x.kind, id: x.id, label: x.label }]; if (x.kind === 'person') notifyPageMentionIfSelf(p, b.id, x.id || x.label, commentUserProfile().name); save(); render(); menu.hidden = true; activeMenu = null; }; menu.append(row); }); const blkEl = editor.querySelector(`[data-block-id="${CSS.escape(b.id)}"]`); placeCommandMenu(menu, blkEl || editor); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
+function showMovePicker(p, b) { const dest = state.pages.filter(x => x.id !== p.id && isVisibleDocsPage(x)); const choice = prompt('Move block to which page?\n' + dest.map(x => x.title).join('\n')); const target = dest.find(x => x.title === choice); if (target) {
     pushUndoBeforeEdit(p);
     target.blocks.push(cloneBlockTree(b));
     const found = findBlockById(p.blocks, b.id);
@@ -11880,7 +15504,25 @@ function breakOutOfHeadingSpanOnShiftEnter(ctx, target: HTMLElement, blockEl: HT
 }
 function editorKeys(e) {
     const el = e.target;
-    if (!editor.contains(el) || !el.isContentEditable) return;
+    if (!editor.contains(el)) return;
+    if ((e.key === 'Backspace' || e.key === 'Delete') && !el.isContentEditable && !el.closest('input, textarea, select, [contenteditable="true"]')) {
+        const voidBlk = el.closest?.('.block[data-block-id]') as HTMLElement | null;
+        const vCtx = voidBlk ? blockContext(voidBlk) : null;
+        if (vCtx && (vCtx.item?.type === 'divider' || vCtx.item?.type === 'form_button' || vCtx.item?.type === 'form_question')) {
+            e.preventDefault();
+            pushUndoBeforeEdit(vCtx.page);
+            if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(vCtx.page) && vCtx.item?.type === 'form_question') {
+                ArchitectDatabase.deleteFormQuestionBlock(vCtx.page, vCtx.item.questionId, vCtx.item.id);
+            }
+            const vIdx = vCtx.list.indexOf(vCtx.item);
+            if (vIdx >= 0) vCtx.list.splice(vIdx, 1);
+            const focusId = pruneEmptyColumn(vCtx.page, vCtx.list) || vCtx.list[Math.max(0, vIdx - 1)]?.id || vCtx.list[0]?.id;
+            save(); render();
+            if (focusId) focusBlockById(focusId, false);
+            return;
+        }
+    }
+    if (!el.isContentEditable) return;
     if (el.closest('.simple-table, .db-interactive-surface')) return;
     const isContainerTarget = el.matches?.('.block-editor, .toggle-content, .block-list');
     const selBlock = activeBlockFromSelection();
@@ -12116,7 +15758,10 @@ function onEditorInput(e) {
     const preBlock = blockContext(blockBeforeInput)?.item;
     if (blockBeforeInput && preBlock?.type !== 'code') removeCaretAnchorFromInput(editableTarget(blockBeforeInput));
     if (e.inputType === 'insertText' && e.data === ' ' && blockBeforeInput && preBlock?.type !== 'code') inlineMarkdownAtCaret(editableTarget(blockBeforeInput));
-    syncBlocksFromEditor(); const blockEl = activeBlockFromSelection(); if (!blockEl) { save(); return; } const ctx = blockContext(blockEl), b = ctx?.item, target = editableTarget(blockEl), value = target.innerText || ''; const wordCount = editor.querySelector('.word-count'); if (wordCount) wordCount.textContent = `${countWords(p)} words`;
+    if (blockBeforeInput) updateBlockFromDOM(blockBeforeInput);
+    const blockEl = activeBlockFromSelection();
+    if (blockEl && blockEl !== blockBeforeInput) updateBlockFromDOM(blockEl);
+    if (!blockEl) { save(); return; } const ctx = blockContext(blockEl), b = ctx?.item, target = editableTarget(blockEl), value = target.innerText || ''; const wordCount = editor.querySelector('.word-count'); if (wordCount) wordCount.textContent = `${countWords(p)} words`;
     if (b && b.type !== 'code' && !b.text && !target.querySelector('img, input, button') && target.querySelector('br, strong, em, b, i, del, s, code, a, u, sup, sub, span')) {
         target.innerHTML = '';
         setCaretAtTextOffset(target, 0);
@@ -12128,8 +15773,9 @@ function onEditorInput(e) {
     }
     const mentionTrig = getMentionTriggerBeforeCaret(target);
     if (mentionTrig) {
+        if (typeof ArchitectDatabase !== 'undefined') ArchitectDatabase.ensureOfficialQuestboardPage?.();
         const isPageLink = mentionTrig.isPageLink, q = mentionTrig.query.trim().toLowerCase();
-        const pageMatches = state.pages.filter(pg => resolvePagePermissions(pg).view).map(x => ({ id: x.id, label: x.title || 'Untitled', kind: 'page' as const, roleLabel: 'Page' })).filter(x => x.label.toLowerCase().includes(q));
+        const pageMatches = state.pages.filter(pg => !pg.databaseId && resolvePagePermissions(pg).view).map(x => ({ id: x.id, label: x.title || 'Untitled', kind: 'page' as const, roleLabel: isHiddenBaseDocsPage(x) ? 'Base DB' : 'Page' })).filter(x => x.label.toLowerCase().includes(q));
         const peopleMatches = isPageLink ? [] : buildMentionUserSuggestions(q);
         const topPeople = peopleMatches.slice(0, 5);
         const remindSuggestions: Array<{ id: string; label: string; kind: 'reminder'; roleLabel: string }> =
@@ -12151,7 +15797,7 @@ function onEditorInput(e) {
             r.className = 'command-row' + (!i ? ' selected' : '');
             const icoGlyph = x.kind === 'page' ? '▤' : x.kind === 'reminder' ? '⏰' : '@';
             const displayLbl = x.kind === 'reminder' ? '@remind — Date & reminder' : x.label;
-            r.innerHTML = `<span class="command-icon">${icoGlyph}</span><span class="command-copy"><span>${esc(displayLbl)}</span><small>${esc(x.kind === 'page' ? 'Page' : (x.roleLabel || 'Person'))}</small></span><kbd>${!i ? '↵' : ''}</kbd>`;
+            r.innerHTML = `<span class="command-icon">${icoGlyph}</span><span class="command-copy"><span>${esc(displayLbl)}</span><small>${esc(x.roleLabel || (x.kind === 'page' ? 'Page' : 'Person'))}</small></span><kbd>${!i ? '↵' : ''}</kbd>`;
             r.onclick = () => {
                 if (x.kind === 'reminder') {
                     const todayIso = toLocalIsoDate();
@@ -12196,7 +15842,7 @@ let badgeLayoutFrame = 0;
 
 function commentUserProfile() {
     const u = getCurrentActorUser() || state.users?.[0];
-    return { id: u?.id || 'jordan.davis', name: u?.name || 'Jordan Davis' };
+    return { id: u?.id || 'raphael', name: u?.name || 'Raphael' };
 }
 function commentUserInitials(name) {
     return (name || 'U').split(/\s+/).filter(Boolean).map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'U';
@@ -12344,23 +15990,42 @@ function replyToCommentThread(page, thread, text, authorOverride = null) {
     syncCommentViews();
     return msg;
 }
-function focusCommentTarget(page, thread) {
+function focusCommentTarget(page, thread, opts: { commentMsgId?: string; openDrawer?: boolean } = {}) {
     if (!thread) return;
     activeCommentThreadId = thread.id;
+    if (opts.openDrawer) {
+        if (thread.resolved) commentsFilter = 'resolved';
+        else if (commentsFilter === 'resolved') commentsFilter = 'open';
+        toggleCommentsDrawer(true);
+    }
     if (thread.scope === 'page' || !thread.blockId) {
         editor.querySelector('.page-top-comments')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
         syncCommentViews();
-        return;
+    } else {
+        if (expandAncestorsForBlock(page.blocks, thread.blockId)) { save(); render(); }
+        const mark = editor.querySelector(`mark.comment-mark[data-comment-id="${CSS.escape(thread.id)}"]`);
+        const targetEl = mark || editor.querySelector(`[data-block-id="${CSS.escape(thread.blockId)}"]`);
+        if (targetEl) {
+            targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            const blockEl = targetEl.closest('.block') || targetEl;
+            blockEl.classList.add('linked-block');
+            setTimeout(() => blockEl.classList.remove('linked-block'), 1800);
+        }
+        syncCommentViews();
     }
-    if (expandAncestorsForBlock(page.blocks, thread.blockId)) { save(); render(); }
-    const mark = editor.querySelector(`mark.comment-mark[data-comment-id="${CSS.escape(thread.id)}"]`);
-    const targetEl = mark || editor.querySelector(`[data-block-id="${CSS.escape(thread.blockId)}"]`);
-    if (!targetEl) return;
-    targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    const blockEl = targetEl.closest('.block') || targetEl;
-    blockEl.classList.add('linked-block');
-    setTimeout(() => blockEl.classList.remove('linked-block'), 1800);
-    syncCommentViews();
+    requestAnimationFrame(() => {
+        const msgSel = opts.commentMsgId ? `.comment-message[data-comment-msg-id="${CSS.escape(opts.commentMsgId)}"]` : '';
+        const cardSel = `.comment-card[data-thread-id="${CSS.escape(thread.id)}"]`;
+        const drawer = $('#comments-drawer');
+        const msgEl = (msgSel && ((drawer && !drawer.hidden && drawer.querySelector(msgSel)) || document.querySelector(msgSel))) as HTMLElement | null;
+        const cardEl = ((drawer && !drawer.hidden && drawer.querySelector(cardSel)) || document.querySelector(cardSel)) as HTMLElement | null;
+        const hitEl = msgEl || cardEl;
+        if (hitEl) {
+            hitEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            hitEl.classList.add('is-comment-highlighted');
+            setTimeout(() => hitEl.classList.remove('is-comment-highlighted'), 2400);
+        }
+    });
 }
 function wireCommentComposerBox(textarea, sendBtn, onSubmit) {
     const closeMention = () => {
@@ -12485,20 +16150,20 @@ function renderCommentThreadCard(page, thread, opts = {}) {
         const head = document.createElement('div');
         head.className = 'comment-msg-head';
 
-        const userRef = msg.authorId || msg.authorName || 'Jordan Davis';
+        const userRef = msg.authorId || msg.authorName || 'Raphael';
         const avatar = document.createElement('span');
         avatar.className = 'comment-avatar user-ref-trigger';
         avatar.dataset.userRef = userRef;
         avatar.textContent = commentUserInitials(msg.authorName);
         avatar.onclick = e => { e.stopPropagation(); openUserDashboard(userRef); };
-        avatar.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef); };
+        avatar.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef, { page, thread, msg }); };
 
         const author = document.createElement('span');
         author.className = 'comment-msg-author user-ref-trigger';
         author.dataset.userRef = userRef;
-        author.textContent = msg.authorName || 'Jordan Davis';
+        author.textContent = msg.authorName || 'Raphael';
         author.onclick = e => { e.stopPropagation(); openUserDashboard(userRef); };
-        author.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef); };
+        author.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef, { page, thread, msg }); };
 
         const time = document.createElement('span');
         time.className = 'comment-msg-time';
@@ -12700,12 +16365,14 @@ function renderTopCommentsSection(p) {
     host.replaceChildren();
     const perms = resolvePagePermissions(p);
     const ro = isReadOnlyMirror() || !perms.view || !perms.comment;
-    const allPageComments = ensurePageComments(p).filter(t => t.scope === 'page');
-    const openPageComments = allPageComments.filter(t => !t.resolved);
-    const resolvedPageCount = allPageComments.length - openPageComments.length;
+    const allThreads = ensurePageComments(p);
+    const isTopLevelThread = (t: CommentThread) => t.scope === 'page' || !t.blockId || !editor.querySelector(`[data-block-id="${CSS.escape(t.blockId)}"]`);
+    const topThreads = allThreads.filter(isTopLevelThread);
+    const openPageComments = topThreads.filter(t => !t.resolved);
+    const resolvedTotal = allThreads.filter(t => !!t.resolved).length;
     host.classList.toggle('is-empty-ro', ro && !openPageComments.length);
 
-    openPageComments.forEach(thread => host.append(renderCommentThreadCard(p, thread)));
+    openPageComments.forEach(thread => host.append(renderCommentThreadCard(p, thread, { showContext: thread.scope !== 'page' || !!thread.quote })));
 
     if (!ro) {
         const box = document.createElement('div');
@@ -12730,11 +16397,11 @@ function renderTopCommentsSection(p) {
         box.append(avatar, input, send);
         host.append(box);
     }
-    if (resolvedPageCount > 0) {
+    if (resolvedTotal > 0) {
         const link = document.createElement('button');
         link.type = 'button';
         link.className = 'page-resolved-hint';
-        link.textContent = `${resolvedPageCount} resolved page ${resolvedPageCount === 1 ? 'comment' : 'comments'}`;
+        link.textContent = `${resolvedTotal} resolved ${resolvedTotal === 1 ? 'comment' : 'comments'}`;
         link.onclick = () => { commentsFilter = 'resolved'; toggleCommentsDrawer(true); };
         host.append(link);
     }
@@ -13200,6 +16867,12 @@ function toggleCommentsDrawer(forceOpen = null) {
     if (nextOpen) {
         const assetsSidebar = $('#assets-sidebar');
         if (assetsSidebar && !assetsSidebar.hidden) toggleAssetsSidebar(false);
+        const fds = $('#form-design-sidebar');
+        if (fds && !fds.hidden) toggleFormDesignSidebar(false);
+        const curThreads = ensurePageComments(current());
+        if (forceOpen === null && curThreads.length > 0 && curThreads.every(t => !!t.resolved) && commentsFilter === 'open') {
+            commentsFilter = 'resolved';
+        }
     }
     drawer.hidden = !nextOpen;
     btn?.setAttribute('aria-expanded', String(nextOpen));
@@ -13219,6 +16892,8 @@ function toggleAssetsSidebar(forceOpen: boolean | null = null) {
     if (nextOpen) {
         const cDrawer = $('#comments-drawer');
         if (cDrawer && !cDrawer.hidden) toggleCommentsDrawer(false);
+        const fds = $('#form-design-sidebar');
+        if (fds && !fds.hidden) toggleFormDesignSidebar(false);
     }
     drawer.hidden = !nextOpen;
     btn?.classList.toggle('is-active', nextOpen);
@@ -13229,10 +16904,91 @@ function toggleAssetsSidebar(forceOpen: boolean | null = null) {
     }
 }
 
+let assetsSidebarSearchTimer = 0;
 function renderAssetsSidebar() {
     const drawer = $('#assets-sidebar');
     if (!drawer || drawer.hidden) return;
-    const prevFocusId = (document.activeElement as HTMLElement | null)?.id || '';
+    if (!drawer.dataset.sidebarInitialized) {
+        drawer.dataset.sidebarInitialized = 'true';
+        drawer.innerHTML = `
+            <header class="assets-sidebar-head">
+                <div class="assets-sidebar-title-wrap">
+                    <strong>Assets</strong>
+                    <span class="assets-sidebar-count">0</span>
+                </div>
+                <div class="assets-sidebar-head-actions">
+                    <label class="secondary-button assets-sidebar-upload-btn" title="Upload files or PureRef (.pur) boards">＋ Upload<input id="assets-sidebar-upload" type="file" multiple hidden></label>
+                    <button type="button" class="icon-button" data-sidebar-full-lib title="Open full Asset Library">⤢</button>
+                    <button type="button" class="icon-button" data-sidebar-close aria-label="Close Assets sidebar">×</button>
+                </div>
+            </header>
+            <div class="assets-sidebar-filters">
+                <input id="assets-sidebar-search" type="search" placeholder="Search assets, .pur boards, tags…" value="${esc(assetsSidebarSearch)}" autocomplete="off" aria-label="Search assets sidebar">
+                <select id="assets-sidebar-cat" aria-label="Filter category in sidebar">
+                    <option value="all"${assetsSidebarCategory === 'all' ? ' selected' : ''}>All categories</option>
+                    <option value="board"${assetsSidebarCategory === 'board' ? ' selected' : ''}>Board (.pur)</option>
+                    <option value="image"${assetsSidebarCategory === 'image' ? ' selected' : ''}>Image</option>
+                    <option value="concept"${assetsSidebarCategory === 'concept' ? ' selected' : ''}>Concept</option>
+                    <option value="illustration"${assetsSidebarCategory === 'illustration' ? ' selected' : ''}>Illustration</option>
+                    <option value="music"${assetsSidebarCategory === 'music' ? ' selected' : ''}>Music</option>
+                    <option value="sfx"${assetsSidebarCategory === 'sfx' ? ' selected' : ''}>SFX</option>
+                    <option value="video"${assetsSidebarCategory === 'video' ? ' selected' : ''}>Video</option>
+                    <option value="3d model"${assetsSidebarCategory === '3d model' ? ' selected' : ''}>3D model</option>
+                    <option value="document"${assetsSidebarCategory === 'document' ? ' selected' : ''}>Document</option>
+                    <option value="other"${assetsSidebarCategory === 'other' ? ' selected' : ''}>Other</option>
+                </select>
+            </div>
+            <div class="assets-sidebar-hint">Drag any item into your page or board to link without copying.</div>
+            <div class="assets-sidebar-list" id="assets-sidebar-list" role="list"></div>
+        `;
+        const searchInp = drawer.querySelector('#assets-sidebar-search') as HTMLInputElement;
+        searchInp.addEventListener('input', () => {
+            assetsSidebarSearch = searchInp.value;
+            clearTimeout(assetsSidebarSearchTimer);
+            assetsSidebarSearchTimer = window.setTimeout(() => renderAssetsSidebarList(), 40);
+        });
+        const catSel = drawer.querySelector('#assets-sidebar-cat') as HTMLSelectElement;
+        catSel.addEventListener('change', () => {
+            assetsSidebarCategory = catSel.value;
+            renderAssetsSidebarList();
+        });
+        drawer.querySelector('[data-sidebar-full-lib]')?.addEventListener('click', () => openAssetLibrary());
+        drawer.querySelector('[data-sidebar-close]')?.addEventListener('click', () => toggleAssetsSidebar(false));
+        const upInp = drawer.querySelector('#assets-sidebar-upload') as HTMLInputElement;
+        upInp.addEventListener('change', async () => {
+            const files = [...(upInp.files || [])];
+            if (!files.length) return;
+            for (const f of files) {
+                try {
+                    if (/\.pur$/i.test(f.name)) {
+                        const imported = await importPureRefFile(f, { parentPageId: current()?.id });
+                        selectedLibraryAssetId = imported.asset.id;
+                    } else {
+                        const rec = await ArchitectBackend.ingestLocalFile(f, { creator: getActorDisplayName(), storageMode: state.assetStorageMode || 'local', previewPolicy: state.assetPreviewPolicy });
+                        selectedLibraryAssetId = rec.id;
+                    }
+                } catch (err) {
+                    toast(err?.message || `Failed to upload ${f.name}`);
+                }
+            }
+            upInp.value = '';
+            renderAssetsSidebarList();
+        });
+    } else {
+        const searchInp = drawer.querySelector('#assets-sidebar-search') as HTMLInputElement | null;
+        if (searchInp && document.activeElement !== searchInp && searchInp.value !== assetsSidebarSearch) {
+            searchInp.value = assetsSidebarSearch;
+        }
+        const catSel = drawer.querySelector('#assets-sidebar-cat') as HTMLSelectElement | null;
+        if (catSel && catSel.value !== assetsSidebarCategory) {
+            catSel.value = assetsSidebarCategory;
+        }
+    }
+    renderAssetsSidebarList();
+}
+function renderAssetsSidebarList() {
+    const drawer = $('#assets-sidebar');
+    if (!drawer || drawer.hidden) return;
     const all = ArchitectBackend.readAssetCatalog();
     const filtered = ArchitectBackend.queryAssets(all, {
         query: assetsSidebarSearch,
@@ -13240,79 +16996,17 @@ function renderAssetsSidebar() {
         creator: 'all',
         storageMode: 'all'
     });
-    drawer.innerHTML = `
-        <header class="assets-sidebar-head">
-            <div class="assets-sidebar-title-wrap">
-                <strong>Assets</strong>
-                <span class="assets-sidebar-count">${filtered.length}</span>
-            </div>
-            <div class="assets-sidebar-head-actions">
-                <label class="secondary-button assets-sidebar-upload-btn" title="Upload files or PureRef (.pur) boards">＋ Upload<input id="assets-sidebar-upload" type="file" multiple hidden></label>
-                <button type="button" class="icon-button" data-sidebar-full-lib title="Open full Asset Library">⤢</button>
-                <button type="button" class="icon-button" data-sidebar-close aria-label="Close Assets sidebar">×</button>
-            </div>
-        </header>
-        <div class="assets-sidebar-filters">
-            <input id="assets-sidebar-search" type="search" placeholder="Search assets, .pur boards, tags…" value="${esc(assetsSidebarSearch)}" autocomplete="off" aria-label="Search assets sidebar">
-            <select id="assets-sidebar-cat" aria-label="Filter category in sidebar">
-                <option value="all"${assetsSidebarCategory === 'all' ? ' selected' : ''}>All categories</option>
-                <option value="board"${assetsSidebarCategory === 'board' ? ' selected' : ''}>Board (.pur)</option>
-                <option value="image"${assetsSidebarCategory === 'image' ? ' selected' : ''}>Image</option>
-                <option value="concept"${assetsSidebarCategory === 'concept' ? ' selected' : ''}>Concept</option>
-                <option value="illustration"${assetsSidebarCategory === 'illustration' ? ' selected' : ''}>Illustration</option>
-                <option value="music"${assetsSidebarCategory === 'music' ? ' selected' : ''}>Music</option>
-                <option value="sfx"${assetsSidebarCategory === 'sfx' ? ' selected' : ''}>SFX</option>
-                <option value="video"${assetsSidebarCategory === 'video' ? ' selected' : ''}>Video</option>
-                <option value="3d model"${assetsSidebarCategory === '3d model' ? ' selected' : ''}>3D model</option>
-                <option value="document"${assetsSidebarCategory === 'document' ? ' selected' : ''}>Document</option>
-                <option value="other"${assetsSidebarCategory === 'other' ? ' selected' : ''}>Other</option>
-            </select>
-        </div>
-        <div class="assets-sidebar-hint">Drag any item into your page or board to link without copying.</div>
-        <div class="assets-sidebar-list" id="assets-sidebar-list" role="list"></div>
-    `;
-
-    const searchInp = drawer.querySelector('#assets-sidebar-search') as HTMLInputElement;
-    searchInp.addEventListener('input', () => {
-        assetsSidebarSearch = searchInp.value;
-        renderAssetsSidebar();
-    });
-    const catSel = drawer.querySelector('#assets-sidebar-cat') as HTMLSelectElement;
-    catSel.addEventListener('change', () => {
-        assetsSidebarCategory = catSel.value;
-        renderAssetsSidebar();
-    });
-    drawer.querySelector('[data-sidebar-full-lib]')?.addEventListener('click', () => openAssetLibrary());
-    drawer.querySelector('[data-sidebar-close]')?.addEventListener('click', () => toggleAssetsSidebar(false));
-    const upInp = drawer.querySelector('#assets-sidebar-upload') as HTMLInputElement;
-    upInp.addEventListener('change', async () => {
-        const files = [...(upInp.files || [])];
-        if (!files.length) return;
-        for (const f of files) {
-            try {
-                if (/\.pur$/i.test(f.name)) {
-                    const imported = await importPureRefFile(f, { parentPageId: current()?.id });
-                    selectedLibraryAssetId = imported.asset.id;
-                } else {
-                    const rec = await ArchitectBackend.ingestLocalFile(f, { creator: getActorDisplayName(), storageMode: state.assetStorageMode || 'local', previewPolicy: state.assetPreviewPolicy });
-                    selectedLibraryAssetId = rec.id;
-                }
-            } catch (err) {
-                toast(err?.message || `Failed to upload ${f.name}`);
-            }
-        }
-        upInp.value = '';
-        renderAssetsSidebar();
-    });
-
-    const listEl = drawer.querySelector('#assets-sidebar-list') as HTMLElement;
+    const countEl = drawer.querySelector('.assets-sidebar-count');
+    if (countEl) countEl.textContent = String(filtered.length);
+    const listEl = drawer.querySelector('#assets-sidebar-list') as HTMLElement | null;
+    if (!listEl) return;
+    const frag = document.createDocumentFragment();
     if (!filtered.length) {
         const empty = document.createElement('div');
         empty.className = 'assets-inspector-empty';
         empty.textContent = all.length ? 'No assets match your search.' : 'No assets yet. Upload files or .pur boards above.';
-        listEl.append(empty);
+        frag.append(empty);
     }
-
     filtered.forEach(asset => {
         const card = document.createElement('div');
         card.className = 'assets-sidebar-card';
@@ -13321,7 +17015,8 @@ function renderAssetsSidebar() {
         card.dataset.assetId = asset.id;
         const isImg = asset.fileType.startsWith('image/') || asset.category === 'concept' || asset.category === 'illustration' || asset.category === 'image';
         const isBoard = asset.category === 'board' || !!asset.metadata?.boardPageId;
-        const initialThumb = asset.storageMode === 'local' ? (asset.url || '') : (asset.previewDataUrl || asset.url || '');
+        const cachedThumb = resolvedAssetPreviewCache.get(asset.id) || '';
+        const initialThumb = cachedThumb || (asset.storageMode === 'local' ? (asset.url || '') : (asset.previewDataUrl || asset.url || ''));
         const glyph = isBoard ? '🎨' : asset.category === 'music' ? '🎵' : asset.category === 'sfx' ? '🔊' : asset.category === 'video' ? '🎬' : asset.category === '3d model' ? '◇' : '📄';
         const thumbHtml = (isImg && initialThumb) ? `<img src="${esc(initialThumb)}" alt="" draggable="false">` : glyph;
         card.innerHTML = `
@@ -13335,10 +17030,11 @@ function renderAssetsSidebar() {
                 <button type="button" class="assets-mini-btn" data-ref-insert title="Insert reference (no copy)">＋</button>
             </div>
         `;
-        if (isImg) {
+        if (isImg && !cachedThumb) {
             ArchitectBackend.resolveAssetPreviewUrl(asset).then(url => {
+                if (url) resolvedAssetPreviewCache.set(asset.id, url);
                 const t = card.querySelector('.assets-sidebar-thumb');
-                if (url && t && card.isConnected) t.innerHTML = `<img src="${esc(url)}" alt="" draggable="false">`;
+                if (url && t && card.isConnected && url !== initialThumb) t.innerHTML = `<img src="${esc(url)}" alt="" draggable="false">`;
             });
         }
         card.addEventListener('dragstart', ev => {
@@ -13368,22 +17064,22 @@ function renderAssetsSidebar() {
             else if (isImg) openImageLightbox(asset);
             else openAssetLibrary(asset.id);
         });
-        listEl.append(card);
+        frag.append(card);
     });
-
-    if (prevFocusId === 'assets-sidebar-search') {
-        const el = drawer.querySelector('#assets-sidebar-search') as HTMLInputElement | null;
-        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-    }
+    listEl.replaceChildren(frag);
 }
 function syncCommentViews() {
     const p = current();
     if (!p) return;
-    const openCount = ensurePageComments(p).filter(t => !t.resolved).length;
+    const allThreads = ensurePageComments(p);
+    const openCount = allThreads.filter(t => !t.resolved).length;
+    const totalCount = allThreads.length;
     const countBadge = $('#topbar-comment-count');
     if (countBadge) {
-        countBadge.textContent = String(openCount);
-        countBadge.hidden = openCount <= 0;
+        const shownCount = openCount > 0 ? openCount : totalCount;
+        countBadge.textContent = String(shownCount);
+        countBadge.classList.toggle('is-resolved-count', openCount === 0 && totalCount > 0);
+        countBadge.hidden = shownCount <= 0;
     }
     syncCommentMarkClasses(p);
     renderTopCommentsSection(p);
@@ -13612,6 +17308,8 @@ function runSelectionFormatAction(page, blockItem, rawRange, action, value = '')
         wrapRangeWithAttrSpan(range, target, 'data-bg-color', value || 'default', false);
     } else if (action === 'font') {
         wrapRangeWithAttrSpan(range, target, 'data-font', value || 'default', false);
+    } else if (action === 'font-size') {
+        wrapRangeWithAttrSpan(range, target, 'data-font-size', value || 'default', false);
     } else if (action === 'case') {
         if (value === 'smallcaps') wrapRangeWithAttrSpan(range, target, 'data-text-case', 'smallcaps', true);
         else transformRangeTextCase(range, value);
@@ -13676,7 +17374,7 @@ function runSelectionFormatAction(page, blockItem, rawRange, action, value = '')
     } else if (action === 'clear') {
         document.execCommand('removeFormat');
         const frag = range.extractContents();
-        unwrapMatchingNodes(frag, 'strong,b,em,i,s,del,u,code,sup,sub,a,span[data-text-color],span[data-bg-color],span[data-text-case],span[data-font],span.inline-math');
+        unwrapMatchingNodes(frag, 'strong,b,em,i,s,del,u,code,sup,sub,a,span[data-text-color],span[data-bg-color],span[data-text-case],span[data-font],span[data-font-size],span.inline-math');
         const first = frag.firstChild, last = frag.lastChild;
         range.insertNode(frag);
         if (first && last) {
@@ -13764,6 +17462,18 @@ function toolbarApplyFontChoice(fontKey) {
     } else {
         pushUndoBeforeEdit(info.ctx.page);
         info.ctx.item.font = !fontKey || fontKey === 'default' ? undefined : fontKey;
+        save(); render(); focusBlockById(info.ctx.item.id, false);
+    }
+}
+
+function toolbarApplyFontSize(sizeKey) {
+    const info = getActiveFormattingTarget();
+    if (!info) return;
+    if (info.sameBlock && !info.collapsed && info.ctx.item.type !== 'code') {
+        runSelectionFormatAction(info.ctx.page, info.ctx.item, info.range, 'font-size', sizeKey);
+    } else {
+        pushUndoBeforeEdit(info.ctx.page);
+        info.ctx.item.fontSize = !sizeKey || sizeKey === 'default' ? undefined : sizeKey;
         save(); render(); focusBlockById(info.ctx.item.id, false);
     }
 }
@@ -14272,7 +17982,7 @@ function updateSearchResults(query) { const q = query.trim().toLowerCase(), out 
         asset,
         score: asset.name.toLowerCase().includes(q) ? 3 : 1
     })) : [];
-    const pageMatches = state.pages.filter(page => resolvePagePermissions(page).view).map(page => {
+    const pageMatches = state.pages.filter(page => resolvePagePermissions(page).view && (q || !isHiddenBaseDocsPage(page))).map(page => {
         const title = page.title.toLowerCase();
         const desc = (page.description || '').toLowerCase();
         const contentBlock = page.blocks.find(item => item.text?.toLowerCase().includes(q));
@@ -14306,7 +18016,7 @@ function updateSearchResults(query) { const q = query.trim().toLowerCase(), out 
             const copy = document.createElement('span'); copy.className = 'search-result-copy';
             const title = document.createElement('strong'); title.textContent = page.title || 'Untitled';
             const parentDb = page.databaseId ? state.pages.find(x => x.id === page.databaseId) : null;
-            const kindHint = page.pageKind === 'board' ? 'Board' : page.pageKind === 'database' ? 'Database' : parentDb ? `In ${parentDb.title || 'Database'}` : 'Page';
+            const kindHint = isHiddenBaseDocsPage(page) ? 'Base DB · Taskboard' : page.pageKind === 'board' ? 'Board' : page.pageKind === 'database' ? 'Database' : page.pageKind === 'form' ? 'Form' : parentDb ? `In ${parentDb.title || 'Database'}` : 'Page';
             const description = document.createElement('small'); description.textContent = preview ? preview.replace(/\s+/g, ' ').trim() : kindHint;
             copy.append(title, description); row.append(icon, copy);
         }
@@ -14334,7 +18044,8 @@ function setSidebarCollapsed(force?: boolean) {
     document.body.classList.toggle('sidebar-collapsed', next);
     const btn = $('#sidebar-collapse-handle');
     if (btn) {
-        btn.textContent = next ? '›' : '‹';
+        const fb = next ? '›' : '‹';
+        btn.innerHTML = typeof ArchitectIcons !== 'undefined' && ArchitectIcons.resolveUiSlotMarkup ? ArchitectIcons.resolveUiSlotMarkup('sidebar-collapse-handle', fb) : fb;
         btn.setAttribute('aria-expanded', String(!next));
         btn.setAttribute('aria-label', next ? 'Expand sidebar' : 'Minimize sidebar');
         btn.title = next ? 'Expand sidebar (Ctrl+\\)' : 'Minimize sidebar (Ctrl+\\)';
@@ -14521,6 +18232,29 @@ document.addEventListener('click', e => {
         navigateToPage(p.id);
         return;
     }
+    if (a === 'new-form') {
+        if (isReadOnlyMirror()) { toast('View-only mirror: editing is disabled'); return; }
+        if (!userHasGlobalPerm('createPages')) { toast('Your roles do not allow creating forms'); return; }
+        const fm = ArchitectDatabase.createFormPage(undefined, 'New form');
+        save();
+        navigateToPage(fm.id);
+        return;
+    }
+    if (a === 'new-board') {
+        if (isReadOnlyMirror()) { toast('View-only mirror: editing is disabled'); return; }
+        if (!userHasGlobalPerm('createPages')) { toast('Your roles do not allow creating boards'); return; }
+        const bd = ArchitectBoard.createBoardPage(undefined, 'Untitled board');
+        navigateToPage(bd.id);
+        return;
+    }
+    if (a === 'new-database') {
+        if (isReadOnlyMirror()) { toast('View-only mirror: editing is disabled'); return; }
+        if (!userHasGlobalPerm('createPages')) { toast('Your roles do not allow creating databases'); return; }
+        const db = ArchitectDatabase.createDatabasePage(undefined, 'Untitled database');
+        save();
+        navigateToPage(db.id);
+        return;
+    }
     if (a === 'toggle-sidebar') $('#sidebar').classList.toggle('open');
     if (a === 'minimize-sidebar') setSidebarCollapsed();
     if (a === 'share') { openSharePublishPopover(current(), e.target.closest('[data-action="share"]')); return; }
@@ -14538,6 +18272,10 @@ document.addEventListener('keydown', e => {
                 case 'new-page': {
                     if (isReadOnlyMirror() || !userHasGlobalPerm('createPages')) { toast('Creating pages is disabled for your role'); return; }
                     const pg = createPage(undefined); navigateToPage(pg.id); return;
+                }
+                case 'new-form': {
+                    if (isReadOnlyMirror() || !userHasGlobalPerm('createPages')) { toast('Creating forms is disabled for your role'); return; }
+                    const fm = ArchitectDatabase.createFormPage(undefined, 'New form'); save(); navigateToPage(fm.id); return;
                 }
                 case 'new-board': {
                     if (isReadOnlyMirror() || !userHasGlobalPerm('createPages')) { toast('Creating boards is disabled for your role'); return; }
@@ -14566,13 +18304,13 @@ document.addEventListener('keydown', e => {
         }
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); openSearch(); }
-    if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); navigateHistory(-1); }
-    if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); navigateHistory(1); }
+    if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); if (currentAppMode === 'dashboard') navigateUnifiedHistory(-1); else navigateHistory(-1); }
+    if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); if (currentAppMode === 'dashboard') navigateUnifiedHistory(1); else navigateHistory(1); }
     if (e.key === 'Escape' && $('#search-dialog').open) $('#search-dialog').close();
 });
 document.addEventListener('click', e => { const action = e.target.closest('[data-action]')?.dataset.action; if (action === 'settings') openWorkspaceSettings(); if (action === 'user-settings') ArchitectToolbar.openUserSettings(); if (action === 'import') openWorkspaceSettings(); });
 document.addEventListener('click', e => { if (e.target.closest('[data-action="remove-icon"]')) choosePageIcon(iconTargetCallback ? '' : (iconTargetBlock ? '💡' : '📄')); });
-document.addEventListener('click', e => { const action = e.target.closest('[data-action]')?.dataset.action, menu = $('#page-options-menu'), trigger = $('[data-action="page-options"]'); if (action === 'page-options') { updatePageOptions(); menu.hidden = !menu.hidden; trigger.setAttribute('aria-expanded', String(!menu.hidden)); return; } if (!e.target.closest('#page-options-menu')) { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } if (action === 'toggle-comments') { toggleCommentsDrawer(); return; } if (action === 'history-back') navigateHistory(-1); if (action === 'history-forward') navigateHistory(1); if (action === 'toggle-width') { current().fullWidth = !current().fullWidth; save(); render(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); } if (action === 'toggle-word-count') { current().showWordCount = !current().showWordCount; save(); render(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); } if (action === 'toggle-publish') { togglePagePublish(current()); menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); return; } if (action === 'version-history') { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); openVersionHistoryModal(current()); return; } if (action === 'page-analytics') { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); openPageAnalyticsModal(current()); return; } if (action === 'apply-cover') applyCoverFromPicker(); if (action === 'remove-cover') { const page = coverTargetPage; if (page) { page.cover = undefined; page.coverAssetId = undefined; page.coverX = page.coverY = undefined; page.coverZoom = undefined; page.coverAspect = undefined; save(true); render(); $('#cover-dialog').close(); } } });
+document.addEventListener('click', e => { const action = e.target.closest('[data-action]')?.dataset.action, menu = $('#page-options-menu'), trigger = $('[data-action="page-options"]'); if (action === 'page-options') { updatePageOptions(); menu.hidden = !menu.hidden; trigger.setAttribute('aria-expanded', String(!menu.hidden)); return; } if (!e.target.closest('#page-options-menu')) { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } if (action === 'toggle-comments') { toggleCommentsDrawer(); return; } if (action === 'history-back') navigateHistory(-1); if (action === 'history-forward') navigateHistory(1); if (action === 'toggle-small-text') { current().smallText = !current().smallText; save(); render(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); } if (action === 'toggle-width') { current().fullWidth = !current().fullWidth; save(); render(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); } if (action === 'toggle-word-count') { current().showWordCount = !current().showWordCount; save(); render(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); } if (action === 'toggle-board-expand') { current().boardExpanded = !current().boardExpanded; save(); render(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); } if (action === 'toggle-publish') { togglePagePublish(current()); menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); return; } if (action === 'version-history') { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); openVersionHistoryModal(current()); return; } if (action === 'page-analytics') { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); openPageAnalyticsModal(current()); return; } if (action === 'apply-cover') applyCoverFromPicker(); if (action === 'remove-cover') { const page = coverTargetPage; if (page) { page.cover = undefined; page.coverAssetId = undefined; page.coverX = page.coverY = undefined; page.coverZoom = undefined; page.coverAspect = undefined; save(true); render(); $('#cover-dialog').close(); } } });
 $('#confirm-create-workspace')?.addEventListener('click', () => {
     const dlg = $('#create-workspace-dialog') as HTMLDialogElement | null;
     const input = $('#new-workspace-name-input') as HTMLInputElement | null;
@@ -14587,8 +18325,28 @@ $('#confirm-create-workspace')?.addEventListener('click', () => {
 });
 $('#ws-settings-tabs')?.addEventListener('click', e => {
     const btn = (e.target as Element | null)?.closest<HTMLElement>('[data-ws-tab]');
-    const tab = btn?.dataset?.wsTab;
-    if (tab === 'general' || tab === 'customization' || tab === 'plugins') setWorkspaceSettingsTab(tab);
+    const tab = btn?.dataset?.wsTab as WorkspaceSettingsTab | undefined;
+    if (tab && ['general', 'coordination', 'assets', 'backup', 'customization', 'plugins'].includes(tab)) {
+        setWorkspaceSettingsTab(tab);
+    }
+});
+$('#ws-settings-search')?.addEventListener('input', e => {
+    const q = ((e.target as HTMLInputElement).value || '').trim().toLowerCase();
+    const dlg = $('#settings-dialog');
+    if (!dlg) return;
+    let firstMatchedTab: WorkspaceSettingsTab | null = null;
+    dlg.querySelectorAll<HTMLElement>('[data-ws-tab]').forEach(tabBtn => {
+        const tabId = tabBtn.dataset.wsTab as WorkspaceSettingsTab;
+        const panel = dlg.querySelector<HTMLElement>(`[data-ws-panel="${tabId}"]`);
+        const panelText = (panel?.textContent || '').toLowerCase();
+        const kwText = Array.from(panel?.querySelectorAll('[data-ws-keywords]') || [])
+            .map(el => (el as HTMLElement).dataset.wsKeywords || '')
+            .join(' ').toLowerCase();
+        const tabMatches = !q || tabBtn.textContent!.toLowerCase().includes(q) || panelText.includes(q) || kwText.includes(q);
+        tabBtn.hidden = !tabMatches;
+        if (tabMatches && !firstMatchedTab) firstMatchedTab = tabId;
+    });
+    if (q && firstMatchedTab) setWorkspaceSettingsTab(firstMatchedTab);
 });
 $('#save-workspace-name').addEventListener('click', () => { const name = $('#settings-workspace-name').value.trim(); if (!name) { $('#settings-feedback').textContent = 'Enter a workspace name first.'; $('#settings-workspace-name').focus(); return; } state.workspaceName = name; save(); syncActiveWorkspaceInIndex(); renderNav(); renderBreadcrumbs(current()); $('#settings-feedback').textContent = 'Workspace name saved.'; toast('Workspace name updated'); });
 $('#settings-sync-now')?.addEventListener('click', () => synchronizeNow());
@@ -14619,7 +18377,8 @@ $('#import-notion-folder')?.addEventListener('change', async e => {
         }
         if (!bundleFile) throw new Error('Could not find normalized/bundle.json inside the selected folder.');
         const bundle = JSON.parse(await bundleFile.text());
-        const stats = await importNotionBundle(bundle, filesMap);
+        const replaceEl = $('#import-notion-replace') as HTMLInputElement | null;
+        const stats = await importNotionBundle(bundle, filesMap, { replaceExisting: replaceEl ? replaceEl.checked : true });
         const msg = `Imported ${stats.importedPages} pages, ${stats.newUsers} collaborator profiles, ${stats.commentMessages} comments, and ${stats.ingestedAssets} assets (${stats.reusedDuplicates} duplicates skipped).`;
         if (feedbackEl) feedbackEl.textContent = msg;
         toast(`Notion folder imported (${stats.importedPages} pages)`);
@@ -14635,8 +18394,12 @@ $('#import-notion-json')?.addEventListener('change', async e => {
     const feedbackEl = $('#notion-import-feedback');
     try {
         if (feedbackEl) feedbackEl.textContent = `Importing ${file.name}…`;
-        const bundle = JSON.parse(await file.text());
-        const stats = await importNotionBundle(bundle);
+        const rawParsed = JSON.parse(await file.text());
+        const bundle = (!Array.isArray(rawParsed?.pages) && rawParsed?.id && Array.isArray(rawParsed?.blocks))
+            ? { pages: [rawParsed], users: [], assets: [] }
+            : rawParsed;
+        const replaceEl = $('#import-notion-replace') as HTMLInputElement | null;
+        const stats = await importNotionBundle(bundle, undefined, { replaceExisting: replaceEl ? replaceEl.checked : true });
         const msg = `Imported ${stats.importedPages} pages, ${stats.newUsers} collaborator profiles, and ${stats.commentMessages} comments.`;
         if (feedbackEl) feedbackEl.textContent = msg;
         toast(`Notion bundle imported (${stats.importedPages} pages)`);
@@ -14700,6 +18463,39 @@ $('#ws-rounded-images')?.addEventListener('change', e => {
     save(true);
     render();
     toast(state.roundedImageCorners ? 'Rounded image corners enabled by default' : 'Sharp image corners enabled by default');
+});
+$('#ws-iconpack-files')?.addEventListener('change', async e => {
+    const inp = e.target as HTMLInputElement;
+    const files = Array.from(inp.files || []);
+    inp.value = '';
+    await handleWorkspaceIconPackUpload(files);
+});
+$('#ws-iconpack-folder')?.addEventListener('change', async e => {
+    const inp = e.target as HTMLInputElement;
+    const files = Array.from(inp.files || []);
+    inp.value = '';
+    await handleWorkspaceIconPackUpload(files);
+});
+$('#ws-iconpack-template-dl')?.addEventListener('click', () => {
+    if (typeof ArchitectIcons === 'undefined') return;
+    const blob = new Blob([ArchitectIcons.generateNamingTemplateJson()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'architect-ui-icon-pack-template.json';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Downloaded UI icon naming template JSON');
+});
+$('#ws-iconpack-reset')?.addEventListener('click', () => {
+    state.activeUiIconPackId = null;
+    const fb = $('#ws-iconpack-feedback');
+    if (fb) delete fb.dataset.customNotice;
+    syncActiveUiIconPack();
+    save(true);
+    render();
+    renderWorkspaceIconPacksSettings();
+    toast('Reset UI icons to built-in default');
 });
 $('#choose-asset-cache-folder')?.addEventListener('click', async () => {
     const desktop = ArchitectBackend.host();
@@ -14768,57 +18564,31 @@ function refreshAssetCreatorFilter(all) {
     if (creators.includes(prevCreator)) creatorSel.value = prevCreator;
     return creatorSel;
 }
-function renderAssetLibrary() {
-    stopAllAudioPlayers();
-    const all = ArchitectBackend.readAssetCatalog();
-    const actor = getCurrentActorUser();
-    const isAdmin = !!actor && (userHasGlobalPerm('manageAssets', actor) || getUserHighestRank(actor) === 0);
-    const storeLabel = state.assetStorageMode === 'drive' ? 'External Drive' : state.assetStorageMode === 'server' ? 'Team Server' : 'Local Storage';
-    const subtitle = $('#assets-subtitle');
-    if (subtitle) subtitle.textContent = `Storage: ${storeLabel} · Role: ${isAdmin ? 'Admin (creator reassignment enabled)' : 'Member (creator read-only)'} — Search, play audio timelines, or insert references.`;
-    const creatorSel = refreshAssetCreatorFilter(all);
-    const filtered = ArchitectBackend.queryAssets(all, {
-        query: $('#assets-search').value,
-        category: $('#assets-filter-category').value,
-        creator: creatorSel.value,
-        storageMode: $('#assets-filter-storage').value
-    });
+let assetLibrarySearchTimer = 0;
+function selectAssetLibraryCard(assetId: string) {
+    selectedLibraryAssetId = assetId;
     const grid = $('#assets-grid');
-    grid.replaceChildren();
-    if (!filtered.length) {
-        const empty = document.createElement('div');
-        empty.className = 'assets-inspector-empty';
-        empty.textContent = all.length ? 'No assets match these filters.' : 'No assets yet. Upload files or attach a Drive reference above.';
-        grid.append(empty);
+    if (grid) {
+        grid.querySelectorAll<HTMLElement>('.asset-card').forEach(el => {
+            el.classList.toggle('selected', el.dataset.assetId === assetId);
+        });
     }
-    filtered.forEach(asset => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.dataset.assetId = asset.id;
-        card.className = 'asset-card' + (asset.id === selectedLibraryAssetId ? ' selected' : '');
-        const initialThumb = asset.storageMode === 'local' ? (asset.url || '') : (asset.previewDataUrl || asset.url || '');
-        const thumbHtml = (initialThumb && (asset.fileType.startsWith('image/') || asset.previewDataUrl))
-            ? `<img src="${esc(initialThumb)}" alt="">`
-            : asset.category === 'board' ? '🎨' : asset.category === 'music' ? '🎵' : asset.category === 'sfx' ? '🔊' : asset.category === 'video' ? '🎬' : asset.category === '3d model' ? '◇' : '📄';
-        const storeLabel = asset.storageMode === 'drive-reference' ? 'Drive ref' : asset.storageMode === 'server' ? 'Server' : 'Local';
-        card.innerHTML = `<div class="asset-thumb">${thumbHtml}</div><div class="asset-card-name">${esc(asset.name)}</div><div class="asset-card-sub"><span>${esc(asset.category)} · ${esc(asset.creator)}</span><span>${esc(storeLabel)}</span></div>`;
-        card.onclick = () => { selectedLibraryAssetId = asset.id; renderAssetLibrary(); };
-        grid.append(card);
-        if (asset.fileType.startsWith('image/') || asset.category === 'concept' || asset.category === 'illustration' || asset.category === 'image') {
-            ArchitectBackend.resolveAssetPreviewUrl(asset).then(url => {
-                const thumb = card.querySelector('.asset-thumb');
-                if (url && thumb && card.isConnected) thumb.innerHTML = `<img src="${esc(url)}" alt="">`;
-            });
-        }
-    });
+    const all = ArchitectBackend.readAssetCatalog();
+    const selected = all.find(a => a.id === assetId) || all[0] || null;
+    renderAssetInspector(all, selected, grid);
+}
+function renderAssetInspector(all: any[], selected: any | null, grid: HTMLElement | null) {
+    stopAllAudioPlayers();
     const inspector = $('#assets-inspector');
+    if (!inspector) return;
     inspector.replaceChildren();
-    const selected = all.find(a => a.id === selectedLibraryAssetId) || filtered[0];
     if (!selected) {
         inspector.innerHTML = '<div class="assets-inspector-empty">Select an asset to inspect metadata, scrub audio, preview fullscreen, or download full size.</div>';
         return;
     }
     selectedLibraryAssetId = selected.id;
+    const actor = getCurrentActorUser();
+    const isAdmin = !!actor && (userHasGlobalPerm('manageAssets', actor) || getUserHighestRank(actor) === 0);
     const previewBox = document.createElement('div');
     previewBox.className = 'assets-inspector-preview';
     if (selected.category === 'music' || selected.category === 'sfx' || selected.fileType.startsWith('audio/')) {
@@ -14831,8 +18601,15 @@ function renderAssetLibrary() {
     } else if (selected.fileType.startsWith('image/') || selected.category === 'concept' || selected.category === 'illustration' || selected.category === 'image') {
         const img = document.createElement('img');
         img.alt = selected.name;
-        img.src = selected.storageMode === 'local' ? (selected.url || '') : (selected.previewDataUrl || selected.url || '');
-        ArchitectBackend.resolveAssetPreviewUrl(selected).then(u => { if (u && img.isConnected) img.src = u; });
+        const cachedThumb = resolvedAssetPreviewCache.get(selected.id) || '';
+        const initialUrl = cachedThumb || (selected.storageMode === 'local' ? (selected.url || '') : (selected.previewDataUrl || selected.url || ''));
+        if (initialUrl) img.src = initialUrl;
+        if (!cachedThumb) {
+            ArchitectBackend.resolveAssetPreviewUrl(selected).then(u => {
+                if (u) resolvedAssetPreviewCache.set(selected.id, u);
+                if (u && img.isConnected && u !== initialUrl) img.src = u;
+            });
+        }
         img.onclick = () => openImageLightbox(selected);
         const expandBtn = document.createElement('button');
         expandBtn.type = 'button'; expandBtn.className = 'secondary-button'; expandBtn.textContent = '⤢ Fullscreen high-res preview';
@@ -14860,16 +18637,21 @@ function renderAssetLibrary() {
       <div style="font-size:11px;color:#787774">File type: <strong>${esc(selected.fileType)}</strong> · Storage: <strong>${esc(selected.provider)}</strong>${proxyNote ? ` · ${esc(proxyNote)}` : ''}${selected.uploadedBy ? ` · Uploaded by ${esc(selected.uploadedBy)}` : ''}</div>
     `;
     const saveMeta = (reRender = false) => {
+        const catEl = metaBox.querySelector('#insp-cat') as HTMLSelectElement | null;
+        const crEl = metaBox.querySelector('#insp-creator') as HTMLInputElement | null;
+        const tagsEl = metaBox.querySelector('#insp-tags') as HTMLInputElement | null;
+        const notesEl = metaBox.querySelector('#insp-notes') as HTMLInputElement | null;
+        if (!catEl) return;
         const updated = ArchitectBackend.updateAsset(selected.id, {
-            category: $('#insp-cat').value,
-            creator: isAdmin ? ($('#insp-creator').value.trim() || selected.creator) : selected.creator,
-            tags: $('#insp-tags').value.split(',').map(s => s.trim()).filter(Boolean),
-            metadata: { ...(selected.metadata || {}), notes: $('#insp-notes').value.trim() }
+            category: catEl.value,
+            creator: isAdmin && crEl ? (crEl.value.trim() || selected.creator) : selected.creator,
+            tags: (tagsEl?.value || '').split(',').map(s => s.trim()).filter(Boolean),
+            metadata: { ...(selected.metadata || {}), notes: (notesEl?.value || '').trim() }
         });
         if (reRender) { renderAssetLibrary(); return; }
         if (updated) {
             Object.assign(selected, updated);
-            const card = grid.querySelector(`.asset-card[data-asset-id="${CSS.escape(selected.id)}"]`);
+            const card = grid?.querySelector(`.asset-card[data-asset-id="${CSS.escape(selected.id)}"]`);
             const sub = card?.querySelector('.asset-card-sub span:first-child');
             if (sub) sub.textContent = `${updated.category} · ${updated.creator}`;
             refreshAssetCreatorFilter(ArchitectBackend.readAssetCatalog());
@@ -14887,12 +18669,12 @@ function renderAssetLibrary() {
     actions.className = 'assets-inspector-actions';
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button'; insertBtn.className = 'share-button';
-    insertBtn.textContent = libraryTargetContext?.onSelectAsset ? 'Insert into board' : libraryTargetContext ? 'Insert into block' : 'Insert into page';
+    insertBtn.textContent = libraryTargetContext?.selectLabel || (libraryTargetContext?.onSelectAsset ? 'Select asset' : libraryTargetContext ? 'Insert into block' : 'Insert into page');
     insertBtn.onclick = () => {
         if (libraryTargetContext?.onSelectAsset) {
             libraryTargetContext.onSelectAsset(selected);
             $('#assets-dialog').close();
-            toast(`Inserted ${selected.name} onto board`);
+            toast(`Selected ${selected.name}`);
             return;
         }
         const page = libraryTargetContext?.targetPage || current();
@@ -14914,6 +18696,57 @@ function renderAssetLibrary() {
     actions.append(insertBtn, dlBtn, delBtn);
     inspector.append(actions);
 }
+function renderAssetLibrary() {
+    stopAllAudioPlayers();
+    const all = ArchitectBackend.readAssetCatalog();
+    const actor = getCurrentActorUser();
+    const isAdmin = !!actor && (userHasGlobalPerm('manageAssets', actor) || getUserHighestRank(actor) === 0);
+    const storeLabel = state.assetStorageMode === 'drive' ? 'External Drive' : state.assetStorageMode === 'server' ? 'Team Server' : 'Local Storage';
+    const subtitle = $('#assets-subtitle');
+    if (subtitle) subtitle.textContent = `Storage: ${storeLabel} · Role: ${isAdmin ? 'Admin (creator reassignment enabled)' : 'Member (creator read-only)'} — Search, play audio timelines, or insert references.`;
+    const creatorSel = refreshAssetCreatorFilter(all);
+    const filtered = ArchitectBackend.queryAssets(all, {
+        query: $('#assets-search').value,
+        category: $('#assets-filter-category').value,
+        creator: creatorSel.value,
+        storageMode: $('#assets-filter-storage').value
+    });
+    const grid = $('#assets-grid');
+    const frag = document.createDocumentFragment();
+    if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'assets-inspector-empty';
+        empty.textContent = all.length ? 'No assets match these filters.' : 'No assets yet. Upload files or attach a Drive reference above.';
+        frag.append(empty);
+    }
+    const selected = all.find(a => a.id === selectedLibraryAssetId) || filtered[0] || null;
+    if (selected) selectedLibraryAssetId = selected.id;
+    filtered.forEach(asset => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.dataset.assetId = asset.id;
+        card.className = 'asset-card' + (asset.id === selectedLibraryAssetId ? ' selected' : '');
+        const isImg = asset.fileType.startsWith('image/') || asset.category === 'concept' || asset.category === 'illustration' || asset.category === 'image';
+        const cachedThumb = resolvedAssetPreviewCache.get(asset.id) || '';
+        const initialThumb = cachedThumb || (asset.storageMode === 'local' ? (asset.url || '') : (asset.previewDataUrl || asset.url || ''));
+        const thumbHtml = (initialThumb && (isImg || asset.previewDataUrl))
+            ? `<img src="${esc(initialThumb)}" alt="">`
+            : asset.category === 'board' ? '🎨' : asset.category === 'music' ? '🎵' : asset.category === 'sfx' ? '🔊' : asset.category === 'video' ? '🎬' : asset.category === '3d model' ? '◇' : '📄';
+        const modeLabel = asset.storageMode === 'drive-reference' ? 'Drive ref' : asset.storageMode === 'server' ? 'Server' : 'Local';
+        card.innerHTML = `<div class="asset-thumb">${thumbHtml}</div><div class="asset-card-name">${esc(asset.name)}</div><div class="asset-card-sub"><span>${esc(asset.category)} · ${esc(asset.creator)}</span><span>${esc(modeLabel)}</span></div>`;
+        card.onclick = () => selectAssetLibraryCard(asset.id);
+        frag.append(card);
+        if (isImg && !cachedThumb) {
+            ArchitectBackend.resolveAssetPreviewUrl(asset).then(url => {
+                if (url) resolvedAssetPreviewCache.set(asset.id, url);
+                const thumb = card.querySelector('.asset-thumb');
+                if (url && thumb && card.isConnected && url !== initialThumb) thumb.innerHTML = `<img src="${esc(url)}" alt="">`;
+            });
+        }
+    });
+    grid.replaceChildren(frag);
+    renderAssetInspector(all, selected, grid);
+}
 function openAssetLibrary(focusId = null, targetCtx = null) {
     libraryTargetContext = targetCtx;
     if (focusId) selectedLibraryAssetId = focusId;
@@ -14925,8 +18758,11 @@ function openAssetLibrary(focusId = null, targetCtx = null) {
 }
 $('#close-assets-dialog')?.addEventListener('click', () => { stopAllAudioPlayers(); $('#assets-dialog').close(); });
 $('#assets-dialog')?.addEventListener('close', () => stopAllAudioPlayers());
-['#assets-search', '#assets-filter-category', '#assets-filter-creator', '#assets-filter-storage'].forEach(sel => {
-    $(sel)?.addEventListener('input', renderAssetLibrary);
+$('#assets-search')?.addEventListener('input', () => {
+    clearTimeout(assetLibrarySearchTimer);
+    assetLibrarySearchTimer = window.setTimeout(() => renderAssetLibrary(), 45);
+});
+['#assets-filter-category', '#assets-filter-creator', '#assets-filter-storage'].forEach(sel => {
     $(sel)?.addEventListener('change', renderAssetLibrary);
 });
 $('#assets-upload-input')?.addEventListener('change', async event => {
@@ -14989,7 +18825,7 @@ $('#lightbox-zoom-in')?.addEventListener('click', () => setLightboxScale(lightbo
 $('#lightbox-zoom-out')?.addEventListener('click', () => setLightboxScale(lightboxZoom - 0.35));
 $('#lightbox-fit')?.addEventListener('click', () => setLightboxScale(1));
 $('#lightbox-download')?.addEventListener('click', () => { if (lightboxAsset) ArchitectBackend.downloadFullAsset(lightboxAsset); });
-function pageMenu(p, anchor) { closeMenu(); const menu = $('#command-menu'); menu.className = 'command-menu page-actions'; menu.replaceChildren(); const heading = document.createElement('div'); heading.className = 'menu-heading'; const icon = document.createElement('span'); icon.className = 'menu-heading-icon'; icon.innerHTML = pageIconMarkup(p.icon); const title = document.createElement('strong'); title.textContent = p.title || 'Untitled'; heading.append(icon, title); menu.append(heading); const list = document.createElement('div'); list.className = 'command-list'; menu.append(list); const add = (label, run) => list.append(menuRow(label, menuGlyph(label), run)); const divider = () => { const line = document.createElement('div'); line.className = 'menu-divider'; list.append(line); }; const pgPerms = resolvePagePermissions(p); const actor = getCurrentActorUser(); const canManagePerms = !!actor && (userHasGlobalPerm('managePagePermissions', actor) || getUserHighestRank(actor) === 0); add('Open in new tab', () => openPageInNewTab(p.id)); if (pgPerms.edit && !isReadOnlyMirror()) { add('Rename', () => { const name = prompt('Page title', p.title); if (name?.trim()) { p.title = name.trim(); save(); render(); } }); add('Duplicate', () => duplicatePage(p)); } add('Copy link', () => copyPageLink(p)); divider(); add(p.favorite ? 'Remove from favorites' : 'Add to favorites', () => { p.favorite = !p.favorite; save(); render(); }); add('Version history', () => openVersionHistoryModal(p)); if (pgPerms.edit && !isReadOnlyMirror()) { add(p.published ? 'Unpublish page' : 'Publish page', () => togglePagePublish(p)); } if (p.published) { add('Page analytics', () => openPageAnalyticsModal(p)); } if (pgPerms.edit && !isReadOnlyMirror()) { add('Change icon', () => iconPicker(p)); if (!ArchitectDatabase.isDatabasePage(p) && !ArchitectBoard.isBoardPage(p) && !p.databaseId) { add('Turn into database', () => { ArchitectDatabase.convertPageToDatabase(p); save(); render(); }); add('Turn into board', () => { ArchitectBoard.convertPageToBoard(p); save(); render(); }); } } if (canManagePerms) { add('Permissions', () => openPagePermissionsDialog(p)); } divider(); if (pgPerms.edit && !isReadOnlyMirror()) { add('Delete', () => { if (confirm(`Move “${p.title}” and its children to Trash?`)) { deletePageTree(p.id); if (!state.pages.length) createPage(); if (!state.pages.some(page => page.id === state.activePageId)) state.activePageId = state.pages[0].id; pageHistory = [state.activePageId]; historyIndex = 0; save(); render(); } }); } const point = anchor?.clientX != null ? { x: anchor.clientX, y: anchor.clientY + 2 } : anchor?.getBoundingClientRect ? { x: anchor.getBoundingClientRect().right, y: anchor.getBoundingClientRect().bottom + 2 } : { x: 256, y: 92 }; placeFloatingMenu(menu, point.x, point.y); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
+function pageMenu(p, anchor) { closeMenu(); const menu = $('#command-menu'); menu.className = 'command-menu page-actions'; menu.replaceChildren(); const heading = document.createElement('div'); heading.className = 'menu-heading'; const icon = document.createElement('span'); icon.className = 'menu-heading-icon'; icon.innerHTML = pageIconMarkup(p.icon); const title = document.createElement('strong'); title.textContent = p.title || 'Untitled'; heading.append(icon, title); menu.append(heading); const list = document.createElement('div'); list.className = 'command-list'; menu.append(list); const add = (label, run) => list.append(menuRow(label, menuGlyph(label), run)); const divider = () => { const line = document.createElement('div'); line.className = 'menu-divider'; list.append(line); }; const pgPerms = resolvePagePermissions(p); const actor = getCurrentActorUser(); const canManagePerms = !!actor && (userHasGlobalPerm('managePagePermissions', actor) || getUserHighestRank(actor) === 0); add('Open in new tab', () => openPageInNewTab(p.id)); if (pgPerms.edit && !isReadOnlyMirror()) { add('Rename', () => { const name = prompt('Page title', p.title); if (name?.trim()) { p.title = name.trim(); save(); render(); } }); add('Duplicate', () => duplicatePage(p)); } add('Copy link', () => copyPageLink(p)); divider(); add(p.favorite ? 'Remove from favorites' : 'Add to favorites', () => { p.favorite = !p.favorite; save(); render(); }); add('Version history', () => openVersionHistoryModal(p)); if (pgPerms.edit && !isReadOnlyMirror()) { add(p.published ? 'Unpublish page' : 'Publish page', () => togglePagePublish(p)); } if (p.published) { add('Page analytics', () => openPageAnalyticsModal(p)); } if (pgPerms.edit && !isReadOnlyMirror()) { add('Change icon', () => iconPicker(p)); if (!ArchitectDatabase.isFormPage(p) && !ArchitectBoard.isBoardPage(p) && !p.databaseId) { add('Turn into form', () => { ArchitectDatabase.convertPageToForm(p); save(); render(); }); } if (!ArchitectDatabase.isDatabasePage(p) && !ArchitectBoard.isBoardPage(p) && !p.databaseId) { add('Turn into database', () => { ArchitectDatabase.convertPageToDatabase(p); save(); render(); }); add('Turn into board', () => { ArchitectBoard.convertPageToBoard(p); save(); render(); }); } } if (canManagePerms) { add('Permissions', () => openPagePermissionsDialog(p)); } divider(); if (pgPerms.edit && !isReadOnlyMirror()) { add('Delete', () => { if (confirm(`Move “${p.title}” and its children to Trash?`)) { deletePageTree(p.id); if (!state.pages.some(pg => isVisibleDocsPage(pg))) createPage(); if (!state.pages.some(page => page.id === state.activePageId)) state.activePageId = (state.pages.find(pg => isVisibleDocsPage(pg)) || state.pages[0]).id; pageHistory = [state.activePageId]; historyIndex = 0; save(); render(); } }); } const point = anchor?.clientX != null ? { x: anchor.clientX, y: anchor.clientY + 2 } : anchor?.getBoundingClientRect ? { x: anchor.getBoundingClientRect().right, y: anchor.getBoundingClientRect().bottom + 2 } : { x: 256, y: 92 }; placeFloatingMenu(menu, point.x, point.y); menuIndex = 0; refreshMenuSelection(); activeMenu = menu; }
 function readAssets() { return ArchitectBackend.readAssetCatalog(); }
 function coverBannerAspect() {
     const cover = document.querySelector('.page-cover');
@@ -15432,6 +19268,7 @@ document.addEventListener('keydown', e => {
         if (!$('#selection-toolbar')?.hidden) { closeSelectionToolbar(); return; }
         if (!$('#comments-drawer')?.hidden) { toggleCommentsDrawer(false); return; }
         if (!$('#assets-sidebar')?.hidden) { toggleAssetsSidebar(false); return; }
+        if (!$('#form-design-sidebar')?.hidden) { toggleFormDesignSidebar(false); return; }
         if (isDocsGraphMode) { setDocsGraphMode(false); return; }
     }
 });
@@ -15697,6 +19534,32 @@ function handleDocumentContextMenu(event) {
         return;
     }
 
+    // 4a. Right-clicking any comment message or comment card
+    const commentCardEl = rawTarget.closest('.comment-card[data-thread-id]') as HTMLElement | null;
+    if (commentCardEl && !rawTarget.closest('.comment-msg-author, .comment-avatar')) {
+        const curPg = current();
+        const th = (curPg?.comments || []).find(t => t.id === commentCardEl.dataset.threadId);
+        const msgEl = rawTarget.closest('.comment-message[data-comment-msg-id]') as HTMLElement | null;
+        const msg = th ? ((msgEl && th.comments.find(m => m.id === msgEl.dataset.commentMsgId)) || th.comments[0]) : null;
+        if (curPg && th && msg) {
+            const authorName = msg.authorName || 'Raphael';
+            const resolvedRef = msg.authorId || authorName;
+            const cItems: any[] = [
+                { label: 'Reply in private', meta: `DM ${authorName}`, run: () => openPrivateCommentReply(curPg, th, msg) },
+                { label: 'Jump to comment', run: () => focusCommentTarget(curPg, th, { commentMsgId: msg.id }) },
+                { label: 'Copy comment text', run: async () => {
+                    internalClipboardText = msg.text || '';
+                    try { await navigator.clipboard?.writeText(internalClipboardText); } catch {}
+                    toast('Comment copied');
+                } },
+                { label: 'Open profile', meta: authorName, run: () => openUserDashboard(resolvedRef) },
+                { label: 'Send message', meta: authorName, run: () => openUserDirectMessage(resolvedRef) }
+            ];
+            showCustomContextMenu(event, [{ items: cItems }], { title: `${authorName}'s comment` });
+            return;
+        }
+    }
+
     // 4b. Right-clicking any user reference anywhere (comment author, @mention, DB person, DM, Team overview)
     const userRefEl = rawTarget.closest('[data-user-ref], .comment-msg-author, .comment-avatar, .inline-mention-chip[data-mention-kind="person"], .db-person-chip') as HTMLElement | null;
     if (userRefEl) {
@@ -15744,48 +19607,75 @@ function handleDocumentContextMenu(event) {
     if (boardShell) {
         const bp = state.pages.find(pg => pg.id === boardShell.dataset.boardPageId && ArchitectBoard.isBoardPage(pg));
         if (bp) {
+            const ctrl = ArchitectBoard.getControllerForElement?.(boardShell);
             const nodeEl = rawTarget.closest('.board-node[data-board-node-id]') as HTMLElement | null;
             const nodeObj = nodeEl ? (bp.board?.nodes || []).find(n => n.id === nodeEl.dataset.boardNodeId) : null;
             if (nodeObj) {
-                const items: any[] = [];
+                const sections: any[] = [];
+                const topItems: any[] = [];
                 if (nodeObj.kind === 'page_link' && nodeObj.pageId) {
-                    items.push({ label: 'Open page', run: () => navigateToPage(nodeObj.pageId) });
-                    items.push({ label: 'Open in new tab', run: () => openPageInNewTab(nodeObj.pageId) });
+                    topItems.push({ label: 'Open page', run: () => navigateToPage(nodeObj.pageId) });
+                    topItems.push({ label: 'Open in new tab', run: () => openPageInNewTab(nodeObj.pageId) });
                 }
+                if (nodeObj.kind === 'image') {
+                    topItems.push({ label: 'Borderless mode', checked: !!nodeObj.borderless, run: () => ctrl ? ctrl.toggleBorderless(nodeObj.id) : (nodeObj.borderless = !nodeObj.borderless, save(true), ArchitectBoard.refreshBoardInstances(bp.id)) });
+                    topItems.push({ label: 'Grayscale (B&W)', checked: !!nodeObj.grayscale, run: () => ctrl ? ctrl.toggleGrayscale(nodeObj.id) : (nodeObj.grayscale = !nodeObj.grayscale, save(true), ArchitectBoard.refreshBoardInstances(bp.id)) });
+                    topItems.push({ label: 'Flip horizontal', checked: !!nodeObj.flipX, run: () => ctrl ? ctrl.toggleFlipX(nodeObj.id) : (nodeObj.flipX = !nodeObj.flipX, save(true), ArchitectBoard.refreshBoardInstances(bp.id)) });
+                    topItems.push({ label: `Opacity (${Math.round((nodeObj.opacity ?? 1) * 100)}%)`, run: () => ctrl?.cycleOpacity(nodeObj.id) });
+                }
+                if (topItems.length) sections.push({ items: topItems });
                 if (!ro) {
-                    items.push({
-                        label: 'Duplicate item',
-                        iconKey: 'Duplicate',
-                        run: () => {
-                            const copy = JSON.parse(JSON.stringify(nodeObj));
-                            copy.id = `bn-${id()}`;
-                            copy.x += 24; copy.y += 24;
-                            bp.board.nodes.push(copy);
-                            save(true);
-                            ArchitectBoard.refreshBoardInstances(bp.id);
+                    const editBoardItems: any[] = [
+                        { label: nodeObj.locked ? 'Unlock item' : 'Lock item', shortcut: 'L', run: () => ctrl?.toggleLock(nodeObj.id) },
+                        { label: 'Bring to front', shortcut: ']', run: () => ctrl?.bringToFront(nodeObj.id) },
+                        { label: 'Send to back', shortcut: '[', run: () => ctrl?.sendToBack(nodeObj.id) },
+                        {
+                            label: 'Duplicate item',
+                            iconKey: 'Duplicate',
+                            shortcut: 'Ctrl+D',
+                            run: () => {
+                                if (ctrl) { ctrl.duplicateNodes([nodeObj.id]); return; }
+                                const copy = JSON.parse(JSON.stringify(nodeObj));
+                                copy.id = `bn-${id()}`;
+                                copy.x += 24; copy.y += 24;
+                                bp.board.nodes.push(copy);
+                                save(true);
+                                ArchitectBoard.refreshBoardInstances(bp.id);
+                            }
+                        },
+                        {
+                            label: 'Delete item',
+                            iconKey: 'Delete',
+                            danger: true,
+                            run: () => {
+                                if (ctrl) { ctrl.deleteNodes([nodeObj.id]); return; }
+                                bp.board.nodes = (bp.board.nodes || []).filter(n => n.id !== nodeObj.id);
+                                bp.board.edges = (bp.board.edges || []).filter(e => e.fromId !== nodeObj.id && e.toId !== nodeObj.id);
+                                save(true);
+                                ArchitectBoard.refreshBoardInstances(bp.id);
+                            }
                         }
-                    });
-                    items.push({
-                        label: 'Delete item',
-                        iconKey: 'Delete',
-                        danger: true,
-                        run: () => {
-                            bp.board.nodes = (bp.board.nodes || []).filter(n => n.id !== nodeObj.id);
-                            bp.board.edges = (bp.board.edges || []).filter(e => e.fromId !== nodeObj.id && e.toId !== nodeObj.id);
-                            save(true);
-                            ArchitectBoard.refreshBoardInstances(bp.id);
-                        }
-                    });
+                    ];
+                    if ((ctrl?.getSelectedNodeIds?.().length || 0) > 1) {
+                        editBoardItems.unshift({ label: 'Pack selected', run: () => ctrl?.packNodes() });
+                    }
+                    sections.push({ items: editBoardItems });
                 }
-                if (items.length) { showCustomContextMenu(event, [{ items }]); return; }
+                if (sections.length) { showCustomContextMenu(event, sections); return; }
             }
-            showCustomContextMenu(event, [{
-                items: [
-                    { label: 'Open board as full page', run: () => navigateToPage(bp.id) },
-                    { label: 'Open in new tab', run: () => openPageInNewTab(bp.id) },
-                    ...(!ro ? [{ label: 'Insert from Asset library', run: () => openAssetLibrary(null, { onSelectAsset: asset => ArchitectBoard.insertAssetNodeIntoBoard(bp, asset) }) }] : [])
-                ]
-            }]);
+            const canvasItems: any[] = [];
+            if (!ro && ctrl) {
+                if (ctrl.canUndo()) canvasItems.push({ label: 'Undo', shortcut: 'Ctrl+Z', run: () => ctrl.undo() });
+                if (ctrl.canRedo()) canvasItems.push({ label: 'Redo', shortcut: 'Ctrl+Shift+Z', run: () => ctrl.redo() });
+                canvasItems.push({ label: 'Select all items', shortcut: 'Ctrl+A', run: () => ctrl.selectAll() });
+            }
+            canvasItems.push(
+                { label: 'Fit canvas to content', run: () => ctrl?.fitToContent() },
+                { label: 'Open board as full page', run: () => navigateToPage(bp.id) },
+                { label: 'Open in new tab', run: () => openPageInNewTab(bp.id) },
+                ...(!ro ? [{ label: 'Insert from Asset library', run: () => toggleAssetsSidebar(true) }] : [])
+            );
+            showCustomContextMenu(event, [{ items: canvasItems }]);
             return;
         }
     }
@@ -15797,8 +19687,10 @@ function handleDocumentContextMenu(event) {
             {
                 items: [
                     ...(!ro && userHasGlobalPerm('createPages') ? [{ label: 'New page', shortcut: 'Ctrl+N', run: () => { const p = createPage(undefined); navigateToPage(p.id); } },
+                               { label: 'New form', run: () => { const fm = ArchitectDatabase.createFormPage(undefined, 'New form'); save(); navigateToPage(fm.id); } },
                                { label: 'New board', run: () => { const bd = ArchitectBoard.createBoardPage(undefined, 'Untitled board'); navigateToPage(bd.id); } },
-                               { label: 'New database', run: () => { const db = ArchitectDatabase.createDatabasePage(undefined, 'Untitled database'); save(); navigateToPage(db.id); } }] : []),
+                               { label: 'New database', run: () => { const db = ArchitectDatabase.createDatabasePage(undefined, 'Untitled database'); save(); navigateToPage(db.id); } },
+                               { label: 'New task tracker', run: () => { const qb = ArchitectDatabase.createQuestboardPage(undefined, 'Task Tracker', true); save(); navigateToPage(qb.id); } }] : []),
                     { label: 'New tab', shortcut: 'Ctrl+T', run: () => createNewBlankTab() },
                     { label: 'Search workspace', shortcut: 'Ctrl+K', run: () => openSearch() },
                     ...(isAdminAuthorized(getCurrentActorUser()) ? [{ label: 'Workspace settings', run: () => openWorkspaceSettings() }] : []),
@@ -15847,6 +19739,20 @@ ArchitectDatabase.initHost({
     isPageReadOnly: page => effectivePageReadOnly(page || current()),
     canViewPage: page => !page || resolvePagePermissions(page).view,
     openAssetLibrary: assetId => openAssetLibrary(assetId),
+    pickAsset: (opts: any) => openAssetLibrary(opts?.focusId || null, { onSelectAsset: opts?.onSelect, selectLabel: opts?.label || 'Select asset' }),
+    openFormDesignSidebar: (pg: any, onUpdated: () => void) => toggleFormDesignSidebar(true, pg, onUpdated),
+    openFormCropper: (opts: any) => openFormImageCropModal(opts),
+    getFormCanvasCropAspect: () => getFormCanvasCropAspect(),
+    ingestLocalFile: (file, opts) => ArchitectBackend.ingestLocalFile(file, {
+        creator: opts?.creator || getActorDisplayName(),
+        tags: opts?.tags,
+        storageMode: state.assetStorageMode || 'local',
+        previewPolicy: state.assetPreviewPolicy
+    }),
+    saveFormSeparateUpload: (file, opts) => ArchitectBackend.saveSeparateFormUpload(file, {
+        folder: opts?.folder || 'form-uploads',
+        creator: opts?.creator || getActorDisplayName()
+    }),
     openUserDashboard: ref => openUserDashboard(ref),
     openUserContextMenu: (ev, ref) => openUserContextMenu(ev, ref),
     toast: msg => toast(msg),
@@ -15854,7 +19760,14 @@ ArchitectDatabase.initHost({
     iconPickerForValue: (currentVal: string | undefined, allowEmpty: boolean, cb: (val: string) => void) => iconPickerForCallback(currentVal, allowEmpty, cb),
     iconMarkup: (val?: string) => (val ? pageIconMarkup(val) : ''),
     pushChatMessage: (opts: any) => pushWorkspaceChatMessage(opts),
-    pushNotification: item => pushInboxNotification({ ...(item || {}), kind: (item?.kind || 'database') as any })
+    pushNotification: item => pushInboxNotification({ ...(item || {}), kind: (item?.kind || 'database') as any }),
+    onDatabaseChanged: () => {
+        if (currentAppMode !== 'dashboard') return;
+        const dashView = $('#dashboard-view') as HTMLElement | null;
+        if (!dashView) return;
+        if (currentDashboardSubMode === 'user') renderUserDashboardView(dashView);
+        else if (currentDashboardSubMode === 'team') renderTeamOverviewDashboardView(dashView);
+    }
 });
 (window as any).ArchitectWorkspace = {
     applyImportedDefaultPermissions,
@@ -15879,6 +19792,7 @@ ArchitectDatabase.initHost({
         renderAppUpdateBanner(pendingUpdateInfo);
     },
     getState: () => state,
+    getFormRadioState: () => ({ playing: formMusicPlaying, muted: formMusicMuted, paused: formMusicAudioEl ? formMusicAudioEl.paused : true, hasSrc: Boolean(formMusicAudioEl?.src), lastError: formMusicLastError, trackCount: formMusicActiveTracks.length, trackIndex: formMusicTrackIdx }),
     render: () => render(),
     save: (force?: boolean) => save(!!force),
     openPage: (pageId: string) => navigateToPage(pageId),
@@ -15893,6 +19807,13 @@ ArchitectBoard.initHost({
     isReadOnlyMirror: () => effectivePageReadOnly(current()),
     isPageReadOnly: page => effectivePageReadOnly(page || current()),
     canViewPage: page => !page || resolvePagePermissions(page).view,
+    isExpanded: page => !!page?.boardExpanded,
+    onToggleExpand: page => {
+        if (!page) return;
+        page.boardExpanded = !page.boardExpanded;
+        save();
+        render();
+    },
     commitChange: (_page, force) => {
         save(!!force);
         renderNav();
@@ -15918,10 +19839,8 @@ ArchitectBoard.initHost({
     },
     resolveAssetOriginalUrl: asset => ArchitectBackend.resolveAssetOriginalUrl(asset),
     resolveAssetPreviewUrl: asset => ArchitectBackend.resolveAssetPreviewUrl(asset),
-    openAssetPicker: (boardPage, pos) => {
-        openAssetLibrary(null, {
-            onSelectAsset: asset => ArchitectBoard.insertAssetNodeIntoBoard(boardPage, asset, pos)
-        });
+    openAssetPicker: (_boardPage, _pos) => {
+        toggleAssetsSidebar(true);
     },
     openPagePicker: (boardPage, pos, anchorEl) => {
         const menu = $('#command-menu');
@@ -15932,7 +19851,7 @@ ArchitectBoard.initHost({
         heading.innerHTML = '<strong>Link page onto board</strong>';
         const list = document.createElement('div');
         list.className = 'command-list';
-        state.pages.filter(pg => pg.id !== boardPage.id && !pg.databaseId && resolvePagePermissions(pg).view).slice(0, 20).forEach(pg => {
+        state.pages.filter(pg => pg.id !== boardPage.id && isVisibleDocsPage(pg, true)).slice(0, 20).forEach(pg => {
             list.append(menuRow(pg.title || 'Untitled', `<span class="command-icon">${pageIconMarkup(pg.icon)}</span>`, () => {
                 ArchitectBoard.insertPageLinkNodeIntoBoard(boardPage, pg, pos);
             }));
@@ -15958,6 +19877,31 @@ ArchitectBoard.initHost({
     },
     toast: msg => toast(msg)
 });
+function resolveFormInsertAfterBlockId(pg: Page): string | null {
+    const ae = document.activeElement;
+    if (ae instanceof HTMLElement && editor.contains(ae)) {
+        const blkEl = ae.closest('.block[data-block-id]') as HTMLElement | null;
+        const bid = blkEl?.dataset.blockId || '';
+        if (bid && pg.blocks.some(b => b.id === bid)) return bid;
+    }
+    const sel = getSelection();
+    if (sel?.rangeCount) {
+        const startBlk = activeBlockFromNode(sel.getRangeAt(0).startContainer) as HTMLElement | null;
+        if (startBlk && editor.contains(startBlk)) {
+            const bid = startBlk.dataset.blockId || '';
+            if (bid && pg.blocks.some(b => b.id === bid)) return bid;
+        }
+    }
+    if (savedEditorRange?.blockId && pg.blocks.some(b => b.id === savedEditorRange!.blockId)) {
+        return savedEditorRange.blockId;
+    }
+    const qid = getFormSessionState(pg).activeQuestionId;
+    if (qid) {
+        const qBlk = pg.blocks.find(b => b.type === 'form_question' && b.questionId === qid);
+        if (qBlk) return qBlk.id;
+    }
+    return null;
+}
 ArchitectToolbar.initHost({
     getState: () => state,
     getCurrentUser: () => getActorDisplayName(),
@@ -15970,9 +19914,62 @@ ArchitectToolbar.initHost({
         const pg = current();
         if (!pg) return true;
         if (effectivePageReadOnly(pg)) return false;
-        if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isDatabasePage(pg)) return false;
         if (typeof ArchitectBoard !== 'undefined' && ArchitectBoard.isBoardPage(pg)) return false;
+        if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isFormPage(pg)) {
+            const av = ArchitectDatabase.activeViewFor(pg);
+            if (av && av.type !== 'form') return false;
+            return !isFormResponderActive(pg);
+        }
+        if (typeof ArchitectDatabase !== 'undefined' && ArchitectDatabase.isDatabasePage(pg)) return false;
         return true;
+    },
+    isFormEditor: () => {
+        if (currentAppMode !== 'notion' || isDocsGraphMode) return false;
+        const pg = current();
+        if (!pg || typeof ArchitectDatabase === 'undefined' || !ArchitectDatabase.isFormPage(pg)) return false;
+        const av = ArchitectDatabase.activeViewFor(pg);
+        if (av && av.type !== 'form') return false;
+        return !effectivePageReadOnly(pg) && !isFormResponderActive(pg);
+    },
+    insertFormQuestion: (propType: string) => {
+        const pg = current();
+        if (!pg || typeof ArchitectDatabase === 'undefined' || !ArchitectDatabase.isFormPage(pg)) return;
+        const afterId = resolveFormInsertAfterBlockId(pg);
+        pushUndoBeforeEdit(pg);
+        const res = ArchitectDatabase.addFormQuestionBlock(pg, propType, afterId);
+        if (res?.question?.id) {
+            getFormSessionState(pg).activeQuestionId = res.question.id;
+            savedEditorRange = null;
+        }
+        save(); render();
+        if (res?.question?.id) {
+            requestAnimationFrame(() => {
+                const inp = editor.querySelector(`[data-question-id="${CSS.escape(res.question.id)}"] .db-form-q-label`) as HTMLInputElement | null;
+                if (inp) { inp.focus({ preventScroll: true }); inp.select(); }
+            });
+        }
+    },
+    insertFormButton: (btnKind: string) => {
+        const pg = current();
+        if (!pg || typeof ArchitectDatabase === 'undefined' || !ArchitectDatabase.isFormPage(pg)) return;
+        const { cfg } = ArchitectDatabase.ensureFormConfig(pg);
+        const afterId = resolveFormInsertAfterBlockId(pg);
+        pushUndoBeforeEdit(pg);
+        const nb = {
+            id: id(),
+            type: 'form_button' as BlockType,
+            text: '',
+            formButtonConfig: ArchitectDatabase.getDefaultFormButtonConfig(btnKind as any, cfg)
+        };
+        const idx = afterId ? pg.blocks.findIndex(b => b.id === afterId) : -1;
+        if (idx >= 0) pg.blocks.splice(idx + 1, 0, nb);
+        else pg.blocks.push(nb);
+        save(); render();
+    },
+    openFormDesign: (_anchorEl: HTMLElement) => {
+        const pg = current();
+        if (!pg || typeof ArchitectDatabase === 'undefined' || !ArchitectDatabase.isFormPage(pg)) return;
+        toggleFormDesignSidebar(null, pg, () => render());
     },
     getColors: () => BLOCK_COLORS,
     getLastUsedColor: () => lastUsedColor,
@@ -15984,6 +19981,7 @@ ArchitectToolbar.initHost({
     applyTextCase: mode => toolbarApplyTextCase(mode),
     applyColor: (kind, key) => toolbarApplyColor(kind, key),
     applyFontChoice: fontKey => toolbarApplyFontChoice(fontKey),
+    applyFontSize: sizeKey => toolbarApplyFontSize(sizeKey),
     setBlockType: (t, opts) => toolbarSetBlockType(t, opts),
     setBlockAlignment: align => toolbarSetBlockAlignment(align),
     applyCalloutOrQuote: v => toolbarApplyCalloutOrQuote(v),
@@ -16065,7 +20063,8 @@ ArchitectToolbar.initHost({
 let coverResizeFrame = 0;
 window.addEventListener('resize', () => { cancelAnimationFrame(coverResizeFrame); coverResizeFrame = requestAnimationFrame(() => { const page = current(), cover = document.querySelector('.page-cover'); if (cover && pageHasCover(page)) applyCoverBackground(cover, page); if ($('#cover-dialog').open) positionCoverCrop(); layoutRightComments(page); if (commentPopoverState) renderCommentPopover(); }); });
 const initialParams = new URLSearchParams(location.hash.replace(/^#/, ''));
-const initialPageId = initialParams.get('page'), initialViewId = initialParams.get('view'), initialBlockId = initialParams.get('block'), initialInviteCode = initialParams.get('invite');
+const initialPageId = initialParams.get('page'), initialViewId = initialParams.get('view'), initialBlockId = initialParams.get('block'), initialInviteCode = initialParams.get('invite'), initialFormMode = initialParams.get('formMode');
+if (initialPageId && initialFormMode === 'respond') (window as any).__architectFormOpenMode = initialPageId;
 if (initialPageId && state.pages.some(page => page.id === initialPageId)) {
     state.activePageId = initialPageId;
     if (initialViewId) {
@@ -16088,7 +20087,7 @@ function handleInviteHash(inviteCode: string | null) {
         if (codeInp) { codeInp.value = inviteCode; ($('#mm-redeem-account') as HTMLInputElement | null)?.focus(); }
     });
 }
-window.addEventListener('hashchange', () => { const params = new URLSearchParams(location.hash.replace(/^#/, '')), pageId = params.get('page'), viewId = params.get('view'), inviteCode = params.get('invite'); if (pageId && viewId) { const pg = state.pages.find(page => page.id === pageId); if (pg?.database?.views?.some((v: any) => v.id === viewId)) pg.database.activeViewId = viewId; } if (pageId) navigateToPage(pageId); const blockId = params.get('block'); if (blockId) requestAnimationFrame(() => { focusLinkedBlock(blockId); try { history.replaceState(null, '', pageHref(current().id, blockId)); } catch { } }); if (inviteCode) handleInviteHash(inviteCode); });
+window.addEventListener('hashchange', () => { const params = new URLSearchParams(location.hash.replace(/^#/, '')), pageId = params.get('page'), viewId = params.get('view'), inviteCode = params.get('invite'), formMode = params.get('formMode'); if (pageId && formMode === 'respond') (window as any).__architectFormOpenMode = pageId; else if (pageId && pageId !== (window as any).__architectFormOpenMode) (window as any).__architectFormOpenMode = null; if (pageId && viewId) { const pg = state.pages.find(page => page.id === pageId); if (pg?.database?.views?.some((v: any) => v.id === viewId)) pg.database.activeViewId = viewId; } if (pageId) navigateToPage(pageId); const blockId = params.get('block'); if (blockId) requestAnimationFrame(() => { focusLinkedBlock(blockId); try { history.replaceState(null, '', pageHref(current().id, blockId)); } catch { } }); if (inviteCode) handleInviteHash(inviteCode); });
 render();
 if (current()?.published) recordPublishedPageView(current());
 flushScheduledNotifications(state, true, true);
@@ -16101,30 +20100,42 @@ if (state.coordinationMode === 'cloud-sync') runSyncPull(false);
 checkForAppUpdates();
 if (ArchitectBackend.host()) {
     Promise.all([
-        ArchitectBackend.host().readWorkspace().catch(() => null),
+        ArchitectBackend.host().readWorkspace().then(raw => ({ ok: true as const, raw }), () => ({ ok: false as const, raw: null })),
         ArchitectBackend.hydrateAssetsFromHost().catch(() => false)
-    ]).then(([raw, assetsHydrated]) => {
+    ]).then(([diskRes, assetsHydrated]) => {
         let changed = !!assetsHydrated;
         let pulledDiskState = false;
-        if (raw) {
+        const localIsRich = isRichWorkspace(state);
+        if (diskRes.ok && diskRes.raw) {
             try {
-                const diskState = ensureWorkspaceDefaults(JSON.parse(raw));
+                const parsedDisk = JSON.parse(diskRes.raw);
+                const wasMigrated = !parsedDisk._migratedRaphaelV1;
+                const diskState = ensureWorkspaceDefaults(parsedDisk);
                 if (diskState.version === 2 && Array.isArray(diskState.pages) && diskState.pages.length) {
-                    state = diskState;
-                    ArchitectBackend.setPreviewPolicy(state.assetPreviewPolicy);
-                    localStorage.setItem(STORE, JSON.stringify(state));
-                    scheduleAutoSync();
-                    changed = true;
-                    pulledDiskState = true;
+                    const diskIsRich = isRichWorkspace(diskState);
+                    if (diskIsRich || !localIsRich) {
+                        state = diskState;
+                        ArchitectBackend.setPreviewPolicy(state.assetPreviewPolicy);
+                        localStorage.setItem(STORE, JSON.stringify(state));
+                        if (diskIsRich) localStorage.setItem(LAST_RICH_BACKUP, JSON.stringify(state));
+                        if (wasMigrated) ArchitectBackend.host().writeWorkspace(JSON.stringify(state)).catch(() => {});
+                        scheduleAutoSync();
+                        changed = true;
+                        pulledDiskState = true;
+                    } else if (localIsRich && !diskIsRich) {
+                        // Local storage has real user pages while disk only had empty starter: preserve rich pages
+                        ArchitectBackend.host().writeWorkspace(JSON.stringify(state)).catch(() => {});
+                    }
                 }
             } catch {}
-        } else {
+        } else if (diskRes.ok && diskRes.raw === null) {
             ArchitectBackend.host().writeWorkspace(JSON.stringify(state)).catch(() => {});
         }
+        hostWorkspaceHydrated = true;
         if (changed) {
             render();
             if (pulledDiskState && state.coordinationMode === 'cloud-sync') runSyncPull(false);
         }
-    }).catch(() => {});
+    }).catch(() => { hostWorkspaceHydrated = true; });
 }
 

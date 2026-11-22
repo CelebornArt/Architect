@@ -159,10 +159,110 @@ type DbAggregationType =
   | 'percent_empty' | 'percent_not_empty' | 'sum' | 'average' | 'median' | 'min' | 'max' | 'range';
 type DbOpenMode = 'side_peek' | 'center_peek' | 'full_page';
 
+type DbFormQuestionCondition = {
+  parentQuestionId: string;
+  operator?: 'equals' | 'contains_any' | 'is_checked' | 'is_unchecked';
+  values?: string[];
+};
+
+type DbFormQuestion = {
+  id: string;
+  propertyId: string;
+  label?: string;
+  placeholder?: string;
+  description?: string;
+  showDescription?: boolean;
+  required?: boolean;
+  longAnswer?: boolean;
+  displayMode?: 'list' | 'dropdown';
+  limitOne?: boolean;
+  maxSelections?: number | null;
+  includeTime?: boolean;
+  includeEndDate?: boolean;
+  checkboxLabel?: string;
+  maxSizeMb?: number;
+  condition?: DbFormQuestionCondition | null;
+};
+
+type DbFormRadioTrack = {
+  assetId: string;
+  name: string;
+  url?: string;
+  releaseStatus?: 'unreleased' | 'spotify';
+  spotifyUrl?: string;
+};
+
+type DbFormBlockKind = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'callout' | 'divider' | 'question';
+
+type DbFormBlock = {
+  id: string;
+  kind: DbFormBlockKind;
+  html?: string;
+  questionId?: string;
+};
+
+type DbFormButtonKind = 'submit' | 'download' | 'send_email' | 'custom';
+
+type DbFormButtonConfig = {
+  kind: DbFormButtonKind;
+  label?: string;
+  bgColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  radius?: number;
+  roundedCorners?: boolean;
+  align?: 'left' | 'center' | 'right' | 'full';
+  fontFamily?: string;
+  icon?: string;
+  imageUrl?: string;
+  imageAssetId?: string;
+  imageCropX?: number;
+  imageCropY?: number;
+  imageCropZoom?: number;
+  imageCropAspect?: number;
+  customUrl?: string;
+  actionNote?: string;
+};
+
 type DbFormConfig = {
   title?: string;
   description?: string;
   submitLabel?: string;
+  submitColor?: string;
+  confirmationTitle?: string;
+  confirmationBody?: string;
+  isClosed?: boolean;
+  anonymousSubmissions?: boolean;
+  allowSendToEmail?: boolean;
+  allowViewResponse?: boolean;
+  allowSubmitAnotherResponse?: boolean;
+  submissionPermissions?: 'workspace' | 'anyone';
+  formMode?: 'editor' | 'respond';
+  subdomain?: string;
+  publishedSiteEnabled?: boolean;
+  backgroundMode?: 'default' | 'color' | 'image';
+  backgroundColorEnabled?: boolean;
+  backgroundColor?: string;
+  backgroundImageUrl?: string;
+  backgroundAssetId?: string;
+  backgroundImageOpacity?: number;
+  backgroundCropX?: number;
+  backgroundCropY?: number;
+  backgroundCropZoom?: number;
+  backgroundCropAspect?: number;
+  containerStyle?: 'outlined' | 'loose';
+  questionCardBgColor?: string;
+  questionCardBgTransparent?: boolean;
+  questionCardBgOpacity?: number;
+  questionCardOutlineColor?: string;
+  musicAssetId?: string;
+  musicName?: string;
+  musicUrl?: string;
+  musicReleaseStatus?: 'unreleased' | 'spotify';
+  musicSpotifyUrl?: string;
+  musicTracks?: DbFormRadioTrack[];
+  questions?: DbFormQuestion[];
+  blocks?: DbFormBlock[];
   requiredPropertyIds?: string[];
   hiddenPropertyIds?: string[];
 };
@@ -244,7 +344,10 @@ type DatabaseConfig = {
   showTitle?: boolean;
   locked?: boolean;
   linkedEventsEnabled?: boolean;
+  isOfficialTaskboard?: boolean;
   connections?: DbDatabaseConnection[];
+  formUploadsToAssets?: boolean;
+  formUploadsFolder?: string;
 };
 
 const ArchitectDatabase = (() => {
@@ -393,7 +496,7 @@ const ArchitectDatabase = (() => {
   }
 
   function actorName() {
-    return host?.getCurrentUser?.() || getState()?.users?.[0]?.name || 'Jordan Davis';
+    return host?.getCurrentUser?.() || getState()?.users?.[0]?.name || 'Raphael';
   }
 
   function isHostReadOnly(page?: any) {
@@ -411,8 +514,12 @@ const ArchitectDatabase = (() => {
     if (shouldRender) host?.render?.();
   }
 
+  function isFormPage(page: any) {
+    return !!page && page.pageKind === 'form';
+  }
+
   function isDatabasePage(page: any) {
-    return !!page && page.pageKind === 'database';
+    return !!page && (page.pageKind === 'database' || page.pageKind === 'form');
   }
 
   function getDatabasePages() {
@@ -982,7 +1089,7 @@ const ArchitectDatabase = (() => {
     initialValues: Record<string, any> = {},
     initialBlocks: any[] = [],
     icon = '📄',
-    opts: { skipAutomations?: boolean; automationDepth?: number } = {}
+    opts: { skipAutomations?: boolean; automationDepth?: number; anonymous?: boolean } = {}
   ) {
     const s = getState();
     const db = ensureDatabaseConfig(dbPage);
@@ -997,6 +1104,7 @@ const ArchitectDatabase = (() => {
     if (statusProp && propVals[statusProp.id] === undefined && statusProp.options?.length) {
       propVals[statusProp.id] = statusProp.options[0].id;
     }
+    const submitter = opts.anonymous ? 'Anonymous' : actorName();
     const rowPage = {
       id: uid(),
       title: typeof titleVal === 'string' ? titleVal : '',
@@ -1005,8 +1113,8 @@ const ArchitectDatabase = (() => {
       databaseId: dbPage.id,
       propertyValues: propVals,
       blocks: initialBlocks.length ? structuredCloneSafe(initialBlocks) : [{ id: uid(), type: 'text', text: '' }],
-      createdBy: actorName(),
-      lastEditedBy: actorName(),
+      createdBy: submitter,
+      lastEditedBy: submitter,
       createdAt: now,
       updatedAt: now
     };
@@ -1069,6 +1177,601 @@ const ArchitectDatabase = (() => {
     s.pages.push(dbPage);
     convertPageToDatabase(dbPage, initialViewType);
     return dbPage;
+  }
+
+  function isoOffsetDate(daysOffset: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + daysOffset);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function questPriorityOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'Super High', color: 'red' },
+      { id: uid(), name: 'High', color: 'orange' },
+      { id: uid(), name: 'Medium', color: 'yellow' },
+      { id: uid(), name: 'Low', color: 'green' }
+    ];
+  }
+
+  function questPhaseOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'R&D + Ideation', color: 'gray', statusGroup: 'todo' },
+      { id: uid(), name: 'Assigned', color: 'blue', statusGroup: 'todo' },
+      { id: uid(), name: 'Briefed', color: 'purple', statusGroup: 'todo' },
+      { id: uid(), name: 'To Assign', color: 'default', statusGroup: 'todo' },
+      { id: uid(), name: 'In progress', color: 'blue', statusGroup: 'in_progress' },
+      { id: uid(), name: 'On hold', color: 'yellow', statusGroup: 'in_progress' },
+      { id: uid(), name: 'Complete', color: 'green', statusGroup: 'complete' },
+      { id: uid(), name: 'Finished', color: 'green', statusGroup: 'complete' },
+      { id: uid(), name: 'Dismissed', color: 'red', statusGroup: 'complete' }
+    ];
+  }
+
+  function questScopeOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'Project / Task', color: 'blue' },
+      { id: uid(), name: 'Check-in / Review', color: 'purple' }
+    ];
+  }
+
+  function questProjectOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'Grimhald', color: 'purple' },
+      { id: uid(), name: 'Trials of Akash', color: 'orange' },
+      { id: uid(), name: 'Edany EP', color: 'pink' },
+      { id: uid(), name: 'Anomaly', color: 'blue' },
+      { id: uid(), name: 'Leilani', color: 'green' },
+      { id: uid(), name: 'Soul Atlas', color: 'yellow' }
+    ];
+  }
+
+  function questHealthOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'On Track', color: 'green' },
+      { id: uid(), name: 'At Risk', color: 'yellow' },
+      { id: uid(), name: 'Delayed', color: 'red' },
+      { id: uid(), name: 'Unclear', color: 'gray' }
+    ];
+  }
+
+  function questDepartmentOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'Animation', color: 'purple' },
+      { id: uid(), name: 'Art', color: 'blue' },
+      { id: uid(), name: 'Comics', color: 'orange' },
+      { id: uid(), name: 'Community', color: 'green' },
+      { id: uid(), name: 'Content Creation', color: 'pink' },
+      { id: uid(), name: 'Digital Marketing | Mail/Web', color: 'default' },
+      { id: uid(), name: 'Documentary', color: 'brown' },
+      { id: uid(), name: 'Editing', color: 'gray' },
+      { id: uid(), name: 'Fashion', color: 'red' },
+      { id: uid(), name: 'Featurettes', color: 'yellow' },
+      { id: uid(), name: 'Production', color: 'purple' }
+    ];
+  }
+
+  function questTypeOptions(): DbSelectOption[] {
+    return [
+      { id: uid(), name: 'Production', color: 'purple' },
+      { id: uid(), name: '2D Animation', color: 'blue' },
+      { id: uid(), name: 'Concept Art', color: 'pink' },
+      { id: uid(), name: 'Layout', color: 'orange' },
+      { id: uid(), name: 'Graphic Design', color: 'green' },
+      { id: uid(), name: 'Art Direction', color: 'red' },
+      { id: uid(), name: 'Marketing Sustain', color: 'yellow' },
+      { id: uid(), name: 'Games Art', color: 'blue' },
+      { id: uid(), name: 'Recruiting', color: 'brown' },
+      { id: uid(), name: 'Coordination', color: 'default' },
+      { id: uid(), name: 'Promotion & Collabs', color: 'green' },
+      { id: uid(), name: 'SMM Support - Community', color: 'pink' },
+      { id: uid(), name: 'Art Content Creation', color: 'purple' },
+      { id: uid(), name: 'Writing', color: 'gray' },
+      { id: uid(), name: 'Marketing Featurettes', color: 'yellow' }
+    ];
+  }
+
+  function configureQuestboardDatabase(dbPage: any, seedSampleQuests = true) {
+    const dbPageId = dbPage.id;
+    const titleProp: DbSchemaProperty = { id: 'prop_title', name: 'Task', type: 'title', width: 270 };
+    const keyProp: DbSchemaProperty = { id: uid(), name: 'Issue Key', type: 'unique_id', idPrefix: 'QUEST', idNext: 1, width: 96 };
+    const prioProp: DbSchemaProperty = { id: uid(), name: 'Priority', type: 'select', options: questPriorityOptions(), width: 120 };
+    const timeProp: DbSchemaProperty = { id: uid(), name: 'Timeframe', type: 'date', width: 175 };
+    const phaseProp: DbSchemaProperty = { id: uid(), name: 'Phase', type: 'status', options: questPhaseOptions(), width: 150 };
+    const respProp: DbSchemaProperty = { id: uid(), name: 'Responsible.', type: 'person', width: 145 };
+    const acctProp: DbSchemaProperty = { id: uid(), name: 'Accountable.', type: 'person', width: 145 };
+    const consProp: DbSchemaProperty = { id: uid(), name: 'Consulted.', type: 'person', width: 145 };
+    const scopeProp: DbSchemaProperty = { id: uid(), name: 'Scope', type: 'select', options: questScopeOptions(), width: 140 };
+    const projProp: DbSchemaProperty = { id: uid(), name: 'Project', type: 'multi_select', options: questProjectOptions(), width: 155 };
+    const healthProp: DbSchemaProperty = { id: uid(), name: 'Health', type: 'select', options: questHealthOptions(), width: 115 };
+    const deptProp: DbSchemaProperty = { id: uid(), name: 'Department', type: 'multi_select', options: questDepartmentOptions(), width: 170 };
+    const typeProp: DbSchemaProperty = { id: uid(), name: 'Type', type: 'multi_select', options: questTypeOptions(), width: 170 };
+    const parentProp: DbSchemaProperty = { id: uid(), name: 'Parent task', type: 'relation', relationDatabaseId: dbPageId, width: 165 };
+
+    const schema = [
+      titleProp, keyProp, prioProp, timeProp, phaseProp,
+      respProp, acctProp, consProp, scopeProp,
+      projProp, healthProp, deptProp, typeProp, parentProp
+    ];
+
+    const tableAllIds = [
+      titleProp.id, keyProp.id, prioProp.id, timeProp.id, phaseProp.id,
+      respProp.id, acctProp.id, consProp.id, scopeProp.id,
+      projProp.id, healthProp.id, deptProp.id, typeProp.id
+    ];
+    const everythingView = buildDefaultView(schema, 'table', 'Everything');
+    everythingView.visiblePropertyIds = [...tableAllIds];
+    everythingView.propertyOrder = [...tableAllIds];
+
+    const boardView = buildDefaultView(schema, 'board', 'Board');
+    boardView.groupBy = phaseProp.id;
+    boardView.visiblePropertyIds = [keyProp.id, prioProp.id, timeProp.id, respProp.id, acctProp.id, consProp.id, projProp.id, healthProp.id];
+    boardView.cardPreview = 'none';
+
+    const timelineView = buildDefaultView(schema, 'timeline', 'Timeline');
+    timelineView.datePropertyId = timeProp.id;
+    timelineView.timelineZoom = 'week';
+    timelineView.visiblePropertyIds = [keyProp.id, prioProp.id, phaseProp.id, respProp.id, healthProp.id];
+
+    const docView = buildDefaultView(schema, 'table', 'Documentary');
+    docView.visiblePropertyIds = [...tableAllIds];
+    docView.propertyOrder = [...tableAllIds];
+    docView.filters = [{ id: uid(), propertyId: deptProp.id, op: 'contains', value: 'Documentary' }];
+
+    const personView = buildDefaultView(schema, 'board', 'Specific Person View');
+    personView.groupBy = respProp.id;
+    personView.visiblePropertyIds = [keyProp.id, prioProp.id, timeProp.id, phaseProp.id, scopeProp.id, projProp.id, healthProp.id];
+
+    dbPage.database = {
+      schema,
+      views: [everythingView, boardView, timelineView, docView, personView],
+      activeViewId: everythingView.id,
+      defaultOpenMode: 'side_peek',
+      templates: [],
+      automations: [],
+      subItemsEnabled: true,
+      parentPropertyId: parentProp.id,
+      isOfficialTaskboard: true,
+      showTitle: true
+    };
+
+    if (seedSampleQuests && !getDatabaseRows(dbPageId).length) {
+      const s = getState();
+      const users = (s?.users || []).filter(Boolean);
+      const actor = actorName().toLowerCase();
+      const u0 = users.find((u: any) => u.name.toLowerCase() === actor || (u.linkedAccount || '').toLowerCase() === actor) || users[0];
+      const u1 = users.find((u: any) => u0 && u.id !== u0.id) || u0;
+      const u2 = users.find((u: any) => u0 && u1 && u.id !== u0.id && u.id !== u1.id) || u1;
+      const optId = (prop: DbSchemaProperty, name: string) => prop.options?.find(o => o.name === name)?.id || '';
+      const idOrEmpty = (u: any) => (u?.id ? [u.id] : []);
+
+      const q1 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'Super High'),
+        [timeProp.id]: { start: isoOffsetDate(-3), end: isoOffsetDate(-1) },
+        [phaseProp.id]: optId(phaseProp, 'In progress'),
+        [respProp.id]: idOrEmpty(u0),
+        [acctProp.id]: idOrEmpty(u1),
+        [consProp.id]: idOrEmpty(u2),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Grimhald')],
+        [healthProp.id]: optId(healthProp, 'Delayed'),
+        [deptProp.id]: [optId(deptProp, 'Art'), optId(deptProp, 'Production')],
+        [typeProp.id]: [optId(typeProp, 'Concept Art'), optId(typeProp, 'Art Direction')]
+      }, [{ id: uid(), type: 'text', text: 'Finalize silhouette pass and lighting key for the Grimhald citadel sequence.' }], '🔥', { skipAutomations: true });
+      q1.title = 'Grimhald Key Art Lock';
+
+      const q2 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'High'),
+        [timeProp.id]: { start: isoOffsetDate(-1), end: isoOffsetDate(2) },
+        [phaseProp.id]: optId(phaseProp, 'Briefed'),
+        [respProp.id]: idOrEmpty(u0),
+        [acctProp.id]: idOrEmpty(u1),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Trials of Akash')],
+        [healthProp.id]: optId(healthProp, 'At Risk'),
+        [deptProp.id]: [optId(deptProp, 'Animation')],
+        [typeProp.id]: [optId(typeProp, '2D Animation'), optId(typeProp, 'Layout')]
+      }, [{ id: uid(), type: 'text', text: 'Complete animatic layout blocking for Episode 2 reveal.' }], '🎬', { skipAutomations: true });
+      q2.title = 'Akash Ep.2 Layout Pass';
+
+      const q3 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'High'),
+        [timeProp.id]: { start: isoOffsetDate(0), end: isoOffsetDate(1) },
+        [phaseProp.id]: optId(phaseProp, 'In progress'),
+        [respProp.id]: idOrEmpty(u1),
+        [acctProp.id]: idOrEmpty(u0),
+        [consProp.id]: idOrEmpty(u2),
+        [scopeProp.id]: optId(scopeProp, 'Check-in / Review'),
+        [projProp.id]: [optId(projProp, 'Anomaly')],
+        [healthProp.id]: optId(healthProp, 'At Risk'),
+        [deptProp.id]: [optId(deptProp, 'Documentary'), optId(deptProp, 'Editing')],
+        [typeProp.id]: [optId(typeProp, 'Production'), optId(typeProp, 'Coordination')]
+      }, [{ id: uid(), type: 'text', text: 'Review rough documentary cut and confirm B-roll interview pacing.' }], '🧐', { skipAutomations: true });
+      q3.title = 'Review Documentary Cut v3';
+
+      const q4 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'Medium'),
+        [timeProp.id]: { start: isoOffsetDate(1), end: isoOffsetDate(5) },
+        [phaseProp.id]: optId(phaseProp, 'Assigned'),
+        [respProp.id]: idOrEmpty(u2),
+        [consProp.id]: idOrEmpty(u0),
+        [acctProp.id]: idOrEmpty(u1),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Leilani')],
+        [healthProp.id]: optId(healthProp, 'On Track'),
+        [deptProp.id]: [optId(deptProp, 'Fashion'), optId(deptProp, 'Comics')],
+        [typeProp.id]: [optId(typeProp, 'Graphic Design')]
+      }, [{ id: uid(), type: 'text', text: 'Consult on costume color scripting and cover emblem variations.' }], '🪡', { skipAutomations: true });
+      q4.title = 'Leilani Costume Palette Consult';
+
+      const q5 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'Medium'),
+        [timeProp.id]: { start: isoOffsetDate(3), end: isoOffsetDate(9) },
+        [phaseProp.id]: optId(phaseProp, 'R&D + Ideation'),
+        [respProp.id]: idOrEmpty(u0),
+        [consProp.id]: idOrEmpty(u1),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Anomaly')],
+        [healthProp.id]: optId(healthProp, 'On Track'),
+        [deptProp.id]: [optId(deptProp, 'Community'), optId(deptProp, 'Content Creation')],
+        [typeProp.id]: [optId(typeProp, 'Marketing Sustain'), optId(typeProp, 'SMM Support - Community')]
+      }, [{ id: uid(), type: 'text', text: 'Draft lore teaser carousel for community release window.' }], '✨', { skipAutomations: true });
+      q5.title = 'Anomaly Launch Beat Sheet';
+
+      const q6 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'Low'),
+        [timeProp.id]: { start: isoOffsetDate(-7), end: isoOffsetDate(-4) },
+        [phaseProp.id]: optId(phaseProp, 'Complete'),
+        [respProp.id]: idOrEmpty(u0),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Soul Atlas')],
+        [healthProp.id]: optId(healthProp, 'On Track'),
+        [deptProp.id]: [optId(deptProp, 'Featurettes')],
+        [typeProp.id]: [optId(typeProp, 'Marketing Featurettes')]
+      }, [], '✅', { skipAutomations: true });
+      q6.title = 'Soul Atlas Teaser Export';
+
+      // Jira-ready Subtasks linked under parent quests via Parent task relation
+      const st1 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'High'),
+        [timeProp.id]: { start: isoOffsetDate(-3), end: isoOffsetDate(-2) },
+        [phaseProp.id]: optId(phaseProp, 'Complete'),
+        [respProp.id]: idOrEmpty(u0),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Grimhald')],
+        [healthProp.id]: optId(healthProp, 'On Track'),
+        [deptProp.id]: [optId(deptProp, 'Art')],
+        [parentProp.id]: [q1.id]
+      }, [], '↳', { skipAutomations: true });
+      st1.title = 'Silhouette thumbnails batch A';
+
+      const st2 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'Super High'),
+        [timeProp.id]: { start: isoOffsetDate(-2), end: isoOffsetDate(-1) },
+        [phaseProp.id]: optId(phaseProp, 'In progress'),
+        [respProp.id]: idOrEmpty(u0),
+        [consProp.id]: idOrEmpty(u1),
+        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
+        [projProp.id]: [optId(projProp, 'Grimhald')],
+        [healthProp.id]: optId(healthProp, 'At Risk'),
+        [deptProp.id]: [optId(deptProp, 'Art')],
+        [parentProp.id]: [q1.id]
+      }, [], '↳', { skipAutomations: true });
+      st2.title = 'Rim-light mood paint-over';
+
+      const st3 = createDatabaseRow(dbPage, {
+        [prioProp.id]: optId(prioProp, 'Medium'),
+        [timeProp.id]: { start: isoOffsetDate(0), end: isoOffsetDate(2) },
+        [phaseProp.id]: optId(phaseProp, 'Assigned'),
+        [respProp.id]: idOrEmpty(u1),
+        [acctProp.id]: idOrEmpty(u0),
+        [scopeProp.id]: optId(scopeProp, 'Check-in / Review'),
+        [projProp.id]: [optId(projProp, 'Trials of Akash')],
+        [healthProp.id]: optId(healthProp, 'On Track'),
+        [deptProp.id]: [optId(deptProp, 'Animation')],
+        [parentProp.id]: [q2.id]
+      }, [], '↳', { skipAutomations: true });
+      st3.title = 'Camera timing check-in';
+    }
+    assignUniqueIds(dbPage);
+    return dbPage;
+  }
+
+  function isHiddenBasePage(pg: any, ws = getState()): boolean {
+    if (!pg) return false;
+    if (pg.hiddenFromDocs === true) return true;
+    if (pg.hiddenFromDocs === false) return false;
+    return !!(
+      !pg.parentId
+      && !pg.databaseId
+      && (pg.id === ws?.officialTaskboardId || pg.database?.isOfficialTaskboard)
+      && /master questboard/i.test(String(pg.title || ''))
+    );
+  }
+
+  function createQuestboardPage(parentId?: string, title = 'Master Questboard | OS', seedSampleQuests = true, hiddenFromDocs = false) {
+    const s = getState();
+    const now = Date.now();
+    const dbPage: any = {
+      id: uid(),
+      title: title || 'Master Questboard | OS',
+      icon: '⚔️',
+      parentId,
+      pageKind: 'database',
+      fullWidth: true,
+      ...(hiddenFromDocs ? { hiddenFromDocs: true } : {}),
+      blocks: [{ id: uid(), type: 'text', text: '' }],
+      createdAt: now,
+      updatedAt: now
+    };
+    s.pages.push(dbPage);
+    configureQuestboardDatabase(dbPage, seedSampleQuests);
+    if (!s.officialTaskboardId) s.officialTaskboardId = dbPage.id;
+    return dbPage;
+  }
+
+  function getOfficialQuestboardPage(): any | null {
+    const s = getState();
+    if (!s || !Array.isArray(s.pages)) return null;
+    if (s.officialTaskboardId) {
+      const explicit = s.pages.find((p: any) => p.id === s.officialTaskboardId && isDatabasePage(p));
+      if (explicit) return explicit;
+    }
+    const flagged = s.pages.find((p: any) => isDatabasePage(p) && p.database?.isOfficialTaskboard);
+    if (flagged) {
+      s.officialTaskboardId = flagged.id;
+      return flagged;
+    }
+    const named = s.pages.find((p: any) => isDatabasePage(p) && /questboard|official task/i.test(String(p.title || '')));
+    if (named) {
+      s.officialTaskboardId = named.id;
+      return named;
+    }
+    return null;
+  }
+
+  function setOfficialQuestboardPage(dbPageId: string) {
+    const s = getState();
+    if (!s) return null;
+    const target = s.pages.find((p: any) => p.id === dbPageId && isDatabasePage(p));
+    if (!target) return null;
+    s.pages.forEach((p: any) => {
+      if (p.database?.isOfficialTaskboard && p.id !== target.id) p.database.isOfficialTaskboard = false;
+    });
+    const db = ensureDatabaseConfig(target);
+    db.isOfficialTaskboard = true;
+    s.officialTaskboardId = target.id;
+    persist(false);
+    return target;
+  }
+
+  function ensureOfficialQuestboardPage(): any {
+    const existing = getOfficialQuestboardPage();
+    if (existing) {
+      if (existing.hiddenFromDocs === undefined && !existing.parentId && /master questboard/i.test(String(existing.title || ''))) {
+        existing.hiddenFromDocs = true;
+      }
+      return existing;
+    }
+    const created = createQuestboardPage(undefined, 'Master Questboard | OS', true, true);
+    persist(false);
+    return created;
+  }
+
+  function getParentPropForDb(dbPage: any): DbSchemaProperty | undefined {
+    const db = ensureDatabaseConfig(dbPage);
+    if (db.parentPropertyId) {
+      const p = db.schema.find(s => s.id === db.parentPropertyId);
+      if (p) return p;
+    }
+    return db.schema.find(s => s.type === 'relation' && /parent/i.test(s.name || ''));
+  }
+
+  function getSubtasksForRow(rowPage: any, dbPage: any): any[] {
+    if (!rowPage || !dbPage) return [];
+    const parentProp = getParentPropForDb(dbPage);
+    if (!parentProp) return [];
+    return getDatabaseRows(dbPage.id).filter((r: any) => {
+      const linked = Array.isArray(r.propertyValues?.[parentProp.id]) ? r.propertyValues[parentProp.id] : [];
+      return linked.includes(rowPage.id);
+    });
+  }
+
+  function isRowComplete(rowPage: any, dbPage: any): boolean {
+    if (!rowPage || !dbPage) return false;
+    const db = ensureDatabaseConfig(dbPage);
+    const statusProp = db.schema.find(s => s.type === 'status') || db.schema.find(s => s.type === 'select' && /phase|status/i.test(s.name || ''));
+    if (statusProp) {
+      const opt = resolveOption(statusProp, getRawValue(statusProp, rowPage, dbPage));
+      if (opt?.statusGroup === 'complete') return true;
+      if (opt && /^(complete|finished|done|dismissed)$/i.test(opt.name.trim())) return true;
+    }
+    const chk = db.schema.find(s => s.type === 'checkbox' && /done|complete/i.test(s.name || ''));
+    if (chk) return Boolean(getRawValue(chk, rowPage, dbPage));
+    return false;
+  }
+
+  function toggleRowComplete(rowPage: any, dbPage: any, makeDone?: boolean) {
+    if (!rowPage || !dbPage || roMode(dbPage)) return;
+    const db = ensureDatabaseConfig(dbPage);
+    const currentlyDone = isRowComplete(rowPage, dbPage);
+    const targetDone = makeDone !== undefined ? makeDone : !currentlyDone;
+    const statusProp = db.schema.find(s => s.type === 'status') || db.schema.find(s => s.type === 'select' && /phase|status/i.test(s.name || ''));
+    if (statusProp?.options?.length) {
+      const targetOpt = targetDone
+        ? (statusProp.options.find(o => o.statusGroup === 'complete') || statusProp.options.find(o => /^(complete|finished|done)$/i.test(o.name)) || statusProp.options[statusProp.options.length - 1])
+        : (statusProp.options.find(o => o.statusGroup === 'in_progress') || statusProp.options.find(o => o.statusGroup === 'todo') || statusProp.options[0]);
+      if (targetOpt) setRowValue(rowPage, statusProp, targetOpt.id, dbPage, true);
+      return;
+    }
+    const chk = db.schema.find(s => s.type === 'checkbox');
+    if (chk) setRowValue(rowPage, chk, targetDone, dbPage, true);
+  }
+
+  function createSubtaskForRow(parentRow: any, dbPage: any, title: string, extraProps: Record<string, any> = {}) {
+    if (!parentRow || !dbPage || roMode(dbPage)) return null;
+    const db = ensureDatabaseConfig(dbPage);
+    let parentProp = getParentPropForDb(dbPage);
+    if (!parentProp) {
+      parentProp = addSchemaProperty(dbPage, 'Parent task', 'relation');
+      parentProp.relationDatabaseId = dbPage.id;
+    }
+    db.subItemsEnabled = true;
+    db.parentPropertyId = parentProp.id;
+
+    const inherited: Record<string, any> = {};
+    ['Project', 'Department', 'Scope'].forEach(pName => {
+      const p = db.schema.find(s => s.name.toLowerCase() === pName.toLowerCase());
+      const v = p ? getRawValue(p, parentRow, dbPage) : undefined;
+      if (p && v != null && (!Array.isArray(v) || v.length)) inherited[p.id] = Array.isArray(v) ? [...v] : v;
+    });
+    const respProp = db.schema.find(s => s.type === 'person' && /responsible|assignee|owner/i.test(s.name || '')) || db.schema.find(s => s.type === 'person');
+    if (respProp && !extraProps[respProp.id]) {
+      const parentResp = getRawValue(respProp, parentRow, dbPage);
+      if (Array.isArray(parentResp) && parentResp.length) inherited[respProp.id] = [...parentResp];
+    }
+    const statusProp = db.schema.find(s => s.type === 'status');
+    if (statusProp?.options?.length && !extraProps[statusProp.id]) {
+      const firstActive = statusProp.options.find(o => o.statusGroup === 'todo') || statusProp.options[0];
+      if (firstActive) inherited[statusProp.id] = firstActive.id;
+    }
+    const child = createDatabaseRow(dbPage, { ...inherited, ...extraProps, [parentProp.id]: [parentRow.id] }, [], '↳');
+    if (title && title.trim()) child.title = title.trim();
+    persist(false);
+    refreshAllDatabaseViews();
+    return child;
+  }
+
+  function formShareUrl(pageId: string) {
+    try {
+      const url = new URL(window.location.href);
+      url.hash = `page=${encodeURIComponent(pageId)}&formMode=respond`;
+      return url.toString();
+    } catch {
+      return `#page=${encodeURIComponent(pageId)}&formMode=respond`;
+    }
+  }
+
+  function sanitizeSubdomainSlug(raw?: string): string {
+    return String(raw || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48);
+  }
+
+  function formSubdomainUrl(cfgOrSlug?: any): string {
+    const rawSlug = typeof cfgOrSlug === 'string' ? cfgOrSlug : cfgOrSlug?.subdomain;
+    const slug = sanitizeSubdomainSlug(rawSlug);
+    if (!slug) return '';
+    return `https://${slug}.forms.architect.local`;
+  }
+
+  function convertPageToForm(page: any, formTitle?: string) {
+    if (!page) return page;
+    const hadDb = Boolean(page.database && Array.isArray(page.database.schema) && page.database.schema.length);
+    page.pageKind = 'form';
+    page.fullWidth = true;
+    if (!page.title || page.title === 'Untitled' || page.title === 'Untitled database') {
+      page.title = formTitle || 'New form';
+    } else if (formTitle) {
+      page.title = formTitle;
+    }
+    if (!page.icon || page.icon === '📄' || page.icon === '🗃️') {
+      page.icon = 'arch-icon:file:indigo';
+    }
+    if (!hadDb) {
+      const titleProp: DbSchemaProperty = { id: 'prop_title', name: 'Question 1', type: 'title', width: 240 };
+      const respProp: DbSchemaProperty = { id: uid(), name: 'Respondent', type: 'created_by', width: 160 };
+      const timeProp: DbSchemaProperty = { id: uid(), name: 'Submission time', type: 'created_time', width: 170 };
+      const q2Prop: DbSchemaProperty = {
+        id: uid(),
+        name: 'Question 2',
+        type: 'multi_select',
+        options: [
+          { id: uid(), name: 'Option 1', color: 'blue' },
+          { id: uid(), name: 'Option 2', color: 'yellow' },
+          { id: uid(), name: 'Option 3', color: 'red' }
+        ],
+        width: 210
+      };
+      const schema = [titleProp, q2Prop, respProp, timeProp];
+      const formView = buildDefaultView(schema, 'form', 'Form');
+      formView.formConfig = {
+        title: page.title || 'New form',
+        description: '',
+        submitLabel: 'Submit',
+        submitColor: 'blue',
+        confirmationTitle: 'Thank you!',
+        confirmationBody: 'Your response has been recorded.',
+        isClosed: false,
+        anonymousSubmissions: false,
+        allowSendToEmail: true,
+        allowSubmitAnotherResponse: true,
+        submissionPermissions: 'workspace',
+        formMode: 'editor',
+        containerStyle: 'outlined',
+        backgroundMode: 'default',
+        backgroundColor: '#f4f6fb',
+        requiredPropertyIds: [titleProp.id],
+        hiddenPropertyIds: [],
+        questions: [
+          { id: uid(), propertyId: titleProp.id, label: 'Question 1', required: true },
+          { id: uid(), propertyId: q2Prop.id, label: 'Question 2', required: false, displayMode: 'list' }
+        ]
+      };
+      const respView = buildDefaultView(schema, 'table', 'Responses');
+      respView.visiblePropertyIds = [titleProp.id, respProp.id, timeProp.id, q2Prop.id];
+      respView.propertyOrder = [titleProp.id, respProp.id, timeProp.id, q2Prop.id];
+      page.database = {
+        schema,
+        views: [formView, respView],
+        activeViewId: formView.id,
+        defaultOpenMode: 'side_peek',
+        templates: [],
+        showTitle: true,
+        formUploadsToAssets: true,
+        formUploadsFolder: 'form-uploads'
+      };
+      syncFormDocBlocks(page);
+      return page;
+    }
+
+    const db = ensureDatabaseConfig(page);
+    let formView = db.views.find(v => v.type === 'form');
+    if (!formView) {
+      formView = buildDefaultView(db.schema, 'form', 'Form');
+      db.views.unshift(formView);
+    }
+    if (!db.views.some(v => v.type === 'table')) {
+      const respView = buildDefaultView(db.schema, 'table', 'Responses');
+      db.views.push(respView);
+    }
+    db.activeViewId = formView.id;
+    syncFormDocBlocks(page);
+    return page;
+  }
+
+  function createFormPage(parentId?: string, title = 'New form') {
+    const s = getState();
+    const now = Date.now();
+    const formPage: any = {
+      id: uid(),
+      title: title || 'New form',
+      icon: 'arch-icon:file:indigo',
+      parentId,
+      pageKind: 'form',
+      fullWidth: true,
+      blocks: [{ id: uid(), type: 'text', text: '' }],
+      createdAt: now,
+      updatedAt: now
+    };
+    s.pages.push(formPage);
+    convertPageToForm(formPage, title || 'New form');
+    return formPage;
   }
 
   function deleteDatabaseRow(rowPageId: string) {
@@ -1934,9 +2637,9 @@ const ArchitectDatabase = (() => {
   }
 
   function openDbPopover(anchor: HTMLElement | { left: number; top: number; bottom: number; right: number }, buildFn: (pop: HTMLElement, close: () => void) => void, minWidth = 240) {
-    const rawRect = anchor instanceof HTMLElement ? anchor.getBoundingClientRect() : anchor;
-    const rect = { left: rawRect.left, top: rawRect.top, bottom: rawRect.bottom, right: rawRect.right };
     closeDbPopover();
+    const openedAt = Date.now();
+    if (anchor instanceof HTMLElement) anchor.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     const pop = document.createElement('div');
     pop.className = 'db-popover db-interactive-surface';
     pop.style.minWidth = `${minWidth}px`;
@@ -1952,26 +2655,104 @@ const ArchitectDatabase = (() => {
     buildFn(pop, closeDbPopover);
     document.body.append(pop);
 
-    const box = pop.getBoundingClientRect();
-    const margin = 10;
-    const left = Math.max(margin, Math.min(window.innerWidth - box.width - margin, rect.left));
-    const spaceBelow = window.innerHeight - rect.bottom - margin;
-    let top = rect.bottom + 4;
-    if (spaceBelow < Math.min(260, box.height) && rect.top > spaceBelow) {
-      top = Math.max(margin, rect.top - box.height - 4);
-    }
-    if (top + box.height > window.innerHeight - margin) {
-      pop.style.maxHeight = `${Math.max(180, window.innerHeight - top - margin)}px`;
-    }
-    pop.style.left = `${left}px`;
-    pop.style.top = `${top}px`;
+    let liveAnchor: any = anchor;
+    const anchorHostWrap = anchor instanceof HTMLElement ? (anchor.closest('.db-view-wrap') as HTMLElement | null) : null;
+    const anchorHostKey = anchorHostWrap?.dataset?.dbHostKey || '';
+    const anchorMatchSel = anchor instanceof HTMLElement
+      ? (anchor.dataset.dbTool
+        ? `[data-db-tool="${CSS.escape(anchor.dataset.dbTool)}"]`
+        : anchor.dataset.dbAction
+          ? `[data-db-action="${CSS.escape(anchor.dataset.dbAction)}"]`
+          : anchor.classList.contains('db-tab')
+            ? '.db-tab.active'
+            : anchor.classList.contains('db-th-add-btn')
+              ? '.db-th-add-btn'
+              : '')
+      : '';
+    let lastRect = anchor instanceof HTMLElement
+      ? anchor.getBoundingClientRect()
+      : { left: anchor.left, top: anchor.top, bottom: anchor.bottom, right: anchor.right, width: Math.max(1, anchor.right - anchor.left), height: Math.max(1, anchor.bottom - anchor.top) };
 
+    let rafId = 0;
+    let lockedSide: 'above' | 'below' | null = null;
+    const positionPopover = (closeIfOffscreen = false) => {
+      if (!pop.isConnected) return;
+      if (liveAnchor instanceof HTMLElement && !liveAnchor.isConnected && anchorHostKey && anchorMatchSel) {
+        const hostWrap = document.querySelector(`.db-view-wrap[data-db-host-key="${CSS.escape(anchorHostKey)}"]`);
+        const rebound = hostWrap?.querySelector(anchorMatchSel) as HTMLElement | null;
+        if (rebound?.isConnected) liveAnchor = rebound;
+      }
+      if (liveAnchor instanceof HTMLElement && !liveAnchor.isConnected && anchorHostKey) {
+        const hostWrap = document.querySelector(`.db-view-wrap[data-db-host-key="${CSS.escape(anchorHostKey)}"]`);
+        if (!hostWrap?.isConnected) {
+          closeDbPopover();
+          return;
+        }
+      }
+      const hasLiveEl = liveAnchor instanceof HTMLElement && liveAnchor.isConnected;
+      const rect = hasLiveEl ? liveAnchor.getBoundingClientRect() : lastRect;
+      if (hasLiveEl) lastRect = rect;
+      if (closeIfOffscreen && hasLiveEl && (rect.bottom < -12 || rect.top > window.innerHeight + 12 || (rect.width === 0 && rect.height === 0))) {
+        closeDbPopover();
+        return;
+      }
+      const margin = 10;
+      const maxCap = Math.min(680, window.innerHeight - margin * 2);
+      pop.style.maxHeight = `${maxCap}px`;
+      const box = pop.getBoundingClientRect();
+      const left = Math.max(margin, Math.min(window.innerWidth - box.width - margin, rect.left));
+      const spaceBelow = window.innerHeight - rect.bottom - margin;
+      const spaceAbove = rect.top - margin;
+      if (!lockedSide) {
+        lockedSide = (spaceBelow < Math.min(340, box.height) && spaceAbove > spaceBelow) ? 'above' : 'below';
+      } else if (lockedSide === 'above' && spaceAbove < 150 && spaceBelow >= 300) {
+        lockedSide = 'below';
+      } else if (lockedSide === 'below' && spaceBelow < 150 && spaceAbove >= 300) {
+        lockedSide = 'above';
+      }
+      const placeAbove = lockedSide === 'above';
+      if (placeAbove) {
+        const avail = Math.max(220, spaceAbove - 4);
+        pop.style.maxHeight = `${Math.min(maxCap, avail)}px`;
+        const finalH = pop.getBoundingClientRect().height;
+        const top = Math.max(margin, rect.top - finalH - 4);
+        pop.style.top = `${Math.round(top)}px`;
+      } else {
+        const top = Math.max(margin, Math.min(window.innerHeight - 180, rect.bottom + 4));
+        const avail = Math.max(220, window.innerHeight - top - margin);
+        pop.style.maxHeight = `${Math.min(maxCap, avail)}px`;
+        pop.style.top = `${Math.round(top)}px`;
+      }
+      pop.style.left = `${Math.round(left)}px`;
+    };
+
+    positionPopover(false);
+    const scheduleReposition = (closeIfOffscreen = false) => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        positionPopover(closeIfOffscreen);
+      });
+    };
+
+    const onScrollOrResize = () => scheduleReposition(Date.now() - openedAt > 180);
+    const onPopResize = () => scheduleReposition(false);
     const onDown = (e: Event) => {
-      if (e.target instanceof Node && (pop.contains(e.target) || (anchor instanceof HTMLElement && anchor.contains(e.target)))) return;
+      if (e.target instanceof Node && (pop.contains(e.target) || (liveAnchor instanceof HTMLElement && liveAnchor.contains(e.target)))) return;
       closeDbPopover();
     };
+    const roObs = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(onPopResize) : null;
+    roObs?.observe(pop);
+    document.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onPopResize);
     setTimeout(() => document.addEventListener('pointerdown', onDown, true), 0);
-    activePopoverCleanup = () => document.removeEventListener('pointerdown', onDown, true);
+    activePopoverCleanup = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      roObs?.disconnect();
+      document.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onPopResize);
+      document.removeEventListener('pointerdown', onDown, true);
+    };
     activePopover = pop;
     return pop;
   }
@@ -1986,6 +2767,7 @@ const ArchitectDatabase = (() => {
     }
     host?.renderNav?.();
     if (activePeek) renderPeekModal();
+    host?.onDatabaseChanged?.();
   }
 
   function setRowValue(rowPage: any, prop: DbSchemaProperty, value: any, dbPage: any, rerenderAll = true, automationDepth = 0) {
@@ -2851,6 +3633,7 @@ const ArchitectDatabase = (() => {
       header.className = 'db-pop-header';
       if (!prop.relationDatabaseId) {
         header.textContent = 'Connect to database';
+        ensureOfficialQuestboardPage();
         const dbs = getDatabasePages().filter((d: any) => !host?.canViewPage || host.canViewPage(d));
         const list = document.createElement('div');
         list.className = 'db-pop-list';
@@ -3205,14 +3988,7 @@ const ArchitectDatabase = (() => {
           persist(false); refreshAllDatabaseViews(); close();
         });
         addAction('🗑', 'Delete property', () => {
-          db.schema = db.schema.filter(s => s.id !== prop.id);
-          db.views.forEach(v => {
-            v.visiblePropertyIds = v.visiblePropertyIds.filter(id => id !== prop.id);
-            v.propertyOrder = v.propertyOrder.filter(id => id !== prop.id);
-            v.filters = v.filters.filter(f => f.propertyId !== prop.id);
-            v.sorts = v.sorts.filter(s => s.propertyId !== prop.id);
-            if (v.groupBy === prop.id) v.groupBy = undefined;
-          });
+          removePropertyFromDatabase(dbPage, prop.id);
           persist(false); refreshAllDatabaseViews(); close();
         }, 'is-danger');
       }
@@ -3982,12 +4758,7 @@ const ArchitectDatabase = (() => {
         delProp.className = 'db-pop-option-btn is-danger';
         delProp.innerHTML = '<span>🗑 Delete property</span>';
         delProp.onclick = () => {
-          db.schema = db.schema.filter(s => s.id !== prop.id);
-          db.views.forEach(v => {
-            v.propertyOrder = v.propertyOrder.filter(id => id !== prop.id);
-            v.visiblePropertyIds = v.visiblePropertyIds.filter(id => id !== prop.id);
-            if (v.groupBy === prop.id) v.groupBy = undefined;
-          });
+          removePropertyFromDatabase(dbPage, prop.id);
           persist(false); refreshAllDatabaseViews();
           renderEditPropertiesPanel(container, view, dbPage, close, onBack);
         };
@@ -4127,6 +4898,48 @@ const ArchitectDatabase = (() => {
         }
         return;
       }
+      if (sub === 'form_uploads') {
+        container.append(makePopSubHeader('Form uploads', close, backToMore));
+        const lbl = document.createElement('label');
+        lbl.className = 'db-form-setting-toggle';
+        const span = document.createElement('span');
+        span.textContent = 'Save form uploads to Asset Management';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = db.formUploadsToAssets !== false;
+        cb.disabled = ro;
+        cb.dataset.dbSetting = 'form-uploads-to-assets';
+        cb.onchange = () => {
+          db.formUploadsToAssets = cb.checked;
+          persist(false);
+          refreshAllDatabaseViews();
+          pushDetail('form_uploads');
+        };
+        lbl.append(span, cb);
+        container.append(lbl);
+
+        const folderRow = document.createElement('div');
+        folderRow.className = 'db-form-setting-field';
+        folderRow.innerHTML = '<label>Separate uploads folder (used when unchecked)</label>';
+        const fInp = document.createElement('input');
+        fInp.type = 'text';
+        fInp.className = 'db-pop-input';
+        fInp.disabled = ro;
+        fInp.value = db.formUploadsFolder || 'form-uploads';
+        fInp.onchange = () => {
+          db.formUploadsFolder = fInp.value.trim() || 'form-uploads';
+          persist(false);
+          refreshAllDatabaseViews();
+        };
+        folderRow.append(fInp);
+        const hint = document.createElement('div');
+        hint.className = 'db-pop-hint';
+        hint.textContent = db.formUploadsToAssets !== false
+          ? 'Form file uploads are indexed in Workspace Asset Management.'
+          : `Form file uploads live separately under form-uploads/${db.formUploadsFolder || 'form-uploads'}.`;
+        container.append(folderRow, hint);
+        return;
+      }
       container.append(makePopSubHeader('Customize page layout', close, backToMore));
       const openRow = document.createElement('label');
       openRow.className = 'db-pop-field-row';
@@ -4161,6 +4974,7 @@ const ArchitectDatabase = (() => {
       ['dependencies', '⛓', 'Dependencies', db.dependenciesPropertyId ? 'On' : ''],
       ['linked_events', '📅', 'Linked events', db.linkedEventsEnabled ? 'On' : ''],
       ['connections', '🔗', 'Connections', String((db.connections || []).filter(c => c.enabled).length || '')],
+      ['form_uploads', '📎', 'Form uploads', db.formUploadsToAssets === false ? 'Separate' : 'Assets'],
       ['page_layout', '◨', 'Customize page layout', '']
     ].forEach(([key, ico, lbl, badge]) => {
       const btn = document.createElement('button');
@@ -4187,15 +5001,17 @@ const ArchitectDatabase = (() => {
 
     const draw = () => {
       list.replaceChildren();
+      ensureOfficialQuestboardPage();
       const q = search.value.trim().toLowerCase();
       const dbs = getDatabasePages().filter((d: any) => (!host?.canViewPage || host.canViewPage(d)) && (!q || (d.title || 'Untitled').toLowerCase().includes(q)));
       dbs.forEach((d: any) => {
         const isCurrent = d.id === dbPage.id;
         const rowsCnt = getDatabaseRows(d.id).length;
+        const hiddenHint = isHiddenBasePage(d) ? 'Base DB · ' : '';
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'db-pop-option-btn';
-        btn.innerHTML = `<span>${dbIconHtml(d.icon, '🗃️')} ${escHtml(d.title || 'Untitled database')}</span><span class="db-pop-muted-chev">${rowsCnt} rows ${isCurrent ? '✓' : '›'}</span>`;
+        btn.innerHTML = `<span>${dbIconHtml(d.icon, '🗃️')} ${escHtml(d.title || 'Untitled database')}</span><span class="db-pop-muted-chev">${hiddenHint}${rowsCnt} rows ${isCurrent ? '✓' : '›'}</span>`;
         btn.onclick = () => {
           close();
           if (opts.onChangeSourceDb && !ro) {
@@ -4896,9 +5712,129 @@ const ArchitectDatabase = (() => {
     };
     drawBlocks();
 
-    scroll.append(titleRow, propsSheet, bodyDivider, bodyHost);
+    const subtasksPanel = renderPeekSubtasksSection(rowPage, dbPage, ro, () => renderPeekModal());
+    scroll.append(titleRow, propsSheet, subtasksPanel, bodyDivider, bodyHost);
     panel.append(topbar, scroll);
     layer.append(backdrop, panel);
+  }
+
+  function renderPeekSubtasksSection(rowPage: any, dbPage: any, ro: boolean, rerenderPeek: () => void): HTMLElement {
+    const db = ensureDatabaseConfig(dbPage);
+    const parentProp = getParentPropForDb(dbPage);
+    const parentIds = parentProp && Array.isArray(rowPage.propertyValues?.[parentProp.id]) ? rowPage.propertyValues[parentProp.id] : [];
+    const subtasks = getSubtasksForRow(rowPage, dbPage);
+    const doneCount = subtasks.filter((st: any) => isRowComplete(st, dbPage)).length;
+    const keyProp = db.schema.find(s => s.type === 'unique_id');
+    const statusProp = db.schema.find(s => s.type === 'status') || db.schema.find(s => s.type === 'select' && /phase|status/i.test(s.name || ''));
+    const respProp = db.schema.find(s => s.type === 'person' && /responsible|assignee|owner/i.test(s.name || '')) || db.schema.find(s => s.type === 'person');
+    const users = getState()?.users || [];
+
+    const sec = document.createElement('section');
+    sec.className = 'db-peek-subtasks';
+
+    if (parentIds.length) {
+      const parentBar = document.createElement('div');
+      parentBar.className = 'db-peek-parent-bar';
+      parentIds.forEach((pid: string) => {
+        const parentRow = getPageById(pid);
+        if (!parentRow) return;
+        const pBtn = document.createElement('button');
+        pBtn.type = 'button';
+        pBtn.className = 'db-peek-parent-link';
+        const pKey = keyProp ? String(parentRow.propertyValues?.[keyProp.id] || '') : '';
+        pBtn.innerHTML = `<span>↑ Parent quest:</span>${pKey ? `<code class="db-issue-key-chip">${escHtml(pKey)}</code>` : ''}<strong>${escHtml(parentRow.title || 'Untitled')}</strong>`;
+        pBtn.onclick = () => openDatabaseRow(parentRow, dbPage);
+        parentBar.append(pBtn);
+      });
+      if (parentBar.children.length) sec.append(parentBar);
+    }
+
+    const head = document.createElement('div');
+    head.className = 'db-peek-subtasks-head';
+    const pct = subtasks.length ? Math.round((doneCount / subtasks.length) * 100) : 0;
+    head.innerHTML = `<div class="db-peek-subtasks-title"><span>↳ Subtasks</span><strong>${doneCount}/${subtasks.length}</strong>${subtasks.length ? `<div class="db-subtask-bar"><span style="width:${pct}%"></span></div><small>${pct}%</small>` : '<small>Break this quest down into Jira-ready sub-items</small>'}</div>`;
+    sec.append(head);
+
+    if (subtasks.length) {
+      const list = document.createElement('div');
+      list.className = 'db-peek-subtasks-list';
+      subtasks.forEach((st: any) => {
+        const item = document.createElement('div');
+        const stDone = isRowComplete(st, dbPage);
+        item.className = `db-peek-subtask-row${stDone ? ' is-done' : ''}`;
+
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.className = 'db-peek-subtask-chk';
+        chk.checked = stDone;
+        chk.disabled = ro;
+        chk.title = stDone ? 'Mark subtask incomplete' : 'Mark subtask done';
+        chk.onchange = () => {
+          toggleRowComplete(st, dbPage, chk.checked);
+          rerenderPeek();
+        };
+
+        const stKey = keyProp ? String(st.propertyValues?.[keyProp.id] || '') : '';
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'db-peek-subtask-open';
+        openBtn.innerHTML = `${stKey ? `<code class="db-issue-key-chip">${escHtml(stKey)}</code>` : ''}<span>${escHtml(st.title || 'Untitled subtask')}</span>`;
+        openBtn.onclick = () => openDatabaseRow(st, dbPage);
+
+        const meta = document.createElement('div');
+        meta.className = 'db-peek-subtask-meta';
+        if (statusProp) {
+          const opt = resolveOption(statusProp, getRawValue(statusProp, st, dbPage));
+          if (opt) meta.append(createPillEl(opt.name, opt.color, statusProp.type === 'status', opt.statusGroup));
+        }
+        if (respProp) {
+          const rawUsers = getRawValue(respProp, st, dbPage);
+          const arr = Array.isArray(rawUsers) ? rawUsers : (rawUsers ? [rawUsers] : []);
+          arr.slice(0, 2).forEach((uidVal: string) => meta.append(buildDbUserChip(uidVal, users)));
+        }
+        if (!ro) {
+          const del = document.createElement('button');
+          del.type = 'button';
+          del.className = 'db-mini-btn';
+          del.title = 'Delete subtask';
+          del.textContent = '×';
+          del.onclick = () => {
+            deleteDatabaseRow(st.id);
+            persist(false);
+            refreshAllDatabaseViews();
+            rerenderPeek();
+          };
+          meta.append(del);
+        }
+
+        item.append(chk, openBtn, meta);
+        list.append(item);
+      });
+      sec.append(list);
+    }
+
+    if (!ro) {
+      const addForm = document.createElement('form');
+      addForm.className = 'db-peek-subtask-add';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'db-peek-subtask-input';
+      inp.placeholder = '＋ Add subtask… (inherits Project & Department)';
+      const btn = document.createElement('button');
+      btn.type = 'submit';
+      btn.className = 'db-toolbar-btn';
+      btn.textContent = 'Add subtask';
+      addForm.onsubmit = ev => {
+        ev.preventDefault();
+        const val = inp.value.trim();
+        if (!val) return;
+        createSubtaskForRow(rowPage, dbPage, val);
+        rerenderPeek();
+      };
+      addForm.append(inp, btn);
+      sec.append(addForm);
+    }
+    return sec;
   }
 
   function renderRowDatabaseProperties(rowPage: any, dbPage: any, opts: { inPeek?: boolean } = {}) {
@@ -5537,6 +6473,15 @@ const ArchitectDatabase = (() => {
       });
       if (propsWrap.children.length) card.append(propsWrap);
     }
+    const subtasks = getSubtasksForRow(rowPage, dbPage);
+    if (subtasks.length) {
+      const doneCount = subtasks.filter((st: any) => isRowComplete(st, dbPage)).length;
+      const pct = Math.round((doneCount / subtasks.length) * 100);
+      const subBadge = document.createElement('div');
+      subBadge.className = `db-card-subtasks-pill${doneCount === subtasks.length ? ' is-all-done' : ''}`;
+      subBadge.innerHTML = `<span>↳ ${doneCount}/${subtasks.length} subtasks</span><span class="db-card-subtasks-track"><span style="width:${pct}%"></span></span>`;
+      card.append(subBadge);
+    }
     return card;
   }
 
@@ -6112,16 +7057,2535 @@ const ArchitectDatabase = (() => {
     canvas.append(feed);
   }
 
+  const FORM_EXCLUDED_PROP_TYPES = new Set([
+    'created_time', 'created_by', 'last_edited_time', 'last_edited_by',
+    'formula', 'rollup', 'unique_id', 'button', 'person', 'checkbox'
+  ]);
+
+  const FORM_QUESTION_TYPES: Array<{ type: DbPropertyType; label: string; icon: string }> = [
+    { type: 'text', label: 'Short / Long text', icon: '¶' },
+    { type: 'number', label: 'Number', icon: '#' },
+    { type: 'select', label: 'Select', icon: '▾' },
+    { type: 'date', label: 'Date', icon: '📅' },
+    { type: 'email', label: 'Email', icon: '@' },
+    { type: 'phone', label: 'Phone', icon: '☎' },
+    { type: 'url', label: 'URL', icon: '🔗' },
+    { type: 'files', label: 'Upload', icon: '📎' },
+    { type: 'relation', label: 'Relation', icon: '↗' }
+  ];
+
+  const PHONE_DIAL_COUNTRIES: Array<{ code: string; iso: string; name: string; flag: string }> = [
+    { code: '+1', iso: 'US/CA', name: 'United States / Canada', flag: '🇺🇸' },
+    { code: '+44', iso: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+    { code: '+49', iso: 'DE', name: 'Germany', flag: '🇩🇪' },
+    { code: '+43', iso: 'AT', name: 'Austria', flag: '🇦🇹' },
+    { code: '+41', iso: 'CH', name: 'Switzerland', flag: '🇨🇭' },
+    { code: '+33', iso: 'FR', name: 'France', flag: '🇫🇷' },
+    { code: '+34', iso: 'ES', name: 'Spain', flag: '🇪🇸' },
+    { code: '+39', iso: 'IT', name: 'Italy', flag: '🇮🇹' },
+    { code: '+31', iso: 'NL', name: 'Netherlands', flag: '🇳🇱' },
+    { code: '+32', iso: 'BE', name: 'Belgium', flag: '🇧🇪' },
+    { code: '+45', iso: 'DK', name: 'Denmark', flag: '🇩🇰' },
+    { code: '+46', iso: 'SE', name: 'Sweden', flag: '🇸🇪' },
+    { code: '+47', iso: 'NO', name: 'Norway', flag: '🇳🇴' },
+    { code: '+358', iso: 'FI', name: 'Finland', flag: '🇫🇮' },
+    { code: '+48', iso: 'PL', name: 'Poland', flag: '🇵🇱' },
+    { code: '+351', iso: 'PT', name: 'Portugal', flag: '🇵🇹' },
+    { code: '+353', iso: 'IE', name: 'Ireland', flag: '🇮🇪' },
+    { code: '+420', iso: 'CZ', name: 'Czechia', flag: '🇨🇿' },
+    { code: '+61', iso: 'AU', name: 'Australia', flag: '🇦🇺' },
+    { code: '+64', iso: 'NZ', name: 'New Zealand', flag: '🇳🇿' },
+    { code: '+81', iso: 'JP', name: 'Japan', flag: '🇯🇵' },
+    { code: '+82', iso: 'KR', name: 'South Korea', flag: '🇰🇷' },
+    { code: '+65', iso: 'SG', name: 'Singapore', flag: '🇸🇬' },
+    { code: '+91', iso: 'IN', name: 'India', flag: '🇮🇳' },
+    { code: '+55', iso: 'BR', name: 'Brazil', flag: '🇧🇷' },
+    { code: '+52', iso: 'MX', name: 'Mexico', flag: '🇲🇽' },
+    { code: '+86', iso: 'CN', name: 'China', flag: '🇨🇳' },
+    { code: '+971', iso: 'AE', name: 'UAE', flag: '🇦🇪' }
+  ];
+
+  const PHONE_DIAL_BY_LENGTH = [...PHONE_DIAL_COUNTRIES].sort((a, b) => b.code.length - a.code.length);
+  const PHONE_BY_ISO = new Map<string, { code: string; iso: string; name: string; flag: string }>();
+  PHONE_DIAL_COUNTRIES.forEach(c => {
+    if (c.iso === 'US/CA') {
+      PHONE_BY_ISO.set('US', c);
+      PHONE_BY_ISO.set('CA', c);
+    } else {
+      PHONE_BY_ISO.set(c.iso.toUpperCase(), c);
+    }
+  });
+  PHONE_BY_ISO.set('UK', PHONE_BY_ISO.get('GB')!);
+
+  function detectPhoneCountry(raw: string): { viable: boolean; hasPrefix: boolean; recognized: boolean; code: string; iso: string; name: string; flag: string; subscriberDigits: number } | null {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return null;
+
+    // 1. Supported ISO prefixes: "DE 0151...", "DE-0151...", "(DE) 0151..."
+    const isoMatch = /^(?:\(([A-Za-z]{2})\)\s*|([A-Za-z]{2})(?:[\s-]+))(.+)$/.exec(trimmed);
+    if (isoMatch) {
+      const isoKey = (isoMatch[1] || isoMatch[2] || '').toUpperCase();
+      const restDigits = (isoMatch[3] || '').replace(/\D/g, '').length;
+      const found = PHONE_BY_ISO.get(isoKey);
+      if (found) {
+        return {
+          viable: restDigits >= 4,
+          hasPrefix: true,
+          recognized: true,
+          ...found,
+          subscriberDigits: restDigits
+        };
+      }
+      return { viable: false, hasPrefix: false, recognized: false, code: '', iso: isoKey, name: '', flag: '', subscriberDigits: restDigits };
+    }
+
+    // 2. Supported numeric dial prefixes: "+49 0151...", "(+49) 0151...", "0049 0151..."
+    let plusNormalized = '';
+    if (trimmed.startsWith('+')) {
+      plusNormalized = trimmed;
+    } else if (/^\(\+\d{1,4}\)/.test(trimmed)) {
+      plusNormalized = trimmed.replace(/^\((\+\d{1,4})\)/, '$1');
+    } else if (/^00\d{1,4}[\s-]/.test(trimmed)) {
+      plusNormalized = '+' + trimmed.slice(2);
+    }
+
+    if (!plusNormalized) {
+      return { viable: false, hasPrefix: false, recognized: false, code: '', iso: '', name: '', flag: '', subscriberDigits: trimmed.replace(/\D/g, '').length };
+    }
+
+    const compact = '+' + plusNormalized.slice(1).replace(/[\s().-]+/g, '');
+    const exact = PHONE_DIAL_BY_LENGTH.find(c => compact.startsWith(c.code));
+    if (exact) {
+      const restDigits = Math.max(0, compact.length - exact.code.length);
+      return {
+        viable: restDigits >= 4,
+        hasPrefix: true,
+        recognized: true,
+        ...exact,
+        subscriberDigits: restDigits
+      };
+    }
+    const m = /^(\+\d{1,3})(\d*)$/.exec(compact);
+    if (m) {
+      const restDigits = m[2].length;
+      return {
+        viable: restDigits >= 5,
+        hasPrefix: true,
+        recognized: false,
+        code: m[1],
+        iso: 'INTL',
+        name: `International (${m[1]})`,
+        flag: '🌐',
+        subscriberDigits: restDigits
+      };
+    }
+    return { viable: false, hasPrefix: false, recognized: false, code: '', iso: '', name: '', flag: '', subscriberDigits: 0 };
+  }
+
+  function renderQuestionMarkdownHtml(raw: string): string {
+    const src = String(raw || '').trim();
+    if (!src) return '<span class="db-form-q-md-empty">Untitled question</span>';
+    const formatInline = (text: string): string => {
+      let s = escHtml(text);
+      s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+      s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      s = s.replace(/_([^_]+)_/g, '<em>$1</em>');
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      return s;
+    };
+    const hMatch = /^(#{1,3})\s+(.+)$/.exec(src);
+    if (hMatch) {
+      const lvl = hMatch[1].length;
+      return `<span class="db-form-q-md-h${lvl}">${formatInline(hMatch[2])}</span>`;
+    }
+    return formatInline(src);
+  }
+
+  function sanitizeFormRichHtml(raw: string): string {
+    const temp = document.createElement('div');
+    temp.innerHTML = String(raw || '');
+    const allowedTags = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'S', 'CODE', 'BR', 'SPAN']);
+    const walk = (node: Node) => {
+      Array.from(node.childNodes).forEach(child => {
+        if (child.nodeType === Node.TEXT_NODE) return;
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          const el = child as HTMLElement;
+          if (!allowedTags.has(el.tagName)) {
+            const frag = document.createDocumentFragment();
+            while (el.firstChild) frag.append(el.firstChild);
+            node.replaceChild(frag, el);
+            walk(node);
+            return;
+          }
+          Array.from(el.attributes).forEach(attr => el.removeAttribute(attr.name));
+          walk(el);
+        } else {
+          child.remove();
+        }
+      });
+    };
+    walk(temp);
+    return temp.innerHTML;
+  }
+
+  function stripFormHtml(html?: string): string {
+    if (!html) return '';
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return (d.textContent || '').replace(/\u00a0/g, ' ').trim();
+  }
+
+  const activeFormControllers = new Map<string, { addQuestion: (t: DbPropertyType, afterBlockId?: string) => void; addTextBlock: (kind: DbFormBlockKind, afterBlockId?: string) => void }>();
+
+  function readFormAssetsByKind(kind: 'image' | 'audio'): any[] {
+    const backend = typeof ArchitectBackend !== 'undefined' ? ArchitectBackend : (window as any).ArchitectBackend;
+    const catalog: any[] = backend?.readAssetCatalog?.() || [];
+    if (kind === 'image') {
+      return catalog.filter(a => a && (a.fileType?.startsWith('image/') || a.category === 'image' || a.category === 'concept' || a.category === 'illustration'));
+    }
+    return catalog.filter(a => a && (a.fileType?.startsWith('audio/') || a.category === 'music' || a.category === 'sfx'));
+  }
+
+  async function resolveFormAssetUrl(asset: any): Promise<string> {
+    if (!asset) return '';
+    try {
+      const backend = typeof ArchitectBackend !== 'undefined' ? ArchitectBackend : (window as any).ArchitectBackend;
+      const fn = backend?.resolveAssetOriginalUrl;
+      if (typeof fn === 'function') {
+        const resolved = await fn(asset);
+        if (resolved) return resolved;
+      }
+    } catch {}
+    return asset.url || asset.previewDataUrl || '';
+  }
+
+  function getDefaultFormButtonConfig(kind: DbFormButtonKind = 'submit', cfg?: DbFormConfig): DbFormButtonConfig {
+    if (kind === 'download') {
+      return {
+        kind: 'download',
+        label: 'Download response',
+        bgColor: '#f3f4f6',
+        textColor: '#1f2328',
+        borderColor: '#d0d7de',
+        radius: 8,
+        align: 'left',
+        fontFamily: 'inherit',
+        icon: '↓'
+      };
+    }
+    if (kind === 'send_email') {
+      return {
+        kind: 'send_email',
+        label: 'Send response to my mail',
+        bgColor: '#eff6ff',
+        textColor: '#1d4ed8',
+        borderColor: '#bfdbfe',
+        radius: 8,
+        align: 'left',
+        fontFamily: 'inherit',
+        icon: '✉'
+      };
+    }
+    if (kind === 'custom') {
+      return {
+        kind: 'custom',
+        label: 'Custom Action',
+        bgColor: '#37352f',
+        textColor: '#ffffff',
+        borderColor: '#37352f',
+        radius: 8,
+        align: 'left',
+        fontFamily: 'inherit',
+        icon: '✦',
+        customUrl: '',
+        actionNote: 'Custom button action triggered'
+      };
+    }
+    return {
+      kind: 'submit',
+      label: cfg?.submitLabel || 'Submit',
+      bgColor: '#2383e2',
+      textColor: '#ffffff',
+      borderColor: '#2383e2',
+      radius: 8,
+      align: 'left',
+      fontFamily: 'inherit',
+      icon: '✓'
+    };
+  }
+
+  function ensureFormConfig(dbPage: any): { db: DatabaseConfig; formView: DbView; cfg: DbFormConfig } {
+    const db = ensureDatabaseConfig(dbPage);
+    if (db.formUploadsToAssets === undefined) db.formUploadsToAssets = true;
+    if (!db.formUploadsFolder) db.formUploadsFolder = 'form-uploads';
+    let formView = db.views.find(v => v.type === 'form');
+    if (!formView) {
+      formView = buildDefaultView(db.schema, 'form', 'Form');
+      db.views.unshift(formView);
+    }
+    formView.formConfig = formView.formConfig || {};
+    const cfg = formView.formConfig;
+    cfg.requiredPropertyIds = Array.isArray(cfg.requiredPropertyIds) ? cfg.requiredPropertyIds : [];
+    cfg.hiddenPropertyIds = Array.isArray(cfg.hiddenPropertyIds) ? cfg.hiddenPropertyIds : [];
+    cfg.allowSubmitAnotherResponse = cfg.allowSubmitAnotherResponse !== false;
+    if (cfg.allowSendToEmail === undefined) {
+      cfg.allowSendToEmail = cfg.allowViewResponse !== undefined ? Boolean(cfg.allowViewResponse) : true;
+    }
+    cfg.containerStyle = cfg.containerStyle === 'loose' ? 'loose' : 'outlined';
+    cfg.backgroundMode = cfg.backgroundMode || 'default';
+    cfg.backgroundColorEnabled = true;
+    cfg.backgroundColor = cfg.backgroundColor || '#f4f6fb';
+    if (cfg.backgroundImageOpacity === undefined || !Number.isFinite(Number(cfg.backgroundImageOpacity))) {
+      cfg.backgroundImageOpacity = 1;
+    }
+    if (!cfg.questionCardBgColor) cfg.questionCardBgColor = '#ffffff';
+    if (cfg.questionCardBgOpacity === undefined || !Number.isFinite(Number(cfg.questionCardBgOpacity))) {
+      cfg.questionCardBgOpacity = 1;
+    }
+    if (!cfg.questionCardOutlineColor) cfg.questionCardOutlineColor = 'default';
+    if (!cfg.musicReleaseStatus) cfg.musicReleaseStatus = 'unreleased';
+    if (!Array.isArray(cfg.musicTracks)) {
+      cfg.musicTracks = (cfg.musicAssetId || cfg.musicUrl || cfg.musicName)
+        ? [{
+            assetId: cfg.musicAssetId || '',
+            name: cfg.musicName || 'Track 1',
+            url: cfg.musicUrl || '',
+            releaseStatus: cfg.musicReleaseStatus || 'unreleased',
+            spotifyUrl: cfg.musicSpotifyUrl || ''
+          }]
+        : [];
+    }
+    cfg.submissionPermissions = cfg.submissionPermissions || 'workspace';
+
+    const eligibleProps = db.schema.filter(s => !FORM_EXCLUDED_PROP_TYPES.has(s.type));
+    const propById = new Map(db.schema.map(s => [s.id, s]));
+    const eligibleIds = new Set(eligibleProps.map(s => s.id));
+    if (!Array.isArray(cfg.questions)) cfg.questions = [];
+    cfg.questions = cfg.questions.filter(q => eligibleIds.has(q.propertyId) && !cfg.hiddenPropertyIds!.includes(q.propertyId));
+    const coveredPropIds = new Set(cfg.questions.map(q => q.propertyId));
+    eligibleProps.forEach(prop => {
+      if (coveredPropIds.has(prop.id)) return;
+      if (cfg.hiddenPropertyIds!.includes(prop.id) && prop.type !== 'title') return;
+      cfg.questions!.push({
+        id: uid(),
+        propertyId: prop.id,
+        label: prop.name,
+        required: prop.type === 'title' || cfg.requiredPropertyIds!.includes(prop.id),
+        displayMode: (prop.type === 'multi_select' || prop.type === 'select') ? 'list' : undefined,
+        maxSelections: prop.type === 'select' ? 1 : undefined,
+        maxSizeMb: prop.type === 'files' ? 10 : undefined
+      });
+    });
+
+    cfg.questions.forEach(q => {
+      const prop = propById.get(q.propertyId);
+      if (prop?.type === 'title') q.required = true;
+      else if (q.required === undefined && cfg.requiredPropertyIds!.includes(q.propertyId)) q.required = true;
+      if (q.limitOne && q.maxSelections === undefined) q.maxSelections = 1;
+      if (prop?.type === 'files' && !(Number(q.maxSizeMb) > 0)) q.maxSizeMb = 10;
+    });
+    cfg.requiredPropertyIds = Array.from(new Set(cfg.questions.filter(q => q.required).map(q => q.propertyId)));
+    return { db, formView, cfg };
+  }
+
+  function syncFormQuestionOrderFromBlocks(dbPage: any, formStateOverride?: { cfg: DbFormConfig }): boolean {
+    if (!dbPage || !Array.isArray(dbPage.blocks)) return false;
+    const { cfg } = formStateOverride || ensureFormConfig(dbPage);
+    const byQId = new Map(cfg.questions!.map(q => [q.id, q]));
+    const ordered: DbFormQuestion[] = [];
+    const seen = new Set<string>();
+    const visit = (blocks: any[]) => {
+      blocks.forEach((b: any) => {
+        if (!b) return;
+        if (b.type === 'form_question' && b.questionId && byQId.has(b.questionId) && !seen.has(b.questionId)) {
+          ordered.push(byQId.get(b.questionId)!);
+          seen.add(b.questionId);
+        }
+        if (b.type === 'columns' && Array.isArray(b.columns)) {
+          b.columns.forEach((col: any[]) => { if (Array.isArray(col)) visit(col); });
+        }
+        if (Array.isArray(b.children)) visit(b.children);
+      });
+    };
+    visit(dbPage.blocks);
+    cfg.questions!.forEach(q => { if (!seen.has(q.id)) ordered.push(q); });
+    const orderChanged = ordered.length !== cfg.questions!.length || ordered.some((q, idx) => q.id !== cfg.questions![idx]?.id);
+    if (orderChanged) cfg.questions = ordered;
+    cfg.requiredPropertyIds = Array.from(new Set(cfg.questions!.filter(q => q.required).map(q => q.propertyId)));
+    return orderChanged;
+  }
+
+  function removePropertyFromDatabase(dbPage: any, propId: string) {
+    const db = ensureDatabaseConfig(dbPage);
+    db.schema = db.schema.filter(s => s.id !== propId);
+    db.views.forEach(v => {
+      v.visiblePropertyIds = v.visiblePropertyIds.filter(id => id !== propId);
+      v.propertyOrder = v.propertyOrder.filter(id => id !== propId);
+      v.filters = v.filters.filter(f => f.propertyId !== propId);
+      v.sorts = v.sorts.filter(s => s.propertyId !== propId);
+      if (v.groupBy === propId) v.groupBy = undefined;
+    });
+    if (isFormPage(dbPage)) {
+      syncFormDocBlocks(dbPage);
+    }
+  }
+
+  function syncFormDocBlocks(dbPage: any, formStateOverride?: { db: DatabaseConfig; cfg: DbFormConfig }): boolean {
+    if (!dbPage) return false;
+    const { db, cfg } = formStateOverride || ensureFormConfig(dbPage);
+    let changed = false;
+    if (!Array.isArray(dbPage.blocks)) {
+      dbPage.blocks = [];
+      changed = true;
+    }
+    const schemaIds = new Set(db.schema.filter(s => !FORM_EXCLUDED_PROP_TYPES.has(s.type)).map(s => s.id));
+    const hiddenSet = new Set(cfg.hiddenPropertyIds || []);
+    const validQIds = new Set(
+      cfg.questions!
+        .filter(q => schemaIds.has(q.propertyId) && !hiddenSet.has(q.propertyId))
+        .map(q => q.id)
+    );
+    const seenQIds = new Set<string>();
+    const hasBlockQ = (blocks: any[]): boolean => blocks.some(b => {
+      if (!b) return false;
+      if (b.type === 'form_question' && b.questionId && validQIds.has(b.questionId)) return true;
+      if (b.type === 'columns' && Array.isArray(b.columns)) return b.columns.some((c: any[]) => Array.isArray(c) && hasBlockQ(c));
+      return Array.isArray(b.children) && hasBlockQ(b.children);
+    });
+
+    // Migrate legacy cfg.blocks into Doc blocks only if Doc blocks don't contain form_question yet
+    if (!hasBlockQ(dbPage.blocks) && Array.isArray(cfg.blocks) && cfg.blocks.length) {
+      changed = true;
+      const migrated: any[] = [];
+      cfg.blocks.forEach(lb => {
+        if (!lb) return;
+        if (lb.kind === 'question' && lb.questionId && validQIds.has(lb.questionId) && !seenQIds.has(lb.questionId)) {
+          const q = cfg.questions!.find(x => x.id === lb.questionId)!;
+          migrated.push({ id: uid(), type: 'form_question', questionId: q.id, propertyId: q.propertyId });
+          seenQIds.add(q.id);
+        } else if (lb.kind !== 'question') {
+          const plain = stripFormHtml(lb.html);
+          if (lb.kind === 'divider') migrated.push({ id: uid(), type: 'divider', text: '' });
+          else if (plain) migrated.push({ id: uid(), type: lb.kind === 'bullet' ? 'bullet' : lb.kind, text: plain });
+        }
+      });
+      const stripAllInvalidQuestions = (blocks: any[]): any[] => blocks.filter(b => {
+        if (!b || b.type === 'form_question') return false;
+        if (b.type === 'columns' && Array.isArray(b.columns)) {
+          b.columns = b.columns.map((c: any[]) => Array.isArray(c) ? stripAllInvalidQuestions(c) : []);
+        }
+        if (Array.isArray(b.children)) b.children = stripAllInvalidQuestions(b.children);
+        return true;
+      });
+      const existingNonEmpty = stripAllInvalidQuestions(dbPage.blocks).filter((b: any) => b.type !== 'text' || String(b.text || '').trim());
+      dbPage.blocks = [...existingNonEmpty, ...migrated];
+    } else {
+      const filterInvalidQuestions = (blocks: any[]): any[] => {
+        let arrChanged = false;
+        const next: any[] = [];
+        for (const b of blocks) {
+          if (!b) { arrChanged = true; continue; }
+          if (b.type === 'form_question') {
+            if (!b.questionId || !validQIds.has(b.questionId) || seenQIds.has(b.questionId)) {
+              arrChanged = true;
+              continue;
+            }
+            seenQIds.add(b.questionId);
+          }
+          if (b.type === 'columns' && Array.isArray(b.columns)) {
+            b.columns = b.columns.map((c: any[]) => Array.isArray(c) ? filterInvalidQuestions(c) : []);
+          }
+          if (Array.isArray(b.children)) b.children = filterInvalidQuestions(b.children);
+          next.push(b);
+        }
+        if (arrChanged) changed = true;
+        return arrChanged ? next : blocks;
+      };
+      dbPage.blocks = filterInvalidQuestions(dbPage.blocks);
+    }
+
+    const insertMissingBeforeButton = (nb: any) => {
+      const submitIdx = dbPage.blocks.findIndex((b: any) => b?.type === 'form_button');
+      if (submitIdx >= 0) dbPage.blocks.splice(submitIdx, 0, nb);
+      else dbPage.blocks.push(nb);
+    };
+
+    cfg.questions!.forEach(q => {
+      if (!seenQIds.has(q.id)) {
+        changed = true;
+        insertMissingBeforeButton({ id: uid(), type: 'form_question', questionId: q.id, propertyId: q.propertyId });
+        seenQIds.add(q.id);
+      }
+    });
+
+    if (isFormPage(dbPage) && !dbPage.blocks.some((b: any) => b?.type === 'form_button')) {
+      changed = true;
+      dbPage.blocks.push({
+        id: uid(),
+        type: 'form_button',
+        text: '',
+        formButtonConfig: getDefaultFormButtonConfig('submit', cfg)
+      });
+    }
+    if (syncFormQuestionOrderFromBlocks(dbPage, { cfg })) changed = true;
+    return changed;
+  }
+
+  function addFormQuestionBlock(dbPage: any, type: DbPropertyType = 'text', insertAfterBlockIdOrIndex?: string | number | null) {
+    if (!dbPage) return null;
+    if (type === 'person' || type === 'checkbox' || type === 'select') type = 'multi_select';
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const nextNum = cfg.questions!.length + 1;
+    const baseLabel = type === 'files' ? `Upload file ${nextNum}` : `Question ${nextNum}`;
+    const newProp: DbSchemaProperty = {
+      id: uid(),
+      name: baseLabel,
+      type,
+      width: 170
+    };
+    if (type === 'select' || type === 'multi_select') {
+      newProp.options = [
+        { id: uid(), name: 'Option 1', color: 'blue' },
+        { id: uid(), name: 'Option 2', color: 'yellow' }
+      ];
+    }
+    db.schema.push(newProp);
+    db.views.forEach(v => {
+      if (!v.propertyOrder.includes(newProp.id)) v.propertyOrder.push(newProp.id);
+      if (!v.visiblePropertyIds.includes(newProp.id)) v.visiblePropertyIds.push(newProp.id);
+    });
+    const newQ: DbFormQuestion = {
+      id: uid(),
+      propertyId: newProp.id,
+      label: baseLabel,
+      required: false,
+      displayMode: type === 'multi_select' ? 'list' : undefined,
+      maxSizeMb: type === 'files' ? 10 : undefined
+    };
+    cfg.questions!.push(newQ);
+    const newBlock = {
+      id: uid(),
+      type: 'form_question',
+      questionId: newQ.id,
+      propertyId: newProp.id
+    };
+    if (!Array.isArray(dbPage.blocks)) dbPage.blocks = [];
+    if (typeof insertAfterBlockIdOrIndex === 'number' && insertAfterBlockIdOrIndex >= 0 && insertAfterBlockIdOrIndex <= dbPage.blocks.length) {
+      dbPage.blocks.splice(insertAfterBlockIdOrIndex, 0, newBlock);
+    } else if (typeof insertAfterBlockIdOrIndex === 'string' && insertAfterBlockIdOrIndex) {
+      const idx = dbPage.blocks.findIndex((b: any) => b?.id === insertAfterBlockIdOrIndex);
+      if (idx >= 0) dbPage.blocks.splice(idx + 1, 0, newBlock);
+      else {
+        const submitIdx = dbPage.blocks.findIndex((b: any) => b?.type === 'form_button');
+        if (submitIdx >= 0) dbPage.blocks.splice(submitIdx, 0, newBlock);
+        else dbPage.blocks.push(newBlock);
+      }
+    } else {
+      const submitIdx = dbPage.blocks.findIndex((b: any) => b?.type === 'form_button');
+      if (submitIdx >= 0) dbPage.blocks.splice(submitIdx, 0, newBlock);
+      else dbPage.blocks.push(newBlock);
+    }
+    syncFormDocBlocks(dbPage, { db, cfg });
+    return { prop: newProp, question: newQ, block: newBlock };
+  }
+
+  function deleteFormQuestionBlock(dbPage: any, questionId?: string, blockId?: string) {
+    if (!dbPage) return;
+    const { cfg } = ensureFormConfig(dbPage);
+    const targetQ = questionId ? cfg.questions!.find(x => x.id === questionId) : null;
+    if (targetQ && questionId) {
+      cfg.questions = cfg.questions!.filter(x => x.id !== questionId);
+      cfg.questions.forEach(other => {
+        if (other.condition?.parentQuestionId === questionId) other.condition = null;
+      });
+      cfg.hiddenPropertyIds = [...new Set([...(cfg.hiddenPropertyIds || []), targetQ.propertyId])];
+      cfg.blocks = (cfg.blocks || []).filter(x => x.questionId !== questionId);
+    }
+    const stripBlocks = (blocks: any[]): any[] => blocks.filter(b => {
+      if (!b) return false;
+      if (b.type === 'form_question') {
+        if ((blockId && b.id === blockId) || (questionId && b.questionId === questionId)) return false;
+      }
+      if (b.type === 'columns' && Array.isArray(b.columns)) {
+        b.columns = b.columns.map((c: any[]) => Array.isArray(c) ? stripBlocks(c) : []);
+      }
+      if (Array.isArray(b.children)) b.children = stripBlocks(b.children);
+      return true;
+    });
+    if (Array.isArray(dbPage.blocks)) {
+      dbPage.blocks = stripBlocks(dbPage.blocks);
+    }
+    cfg.requiredPropertyIds = Array.from(new Set(cfg.questions!.filter(q => q.required).map(q => q.propertyId)));
+  }
+
+  function duplicateFormQuestionBlock(dbPage: any, questionIdOrBlockId: string) {
+    if (!dbPage) return null;
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const srcQ = cfg.questions!.find(x => x.id === questionIdOrBlockId)
+      || (() => {
+        const blk = (dbPage.blocks || []).find((b: any) => b?.id === questionIdOrBlockId);
+        return blk ? cfg.questions!.find(x => x.id === blk.questionId) : null;
+      })();
+    if (!srcQ) return null;
+    const prop = db.schema.find(s => s.id === srcQ.propertyId);
+    if (!prop || prop.type === 'title') return null;
+
+    const dupProp: DbSchemaProperty = structuredCloneSafe(prop);
+    dupProp.id = uid();
+    dupProp.name = `${prop.name} (copy)`;
+    db.schema.push(dupProp);
+    db.views.forEach(v => {
+      if (!v.propertyOrder.includes(dupProp.id)) v.propertyOrder.push(dupProp.id);
+      if (!v.visiblePropertyIds.includes(dupProp.id)) v.visiblePropertyIds.push(dupProp.id);
+    });
+    const dupQ: DbFormQuestion = {
+      ...structuredCloneSafe(srcQ),
+      id: uid(),
+      propertyId: dupProp.id,
+      label: `${srcQ.label || prop.name} (copy)`,
+      condition: null
+    };
+    const qIdx = cfg.questions!.findIndex(x => x.id === srcQ.id);
+    cfg.questions!.splice(qIdx + 1, 0, dupQ);
+    const dupBlock = { id: uid(), type: 'form_question', questionId: dupQ.id, propertyId: dupProp.id };
+    if (Array.isArray(dbPage.blocks)) {
+      const bIdx = dbPage.blocks.findIndex((b: any) => b?.type === 'form_question' && b.questionId === srcQ.id);
+      if (bIdx >= 0) dbPage.blocks.splice(bIdx + 1, 0, dupBlock);
+      else dbPage.blocks.push(dupBlock);
+    }
+    syncFormDocBlocks(dbPage);
+    return { prop: dupProp, question: dupQ, block: dupBlock };
+  }
+
+  function evaluateFormCondition(_dbPage: any, _q: DbFormQuestion, _draftRow: any): boolean {
+    // Conditional logic UI is temporarily disabled (tracked in TODO.md)
+    return true;
+  }
+
+  function describeFormCondition(dbPage: any, cond: DbFormQuestionCondition | null | undefined): string {
+    if (!cond?.parentQuestionId) return '';
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const pQ = cfg.questions!.find(x => x.id === cond.parentQuestionId);
+    const pProp = pQ ? db.schema.find(s => s.id === pQ.propertyId) : null;
+    if (!pQ || !pProp) return 'Conditional rule';
+    const pTitle = pQ.label || pProp.name || 'Question';
+    if (pProp.type === 'checkbox') {
+      const wantChecked = cond.operator ? cond.operator === 'is_checked' : (cond.values || []).includes('true');
+      return `When “${pTitle}” is ${wantChecked ? 'checked' : 'unchecked'}`;
+    }
+    const names = (cond.values || [])
+      .map(oid => pProp.options?.find(o => o.id === oid)?.name || oid)
+      .filter(Boolean);
+    return `When “${pTitle}” is ${names.length ? names.join(', ') : '(select option)'}`;
+  }
+
+  function openFormConditionPopover(anchor: HTMLElement, dbPage: any, q: DbFormQuestion, onDone: () => void) {
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const idx = cfg.questions!.findIndex(x => x.id === q.id);
+    const eligibleParents = cfg.questions!.slice(0, idx).filter(pq => {
+      const p = db.schema.find(s => s.id === pq.propertyId);
+      return p && ['select', 'multi_select', 'status'].includes(p.type);
+    });
+    openDbPopover(anchor, (pop, close) => {
+      pop.classList.add('db-form-logic-popover');
+      const head = document.createElement('div');
+      head.className = 'db-pop-header';
+      head.innerHTML = '<strong>Conditional logic</strong>';
+      pop.append(head);
+      if (!eligibleParents.length) {
+        const empty = document.createElement('div');
+        empty.className = 'db-pop-hint';
+        empty.textContent = 'Add a Select or Multi-select question above this question to branch on its answer.';
+        pop.append(empty);
+        return;
+      }
+      const curParentId = q.condition?.parentQuestionId || eligibleParents[0].id;
+      const pSel = document.createElement('select');
+      pSel.className = 'db-pop-select';
+      eligibleParents.forEach(pq => {
+        const pp = db.schema.find(s => s.id === pq.propertyId);
+        const opt = document.createElement('option');
+        opt.value = pq.id;
+        opt.textContent = `Show if: ${pq.label || pp?.name || 'Question'}`;
+        pSel.append(opt);
+      });
+      pSel.value = eligibleParents.some(pq => pq.id === curParentId) ? curParentId : eligibleParents[0].id;
+
+      const valuesWrap = document.createElement('div');
+      valuesWrap.className = 'db-form-logic-values';
+
+      const drawConditionValues = () => {
+        valuesWrap.replaceChildren();
+        const pq = eligibleParents.find(x => x.id === pSel.value);
+        const pp = pq ? db.schema.find(s => s.id === pq.propertyId) : null;
+        if (!pq || !pp) return;
+        if (!q.condition || q.condition.parentQuestionId !== pq.id) {
+          q.condition = {
+            parentQuestionId: pq.id,
+            operator: 'equals',
+            values: pp.options?.[0] ? [pp.options[0].id] : []
+          };
+        }
+        (pp.options || []).forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const active = (q.condition?.values || []).includes(opt.id);
+          btn.className = 'db-form-chip-toggle' + (active ? ' is-active' : '');
+          btn.textContent = `${active ? '✓ ' : ''}${opt.name}`;
+          btn.onclick = () => {
+            const cur = q.condition?.values || [];
+            const next = cur.includes(opt.id) ? cur.filter(x => x !== opt.id) : [...cur, opt.id];
+            q.condition = { parentQuestionId: pq.id, operator: pp.type === 'multi_select' ? 'contains_any' : 'equals', values: next };
+            persist(false);
+            drawConditionValues();
+          };
+          valuesWrap.append(btn);
+        });
+      };
+
+      pSel.onchange = () => {
+        q.condition = null;
+        drawConditionValues();
+        persist(false);
+      };
+      drawConditionValues();
+
+      const actions = document.createElement('div');
+      actions.className = 'db-form-logic-actions';
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'secondary-button';
+      clearBtn.textContent = 'Clear rule';
+      clearBtn.onclick = () => {
+        q.condition = null;
+        persist(false);
+        close();
+        onDone();
+      };
+      const applyBtn = document.createElement('button');
+      applyBtn.type = 'button';
+      applyBtn.className = 'primary-button';
+      applyBtn.textContent = 'Done';
+      applyBtn.onclick = () => {
+        persist(false);
+        close();
+        onDone();
+      };
+      actions.append(clearBtn, applyBtn);
+      pop.append(pSel, valuesWrap, actions);
+    }, 280);
+  }
+
+  function renderFormDesignPanel(panel: HTMLElement, dbPage: any, opts: { onUpdated: () => void; onClose: () => void }) {
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const onUpdated = opts.onUpdated;
+    const onClose = opts.onClose;
+    panel.replaceChildren();
+
+    const head = document.createElement('header');
+    head.className = 'form-design-sidebar-head';
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'form-design-sidebar-title';
+    titleWrap.innerHTML = '<strong>Design &amp; Settings</strong><span>Form appearance, Soul Atlas Radio &amp; publish</span>';
+    const closeTopBtn = document.createElement('button');
+    closeTopBtn.type = 'button';
+    closeTopBtn.className = 'icon-button form-design-close-btn';
+    closeTopBtn.dataset.formAction = 'close-settings';
+    closeTopBtn.setAttribute('aria-label', 'Close design settings');
+    closeTopBtn.title = 'Close Design & Settings';
+    closeTopBtn.textContent = '×';
+    closeTopBtn.onclick = () => onClose();
+    head.append(titleWrap, closeTopBtn);
+    panel.append(head);
+
+    const body = document.createElement('div');
+    body.className = 'form-design-sidebar-body';
+    panel.append(body);
+
+    const linkBox = document.createElement('div');
+    linkBox.className = 'db-form-share-row';
+    const linkInp = document.createElement('input');
+    linkInp.type = 'text';
+    linkInp.readOnly = true;
+    linkInp.className = 'db-pop-input';
+    linkInp.value = formShareUrl(dbPage.id);
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'primary-button';
+    copyBtn.dataset.formAction = 'copy-link';
+    copyBtn.textContent = 'Copy link';
+    copyBtn.onclick = () => {
+      try { navigator.clipboard?.writeText(linkInp.value); } catch {}
+      copyBtn.textContent = 'Copied!';
+      host?.toast?.('Form responder link copied to clipboard');
+      setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = 'Copy link'; }, 1200);
+    };
+    linkBox.append(linkInp, copyBtn);
+    body.append(linkBox);
+
+    const mkSectionTitle = (title: string) => {
+      const el = document.createElement('div');
+      el.className = 'db-form-settings-sec-title';
+      el.textContent = title;
+      body.append(el);
+    };
+
+    const settingCheckboxes = new Map<string, HTMLInputElement>();
+    const mkToggle = (label: string, checked: boolean, testKey: string, onChange: (v: boolean) => void) => {
+      const row = document.createElement('label');
+      row.className = 'db-form-setting-toggle';
+      const span = document.createElement('span');
+      span.textContent = label;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = checked;
+      cb.dataset.formSetting = testKey;
+      settingCheckboxes.set(testKey, cb);
+      cb.onchange = () => { onChange(cb.checked); persist(false); onUpdated(); };
+      row.append(span, cb);
+      body.append(row);
+    };
+
+    // 1. Custom Subdomain & Published Site
+    mkSectionTitle('Publish & Custom Subdomain');
+    mkToggle('Publish form on custom subdomain', !!cfg.publishedSiteEnabled, 'published-site', v => {
+      cfg.publishedSiteEnabled = v;
+      if (v) dbPage.published = true;
+    });
+    const subRow = document.createElement('div');
+    subRow.className = 'db-form-setting-field';
+    subRow.innerHTML = '<label>Custom subdomain slug</label>';
+    const subSlugInp = document.createElement('input');
+    subSlugInp.type = 'text';
+    subSlugInp.className = 'db-pop-input';
+    subSlugInp.placeholder = 'e.g. player-feedback';
+    subSlugInp.dataset.formSetting = 'subdomain';
+    subSlugInp.value = cfg.subdomain || '';
+    const subPreview = document.createElement('div');
+    subPreview.className = 'db-form-subdomain-preview';
+    subPreview.dataset.formSubdomainUrl = 'true';
+    const refreshSubPreview = () => {
+      const u = formSubdomainUrl(cfg.subdomain);
+      subPreview.textContent = u ? `Live endpoint: ${u}` : 'Enter a slug to bind a custom team subdomain.';
+    };
+    refreshSubPreview();
+    subSlugInp.oninput = () => {
+      cfg.subdomain = sanitizeSubdomainSlug(subSlugInp.value);
+      if (cfg.subdomain && !cfg.publishedSiteEnabled) {
+        cfg.publishedSiteEnabled = true;
+        dbPage.published = true;
+        const pubCb = settingCheckboxes.get('published-site');
+        if (pubCb) pubCb.checked = true;
+      }
+      refreshSubPreview();
+      persist(false);
+      onUpdated();
+    };
+    subRow.append(subSlugInp, subPreview);
+    body.append(subRow);
+
+    // 2. Site Design, Surface, Always-On Background Color + Cropped Image + Opacity + Question Blocks Styling
+    mkSectionTitle('Surface & Background');
+    const surfRow = document.createElement('div');
+    surfRow.className = 'db-form-setting-field';
+    surfRow.innerHTML = '<label>Surface layout</label>';
+    const surfSeg = document.createElement('div');
+    surfSeg.className = 'db-form-seg-group';
+    (['outlined', 'loose'] as const).forEach(mode => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'db-form-seg-btn' + (cfg.containerStyle === mode ? ' is-active' : '');
+      btn.dataset.formDesignSurface = mode;
+      btn.textContent = mode === 'outlined' ? '▢ Outlined card' : '✦ Loose on background';
+      btn.onclick = () => {
+        cfg.containerStyle = mode;
+        surfSeg.querySelectorAll('.db-form-seg-btn').forEach(x => x.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        persist(false);
+        onUpdated();
+      };
+      surfSeg.append(btn);
+    });
+    surfRow.append(surfSeg);
+    body.append(surfRow);
+
+    const bgRow = document.createElement('div');
+    bgRow.className = 'db-form-setting-field';
+    bgRow.innerHTML = '<label>Canvas background (color + optional cropped image)</label>';
+    const bgControls = document.createElement('div');
+    bgControls.className = 'db-form-bg-stack';
+
+    const openBgCropper = (srcUrl?: string) => {
+      const targetUrl = srcUrl || cfg.backgroundImageUrl || '';
+      if (!targetUrl || !host?.openFormCropper) return;
+      const aspectInfo = host.getFormCanvasCropAspect?.() || { aspect: 0.85, label: 'Form canvas aspect based on length' };
+      host.openFormCropper({
+        title: 'Crop Form Background Image',
+        subtitle: 'Select the image region matching your current form length.',
+        src: targetUrl,
+        aspectRatio: aspectInfo.aspect,
+        dimensionLabel: aspectInfo.label,
+        initialX: cfg.backgroundCropX ?? 50,
+        initialY: cfg.backgroundCropY ?? 50,
+        initialZoom: cfg.backgroundCropZoom ?? 100,
+        previewKind: 'background',
+        backgroundColor: cfg.backgroundColor || '#f4f6fb',
+        backgroundOpacity: cfg.backgroundImageOpacity ?? 1,
+        onApply: (crop: { x: number; y: number; zoom: number; aspect: number }) => {
+          cfg.backgroundMode = 'image';
+          cfg.backgroundCropX = crop.x;
+          cfg.backgroundCropY = crop.y;
+          cfg.backgroundCropZoom = crop.zoom;
+          cfg.backgroundCropAspect = crop.aspect;
+          persist(false);
+          onUpdated();
+        }
+      });
+    };
+
+    const drawBgControls = () => {
+      bgControls.replaceChildren();
+
+      // Background color is always active behind any image or alone when no image is set
+      const clrCard = document.createElement('div');
+      clrCard.className = 'db-form-bg-subcard';
+      const clrRow = document.createElement('div');
+      clrRow.className = 'db-form-inline-row db-form-bg-color-row';
+      const clrTxt = document.createElement('span');
+      clrTxt.className = 'db-form-bg-sub-lbl';
+      clrTxt.textContent = 'Background color';
+      const clrInp = document.createElement('input');
+      clrInp.type = 'color';
+      clrInp.dataset.formBgColor = 'true';
+      clrInp.value = cfg.backgroundColor || '#f4f6fb';
+      const hexLbl = document.createElement('code');
+      hexLbl.className = 'db-form-hex-pill';
+      hexLbl.textContent = clrInp.value;
+      const clrReset = document.createElement('button');
+      clrReset.type = 'button';
+      clrReset.className = 'secondary-button db-form-mini-reset-btn';
+      clrReset.dataset.formBgColorReset = 'true';
+      clrReset.textContent = 'Reset';
+
+      clrInp.oninput = () => {
+        cfg.backgroundColor = clrInp.value;
+        cfg.backgroundColorEnabled = true;
+        if (!cfg.backgroundImageUrl && !cfg.backgroundAssetId) cfg.backgroundMode = 'color';
+        hexLbl.textContent = clrInp.value;
+        persist(false);
+        onUpdated();
+      };
+      clrReset.onclick = () => {
+        cfg.backgroundColor = '#f4f6fb';
+        cfg.backgroundColorEnabled = true;
+        clrInp.value = '#f4f6fb';
+        hexLbl.textContent = '#f4f6fb';
+        if (!cfg.backgroundImageUrl && !cfg.backgroundAssetId) cfg.backgroundMode = 'default';
+        persist(false);
+        onUpdated();
+      };
+      clrRow.append(clrTxt, clrInp, hexLbl, clrReset);
+      clrCard.append(clrRow);
+      bgControls.append(clrCard);
+
+      // Background image + crop + opacity control (works simultaneously over color)
+      const imgCard = document.createElement('div');
+      imgCard.className = 'db-form-bg-subcard';
+      const imgs = readFormAssetsByKind('image');
+      const imgSel = document.createElement('select');
+      imgSel.className = 'db-pop-select';
+      imgSel.dataset.formBgAssetSelect = 'true';
+      imgSel.innerHTML = `<option value="">Pick image from Asset Management…</option>${imgs.map(a => `<option value="${escHtml(a.id)}">${escHtml(a.name)}</option>`).join('')}`;
+      imgSel.value = cfg.backgroundAssetId || '';
+
+      const applyPickedBgImage = async (asset: any) => {
+        if (!asset) return;
+        const resolved = await resolveFormAssetUrl(asset);
+        cfg.backgroundMode = 'image';
+        cfg.backgroundAssetId = asset.id;
+        cfg.backgroundImageUrl = resolved;
+        cfg.backgroundCropX = 50;
+        cfg.backgroundCropY = 50;
+        cfg.backgroundCropZoom = 100;
+        cfg.backgroundCropAspect = host?.getFormCanvasCropAspect?.()?.aspect;
+        drawBgControls();
+        persist(false);
+        onUpdated();
+        openBgCropper(resolved);
+      };
+
+      imgSel.onchange = async () => {
+        const asset = imgs.find(a => a.id === imgSel.value);
+        if (!asset) return;
+        await applyPickedBgImage(asset);
+      };
+
+      const actRow = document.createElement('div');
+      actRow.className = 'db-form-inline-row';
+      if (host?.pickAsset) {
+        const pickBtn = document.createElement('button');
+        pickBtn.type = 'button';
+        pickBtn.className = 'secondary-button';
+        pickBtn.textContent = '🖼 Library';
+        pickBtn.onclick = () => {
+          host.pickAsset({
+            focusId: cfg.backgroundAssetId || null,
+            label: 'Use as Form Background',
+            onSelect: async (asset: any) => applyPickedBgImage(asset)
+          });
+        };
+        actRow.append(pickBtn);
+      }
+
+      const upLbl = document.createElement('label');
+      upLbl.className = 'secondary-button file-select';
+      upLbl.textContent = '↑ Upload';
+      const upInp = document.createElement('input');
+      upInp.type = 'file';
+      upInp.accept = 'image/*';
+      upInp.hidden = true;
+      upInp.dataset.formBgUpload = 'true';
+      upInp.onchange = async () => {
+        const file = upInp.files?.[0];
+        if (!file || !host?.ingestLocalFile) return;
+        const rec = await host.ingestLocalFile(file, { creator: actorName(), tags: ['form-background'] });
+        if (rec) await applyPickedBgImage(rec);
+      };
+      upLbl.append(upInp);
+      actRow.append(upLbl);
+
+      const hasImage = !!(cfg.backgroundImageUrl || cfg.backgroundAssetId);
+      const cropBtn = document.createElement('button');
+      cropBtn.type = 'button';
+      cropBtn.className = 'secondary-button';
+      cropBtn.dataset.formBgCrop = 'true';
+      cropBtn.textContent = '✂ Crop';
+      cropBtn.disabled = !hasImage;
+      cropBtn.onclick = async () => {
+        let u = cfg.backgroundImageUrl || '';
+        if (!u && cfg.backgroundAssetId) {
+          const asset = imgs.find(a => a.id === cfg.backgroundAssetId);
+          if (asset) u = await resolveFormAssetUrl(asset);
+        }
+        if (u) openBgCropper(u);
+      };
+      actRow.append(cropBtn);
+
+      if (hasImage) {
+        const clrImgBtn = document.createElement('button');
+        clrImgBtn.type = 'button';
+        clrImgBtn.className = 'secondary-button';
+        clrImgBtn.dataset.formBgClearImage = 'true';
+        clrImgBtn.textContent = '× Clear';
+        clrImgBtn.onclick = () => {
+          cfg.backgroundAssetId = '';
+          cfg.backgroundImageUrl = '';
+          cfg.backgroundCropX = undefined;
+          cfg.backgroundCropY = undefined;
+          cfg.backgroundCropZoom = undefined;
+          cfg.backgroundCropAspect = undefined;
+          cfg.backgroundMode = cfg.backgroundColor && cfg.backgroundColor.toLowerCase() !== '#f4f6fb' ? 'color' : 'default';
+          drawBgControls();
+          persist(false);
+          onUpdated();
+        };
+        actRow.append(clrImgBtn);
+      }
+
+      const opRow = document.createElement('div');
+      opRow.className = 'db-form-range-row';
+      const opLbl = document.createElement('span');
+      opLbl.textContent = 'Image opacity';
+      const opInp = document.createElement('input');
+      opInp.type = 'range';
+      opInp.min = '0';
+      opInp.max = '100';
+      opInp.step = '1';
+      opInp.dataset.formBgOpacity = 'true';
+      const initialOp = Math.round((cfg.backgroundImageOpacity !== undefined ? Number(cfg.backgroundImageOpacity) : 1) * 100);
+      opInp.value = String(Math.max(0, Math.min(100, initialOp)));
+      const opVal = document.createElement('span');
+      opVal.className = 'db-form-range-val';
+      opVal.dataset.formBgOpacityValue = 'true';
+      opVal.textContent = `${opInp.value}%`;
+      opInp.oninput = () => {
+        cfg.backgroundImageOpacity = Math.max(0, Math.min(1, Number(opInp.value) / 100));
+        opVal.textContent = `${opInp.value}%`;
+        if (cfg.backgroundMode === 'default' && (cfg.backgroundImageUrl || cfg.backgroundAssetId)) {
+          cfg.backgroundMode = 'image';
+        }
+        persist(false);
+        onUpdated();
+      };
+      opRow.append(opLbl, opInp, opVal);
+
+      imgCard.append(imgSel, actRow, opRow);
+      bgControls.append(imgCard);
+    };
+
+    drawBgControls();
+    bgRow.append(bgControls);
+    body.append(bgRow);
+
+    // 2b. Question Block Surface & Outline Styling
+    mkSectionTitle('Question Blocks');
+    const qStyleField = document.createElement('div');
+    qStyleField.className = 'db-form-setting-field';
+    const qStyleCard = document.createElement('div');
+    qStyleCard.className = 'db-form-bg-subcard db-form-qstyle-card';
+
+    const qcTopRow = document.createElement('div');
+    qcTopRow.className = 'db-form-inline-row db-form-bg-color-row';
+    const qcLbl = document.createElement('span');
+    qcLbl.className = 'db-form-bg-sub-lbl';
+    qcLbl.textContent = 'Card background';
+    const qcClr = document.createElement('input');
+    qcClr.type = 'color';
+    qcClr.dataset.formQcardBgColor = 'true';
+    qcClr.value = cfg.questionCardBgColor || '#ffffff';
+    const qcHex = document.createElement('code');
+    qcHex.className = 'db-form-hex-pill';
+    qcHex.textContent = qcClr.value;
+    const qcTransLbl = document.createElement('label');
+    qcTransLbl.className = 'db-form-mini-check db-form-qcard-trans-lbl';
+    const qcTransCb = document.createElement('input');
+    qcTransCb.type = 'checkbox';
+    qcTransCb.dataset.formQcardBgTransparent = 'true';
+    qcTransCb.checked = !!cfg.questionCardBgTransparent;
+    qcTransLbl.append(qcTransCb, document.createTextNode('Transparent'));
+    qcTopRow.append(qcLbl, qcClr, qcHex, qcTransLbl);
+
+    const qcOpRow = document.createElement('div');
+    qcOpRow.className = 'db-form-range-row';
+    const qcOpLbl = document.createElement('span');
+    qcOpLbl.textContent = 'Card opacity';
+    const qcOpInp = document.createElement('input');
+    qcOpInp.type = 'range';
+    qcOpInp.min = '0';
+    qcOpInp.max = '100';
+    qcOpInp.step = '1';
+    qcOpInp.dataset.formQcardBgOpacity = 'true';
+    const initQcOp = Math.round((cfg.questionCardBgOpacity !== undefined ? Number(cfg.questionCardBgOpacity) : 1) * 100);
+    qcOpInp.value = String(cfg.questionCardBgTransparent ? 0 : Math.max(0, Math.min(100, initQcOp)));
+    qcOpInp.disabled = !!cfg.questionCardBgTransparent;
+    const qcOpVal = document.createElement('span');
+    qcOpVal.className = 'db-form-range-val';
+    qcOpVal.dataset.formQcardBgOpacityValue = 'true';
+    qcOpVal.textContent = `${qcOpInp.value}%`;
+    qcOpRow.append(qcOpLbl, qcOpInp, qcOpVal);
+
+    qcClr.oninput = () => {
+      cfg.questionCardBgColor = qcClr.value;
+      cfg.questionCardBgTransparent = false;
+      qcTransCb.checked = false;
+      qcOpInp.disabled = false;
+      if ((cfg.questionCardBgOpacity ?? 1) === 0) {
+        cfg.questionCardBgOpacity = 1;
+        qcOpInp.value = '100';
+        qcOpVal.textContent = '100%';
+      }
+      qcHex.textContent = qcClr.value;
+      persist(false);
+      onUpdated();
+    };
+    qcTransCb.onchange = () => {
+      cfg.questionCardBgTransparent = qcTransCb.checked;
+      qcOpInp.disabled = qcTransCb.checked;
+      qcOpInp.value = qcTransCb.checked ? '0' : String(Math.round((cfg.questionCardBgOpacity ?? 1) * 100));
+      qcOpVal.textContent = `${qcOpInp.value}%`;
+      persist(false);
+      onUpdated();
+    };
+    qcOpInp.oninput = () => {
+      cfg.questionCardBgTransparent = false;
+      qcTransCb.checked = false;
+      cfg.questionCardBgOpacity = Math.max(0, Math.min(1, Number(qcOpInp.value) / 100));
+      qcOpVal.textContent = `${qcOpInp.value}%`;
+      persist(false);
+      onUpdated();
+    };
+
+    const qcOutlineRow = document.createElement('div');
+    qcOutlineRow.className = 'db-form-inline-row db-form-bg-color-row';
+    const qcOutLbl = document.createElement('span');
+    qcOutLbl.className = 'db-form-bg-sub-lbl';
+    qcOutLbl.textContent = 'Card outline';
+    const qcOutSel = document.createElement('select');
+    qcOutSel.className = 'db-pop-select';
+    qcOutSel.dataset.formQcardOutline = 'true';
+    [
+      { id: 'default', label: 'Default border' },
+      { id: 'none', label: 'No outline' },
+      { id: 'gray', label: 'Gray' },
+      { id: 'brown', label: 'Brown' },
+      { id: 'orange', label: 'Orange' },
+      { id: 'yellow', label: 'Yellow' },
+      { id: 'green', label: 'Green' },
+      { id: 'blue', label: 'Blue' },
+      { id: 'purple', label: 'Purple' },
+      { id: 'pink', label: 'Pink' },
+      { id: 'red', label: 'Red' }
+    ].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt.id;
+      o.textContent = opt.label;
+      qcOutSel.append(o);
+    });
+    qcOutSel.value = cfg.questionCardOutlineColor || 'default';
+    qcOutSel.onchange = () => {
+      cfg.questionCardOutlineColor = qcOutSel.value;
+      persist(false);
+      onUpdated();
+    };
+    qcOutlineRow.append(qcOutLbl, qcOutSel);
+
+    qStyleCard.append(qcTopRow, qcOpRow, qcOutlineRow);
+    qStyleField.append(qStyleCard);
+    body.append(qStyleField);
+
+    // 3. Soul Atlas Radio Multi-Track Custom Select & Hover Release Metadata
+    mkSectionTitle('Soul Atlas Radio');
+    const musicRow = document.createElement('div');
+    musicRow.className = 'db-form-setting-field';
+    musicRow.innerHTML = '<label>Playlist tracks (plays in Preview &amp; Published view)</label>';
+
+    const readAudioAssets = () => {
+      const list = readFormAssetsByKind('audio');
+      const known = new Set(list.map(a => a.id));
+      const extras: any[] = [];
+      (cfg.musicTracks || []).forEach(tr => {
+        if (tr.assetId && !known.has(tr.assetId) && tr.name) {
+          known.add(tr.assetId);
+          extras.push({ id: tr.assetId, name: tr.name, url: tr.url || '', metadata: { releaseStatus: tr.releaseStatus || 'unreleased', spotifyUrl: tr.spotifyUrl || '' } });
+        }
+      });
+      return [...extras, ...list];
+    };
+
+    const syncLegacyMusicFields = () => {
+      const tracks = cfg.musicTracks || [];
+      const first = tracks[0] || null;
+      cfg.musicAssetId = first ? first.assetId : '';
+      cfg.musicName = first ? first.name : '';
+      cfg.musicUrl = first ? (first.url || '') : '';
+      cfg.musicReleaseStatus = first ? (first.releaseStatus || 'unreleased') : 'unreleased';
+      cfg.musicSpotifyUrl = first ? (first.spotifyUrl || '') : '';
+    };
+
+    let focusedTrackIdx = 0;
+    const customSelWrap = document.createElement('div');
+    customSelWrap.className = 'form-custom-select';
+    customSelWrap.dataset.formMusicSelectWrap = 'true';
+
+    const musicTrigger = document.createElement('button');
+    musicTrigger.type = 'button';
+    musicTrigger.className = 'form-custom-select-trigger';
+    musicTrigger.dataset.formMusicSelect = 'true';
+    musicTrigger.dataset.value = (cfg.musicTracks || []).map(t => t.assetId).join(',');
+    musicTrigger.setAttribute('aria-haspopup', 'listbox');
+    musicTrigger.setAttribute('aria-expanded', 'false');
+
+    const musicMenu = document.createElement('div');
+    musicMenu.className = 'form-custom-select-menu';
+    musicMenu.dataset.formMusicMenu = 'true';
+    musicMenu.setAttribute('role', 'listbox');
+    musicMenu.setAttribute('aria-multiselectable', 'true');
+    musicMenu.hidden = true;
+
+    const playlistEl = document.createElement('div');
+    playlistEl.className = 'form-radio-playlist';
+    playlistEl.dataset.formRadioPlaylist = 'true';
+
+    const releaseBox = document.createElement('div');
+    releaseBox.className = 'db-form-bg-subcard form-radio-meta-box';
+    const releaseHead = document.createElement('div');
+    releaseHead.className = 'db-form-radio-meta-head';
+    releaseHead.innerHTML = '<span>Hover info for “Soul Atlas Radio”</span><small>Linked from Asset Management (TODO)</small>';
+    const relSeg = document.createElement('div');
+    relSeg.className = 'db-form-seg-group';
+    const spInp = document.createElement('input');
+    spInp.type = 'url';
+    spInp.className = 'db-pop-input';
+    spInp.placeholder = 'https://open.spotify.com/track/…';
+    spInp.dataset.formRadioSpotifyUrl = 'true';
+    spInp.value = cfg.musicSpotifyUrl || '';
+    releaseBox.append(releaseHead);
+
+    const setMenuOpen = (open: boolean) => {
+      musicMenu.hidden = !open;
+      musicTrigger.setAttribute('aria-expanded', String(open));
+      customSelWrap.classList.toggle('is-open', open);
+    };
+
+    const toggleTrackSelection = async (asset: any | null) => {
+      if (!asset) {
+        cfg.musicTracks = [];
+        focusedTrackIdx = 0;
+        syncLegacyMusicFields();
+        refreshMusicUi();
+        persist(false);
+        onUpdated();
+        return;
+      }
+      const tracks = [...(cfg.musicTracks || [])];
+      const existingIdx = tracks.findIndex(t => t.assetId === asset.id);
+      if (existingIdx >= 0) {
+        tracks.splice(existingIdx, 1);
+      } else {
+        const url = await resolveFormAssetUrl(asset);
+        const assetRel = String(asset.metadata?.releaseStatus || asset.releaseStatus || '').toLowerCase();
+        const assetSp = String(asset.metadata?.spotifyUrl || asset.spotifyUrl || '').trim();
+        tracks.push({
+          assetId: asset.id,
+          name: asset.name || 'Track',
+          url,
+          releaseStatus: (assetRel === 'spotify' || assetSp) ? 'spotify' : 'unreleased',
+          spotifyUrl: assetSp
+        });
+        if (tracks.length === 1) focusedTrackIdx = 0;
+      }
+      cfg.musicTracks = tracks;
+      if (focusedTrackIdx >= tracks.length) focusedTrackIdx = Math.max(0, tracks.length - 1);
+      syncLegacyMusicFields();
+      refreshMusicUi();
+      persist(false);
+      onUpdated();
+    };
+
+    const refreshMusicUi = () => {
+      const assets = readAudioAssets();
+      const tracks = cfg.musicTracks || [];
+      if (focusedTrackIdx >= tracks.length) focusedTrackIdx = Math.max(0, tracks.length - 1);
+      const selectedIds = new Set(tracks.map(t => t.assetId));
+
+      musicTrigger.dataset.value = tracks.map(t => t.assetId).join(',');
+      let triggerText = 'No background music';
+      if (tracks.length === 1) triggerText = `🎵 ${tracks[0].name}`;
+      else if (tracks.length > 1) triggerText = `🎵 ${tracks.length} tracks (${tracks[0].name}…)`;
+      musicTrigger.innerHTML = `<span class="form-custom-select-label">${escHtml(triggerText)}</span><span class="form-custom-select-caret" aria-hidden="true">▾</span>`;
+
+      musicMenu.replaceChildren();
+      const mkOption = (idVal: string, label: string, badge: string, isChecked: boolean, onPick: () => void) => {
+        const opt = document.createElement('button');
+        opt.type = 'button';
+        opt.className = 'form-custom-select-option' + (isChecked ? ' is-selected' : '');
+        opt.setAttribute('role', 'option');
+        opt.setAttribute('aria-selected', String(isChecked));
+        opt.dataset.musicOption = idVal;
+        const mark = idVal ? (isChecked ? '☑ ' : '☐ ') : '';
+        opt.innerHTML = `<span class="form-custom-select-opt-name">${escHtml(mark + label)}</span>${badge ? `<span class="form-custom-select-opt-badge">${escHtml(badge)}</span>` : ''}`;
+        opt.onclick = ev => {
+          ev.stopPropagation();
+          onPick();
+          if (!idVal) setMenuOpen(false);
+        };
+        musicMenu.append(opt);
+      };
+
+      mkOption('', 'Clear selection (No background music)', '', tracks.length === 0, () => { toggleTrackSelection(null); });
+      assets.forEach(a => {
+        const isSp = String(a.metadata?.releaseStatus || a.releaseStatus || '').toLowerCase() === 'spotify' || Boolean(a.metadata?.spotifyUrl || a.spotifyUrl);
+        mkOption(a.id, `🎵 ${a.name}`, isSp ? 'Spotify' : 'Unreleased', selectedIds.has(a.id), () => { toggleTrackSelection(a); });
+      });
+
+      playlistEl.replaceChildren();
+      playlistEl.hidden = tracks.length === 0;
+      tracks.forEach((tr, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'form-radio-track-item' + (idx === focusedTrackIdx ? ' is-active' : '');
+        chip.dataset.radioTrackIndex = String(idx);
+        const selBtn = document.createElement('button');
+        selBtn.type = 'button';
+        selBtn.className = 'form-radio-track-name';
+        selBtn.textContent = `${idx + 1}. ${tr.name}`;
+        selBtn.title = 'Edit release metadata for this track';
+        selBtn.onclick = () => {
+          focusedTrackIdx = idx;
+          refreshMusicUi();
+        };
+        const badge = document.createElement('span');
+        badge.className = 'form-custom-select-opt-badge';
+        badge.textContent = tr.releaseStatus === 'spotify' ? 'Spotify' : 'Unreleased';
+        const rmBtn = document.createElement('button');
+        rmBtn.type = 'button';
+        rmBtn.className = 'form-radio-track-rm';
+        rmBtn.textContent = '×';
+        rmBtn.title = `Remove ${tr.name} from playlist`;
+        rmBtn.onclick = () => {
+          cfg.musicTracks = tracks.filter((_, i) => i !== idx);
+          syncLegacyMusicFields();
+          refreshMusicUi();
+          persist(false);
+          onUpdated();
+        };
+        chip.append(selBtn, badge, rmBtn);
+        playlistEl.append(chip);
+      });
+
+      const activeTrack = tracks[focusedTrackIdx] || null;
+      const relStatus = activeTrack ? (activeTrack.releaseStatus === 'spotify' ? 'spotify' : 'unreleased') : (cfg.musicReleaseStatus === 'spotify' ? 'spotify' : 'unreleased');
+      releaseHead.innerHTML = `<span>Hover info${activeTrack ? ` · ${escHtml(activeTrack.name)}` : ' for “Soul Atlas Radio”'}</span><small>Linked from Asset Management (TODO)</small>`;
+      relSeg.querySelectorAll<HTMLButtonElement>('[data-form-radio-release]').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.formRadioRelease === relStatus);
+      });
+      spInp.value = activeTrack ? (activeTrack.spotifyUrl || '') : (cfg.musicSpotifyUrl || '');
+      spInp.hidden = relStatus !== 'spotify';
+    };
+
+    musicTrigger.onclick = ev => {
+      ev.stopPropagation();
+      const nextOpen = musicMenu.hidden;
+      if (nextOpen) refreshMusicUi();
+      setMenuOpen(nextOpen);
+    };
+
+    const outsideClickHandler = (ev: MouseEvent) => {
+      if (!customSelWrap.isConnected) {
+        document.removeEventListener('click', outsideClickHandler);
+        return;
+      }
+      if (!customSelWrap.contains(ev.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('click', outsideClickHandler);
+
+    customSelWrap.append(musicTrigger, musicMenu);
+
+    (['unreleased', 'spotify'] as const).forEach(rel => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'db-form-seg-btn';
+      b.dataset.formRadioRelease = rel;
+      b.textContent = rel === 'unreleased' ? 'Unreleased' : 'Spotify link';
+      b.onclick = () => {
+        const tracks = cfg.musicTracks || [];
+        if (tracks[focusedTrackIdx]) tracks[focusedTrackIdx].releaseStatus = rel;
+        else cfg.musicReleaseStatus = rel;
+        syncLegacyMusicFields();
+        refreshMusicUi();
+        persist(false);
+        onUpdated();
+      };
+      relSeg.append(b);
+    });
+    spInp.oninput = () => {
+      const tracks = cfg.musicTracks || [];
+      const val = spInp.value.trim();
+      if (tracks[focusedTrackIdx]) {
+        tracks[focusedTrackIdx].spotifyUrl = val;
+        if (val) tracks[focusedTrackIdx].releaseStatus = 'spotify';
+      } else {
+        cfg.musicSpotifyUrl = val;
+        if (val) cfg.musicReleaseStatus = 'spotify';
+      }
+      syncLegacyMusicFields();
+      persist(false);
+      onUpdated();
+    };
+    releaseBox.append(relSeg, spInp);
+
+    const musicActRow = document.createElement('div');
+    musicActRow.className = 'db-form-inline-row';
+    if (host?.pickAsset) {
+      const pickAudioBtn = document.createElement('button');
+      pickAudioBtn.type = 'button';
+      pickAudioBtn.className = 'secondary-button';
+      pickAudioBtn.textContent = '🎵 Add from Asset Library';
+      pickAudioBtn.onclick = () => {
+        host.pickAsset({
+          focusId: cfg.musicAssetId || null,
+          label: 'Add to Soul Atlas Radio',
+          onSelect: async (asset: any) => {
+            const exists = (cfg.musicTracks || []).some(t => t.assetId === asset.id);
+            if (!exists) await toggleTrackSelection(asset);
+          }
+        });
+      };
+      musicActRow.append(pickAudioBtn);
+    }
+    const clrMusicBtn = document.createElement('button');
+    clrMusicBtn.type = 'button';
+    clrMusicBtn.className = 'secondary-button';
+    clrMusicBtn.dataset.formMusicClear = 'true';
+    clrMusicBtn.textContent = 'Clear';
+    clrMusicBtn.onclick = () => { toggleTrackSelection(null); };
+    musicActRow.append(clrMusicBtn);
+
+    refreshMusicUi();
+    musicRow.append(customSelWrap, playlistEl, musicActRow, releaseBox);
+    body.append(musicRow);
+
+    // 4. Responses, Mail & Uploads
+    mkSectionTitle('Submissions & Uploads');
+    mkToggle('Accepting responses (open)', !cfg.isClosed, 'accepting', v => { cfg.isClosed = !v; });
+    mkToggle('Anonymous responses', !!cfg.anonymousSubmissions, 'anonymous', v => { cfg.anonymousSubmissions = v; });
+    mkToggle('Add "Send response to my mail" option', cfg.allowSendToEmail !== false, 'send-to-email', v => { cfg.allowSendToEmail = v; });
+    mkToggle('Allow submit another response', cfg.allowSubmitAnotherResponse !== false, 'submit-another', v => { cfg.allowSubmitAnotherResponse = v; });
+    mkToggle('Save uploads to Asset Management', db.formUploadsToAssets !== false, 'uploads-to-assets', v => { db.formUploadsToAssets = v; });
+
+    const folderRow = document.createElement('div');
+    folderRow.className = 'db-form-setting-field';
+    folderRow.innerHTML = '<label>Separate uploads folder (when unchecked)</label>';
+    const folderInp = document.createElement('input');
+    folderInp.type = 'text';
+    folderInp.className = 'db-pop-input';
+    folderInp.dataset.formSetting = 'uploads-folder';
+    folderInp.value = db.formUploadsFolder || 'form-uploads';
+    folderInp.onchange = () => { db.formUploadsFolder = folderInp.value.trim() || 'form-uploads'; persist(false); onUpdated(); };
+    folderRow.append(folderInp);
+    body.append(folderRow);
+
+    const subLblRow = document.createElement('div');
+    subLblRow.className = 'db-form-setting-field';
+    subLblRow.innerHTML = '<label>Submit button text</label>';
+    const subInp = document.createElement('input');
+    subInp.type = 'text';
+    subInp.className = 'db-pop-input';
+    subInp.value = cfg.submitLabel || 'Submit';
+    subInp.onchange = () => {
+      cfg.submitLabel = subInp.value.trim() || 'Submit';
+      const btnBlock = Array.isArray(dbPage.blocks) ? dbPage.blocks.find((b: any) => b?.type === 'form_button' && b.formButtonConfig?.kind === 'submit') : null;
+      if (btnBlock?.formButtonConfig) btnBlock.formButtonConfig.label = cfg.submitLabel;
+      persist(false);
+      onUpdated();
+    };
+    subLblRow.append(subInp);
+    body.append(subLblRow);
+
+    const confTitleRow = document.createElement('div');
+    confTitleRow.className = 'db-form-setting-field';
+    confTitleRow.innerHTML = '<label>Confirmation title</label>';
+    const ctInp = document.createElement('input');
+    ctInp.type = 'text';
+    ctInp.className = 'db-pop-input';
+    ctInp.value = cfg.confirmationTitle || 'Thank you!';
+    ctInp.onchange = () => { cfg.confirmationTitle = ctInp.value; persist(false); };
+    confTitleRow.append(ctInp);
+    body.append(confTitleRow);
+
+    const confBodyRow = document.createElement('div');
+    confBodyRow.className = 'db-form-setting-field';
+    confBodyRow.innerHTML = '<label>Confirmation message</label>';
+    const cbInp = document.createElement('input');
+    cbInp.type = 'text';
+    cbInp.className = 'db-pop-input';
+    cbInp.value = cfg.confirmationBody || 'Your response has been recorded.';
+    cbInp.onchange = () => { cfg.confirmationBody = cbInp.value; persist(false); };
+    confBodyRow.append(cbInp);
+    body.append(confBodyRow);
+  }
+
+  function openFormDesignAndSettingsPopover(anchor: HTMLElement, dbPage: any, onUpdated: () => void) {
+    if (host?.openFormDesignSidebar) {
+      host.openFormDesignSidebar(dbPage, onUpdated);
+      return;
+    }
+    openDbPopover(anchor, (pop, close) => {
+      pop.classList.add('db-form-settings-popover');
+      renderFormDesignPanel(pop, dbPage, { onUpdated, onClose: close });
+    }, 340);
+  }
+
+  function getSelectMaxSelections(q: DbFormQuestion, prop: DbSchemaProperty): number | null {
+    const raw = q.maxSelections !== undefined && q.maxSelections !== null ? Number(q.maxSelections) : NaN;
+    if (Number.isFinite(raw) && raw >= 1) return Math.floor(raw);
+    if (q.limitOne) return 1;
+    if (prop.type === 'select') return 1;
+    return null;
+  }
+
+  function isFormFieldValueEmpty(prop: DbSchemaProperty, val: any): boolean {
+    if (prop.type === 'checkbox') return !val;
+    if (Array.isArray(val)) return val.length === 0;
+    return val == null || String(val).trim() === '';
+  }
+
+  function renderFormQuestionAnswerControl(opts: {
+    dbPage: any;
+    prop: DbSchemaProperty;
+    q: DbFormQuestion;
+    draftRow: any;
+    fieldErrors: Record<string, string>;
+    isRespondMode: boolean;
+    isReadOnly: boolean;
+    onRedraw: () => void;
+    onAnswerUpdated?: () => void;
+  }): HTMLElement {
+    const { dbPage, prop, q, draftRow, fieldErrors, isRespondMode, isReadOnly, onRedraw, onAnswerUpdated } = opts;
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const wrap = document.createElement('div');
+    wrap.className = 'db-form-answer-wrap';
+    const isBuilderEdit = !isRespondMode && !isReadOnly && isFormPage(dbPage);
+
+    if (prop.type === 'title') {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'db-form-input' + (isBuilderEdit ? ' is-builder-placeholder-input' : '');
+      if (isBuilderEdit) {
+        inp.placeholder = 'Type greyed-out preview placeholder text…';
+        inp.value = q.placeholder || '';
+        inp.oninput = () => {
+          q.placeholder = inp.value;
+          persist(false);
+        };
+      } else {
+        inp.placeholder = (q.placeholder && q.placeholder.trim()) ? q.placeholder : 'Your answer…';
+        inp.value = draftRow.title || '';
+        inp.oninput = () => {
+          draftRow.title = inp.value;
+          delete fieldErrors[q.propertyId];
+        };
+      }
+      wrap.append(inp);
+    } else if (prop.type === 'text') {
+      if (q.longAnswer) {
+        const ta = document.createElement('textarea');
+        ta.className = 'db-form-input db-form-textarea' + (isBuilderEdit ? ' is-builder-placeholder-input' : '');
+        ta.rows = 3;
+        if (isBuilderEdit) {
+          ta.placeholder = 'Type greyed-out preview placeholder text…';
+          ta.value = q.placeholder || '';
+          ta.oninput = () => {
+            q.placeholder = ta.value;
+            persist(false);
+          };
+        } else {
+          ta.placeholder = (q.placeholder && q.placeholder.trim()) ? q.placeholder : 'Your detailed answer…';
+          ta.value = draftRow.propertyValues[prop.id] ?? '';
+          ta.oninput = () => {
+            draftRow.propertyValues[prop.id] = ta.value;
+            delete fieldErrors[q.propertyId];
+          };
+        }
+        wrap.append(ta);
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'db-form-input' + (isBuilderEdit ? ' is-builder-placeholder-input' : '');
+        if (isBuilderEdit) {
+          inp.placeholder = 'Type greyed-out preview placeholder text…';
+          inp.value = q.placeholder || '';
+          inp.oninput = () => {
+            q.placeholder = inp.value;
+            persist(false);
+          };
+        } else {
+          inp.placeholder = (q.placeholder && q.placeholder.trim()) ? q.placeholder : 'Your answer…';
+          inp.value = draftRow.propertyValues[prop.id] ?? '';
+          inp.oninput = () => {
+            draftRow.propertyValues[prop.id] = inp.value;
+            delete fieldErrors[q.propertyId];
+          };
+        }
+        wrap.append(inp);
+      }
+    } else if (prop.type === 'select' || prop.type === 'multi_select' || prop.type === 'status') {
+      const maxSel = prop.type === 'status' ? 1 : getSelectMaxSelections(q, prop);
+      const isSingle = maxSel === 1;
+      const getSelectedIds = (): string[] => {
+        const v = draftRow.propertyValues[prop.id];
+        if (Array.isArray(v)) return v.filter(Boolean);
+        return typeof v === 'string' && v ? [v] : [];
+      };
+      const setSelectedIds = (ids: string[]) => {
+        const clipped = maxSel ? ids.slice(0, maxSel) : ids;
+        draftRow.propertyValues[prop.id] = (prop.type === 'select' || prop.type === 'status')
+          ? (clipped[0] || '')
+          : clipped;
+      };
+
+      if (q.displayMode === 'dropdown') {
+        const sel = document.createElement('select');
+        sel.className = 'db-form-input';
+        sel.multiple = !isSingle;
+        if (isSingle) {
+          const cur = getSelectedIds()[0] || '';
+          sel.innerHTML = `<option value="">Choose option…</option>${(prop.options || []).map(o => `<option value="${escHtml(o.id)}">${escHtml(o.name)}</option>`).join('')}`;
+          sel.value = cur;
+        } else {
+          const cur = new Set(getSelectedIds());
+          (prop.options || []).forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o.id;
+            opt.textContent = o.name;
+            opt.selected = cur.has(o.id);
+            sel.append(opt);
+          });
+        }
+        sel.onchange = () => {
+          const picked = Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
+          if (maxSel && picked.length > maxSel) {
+            host?.toast?.(`Select up to ${maxSel} option${maxSel === 1 ? '' : 's'}.`);
+          }
+          setSelectedIds(picked);
+          delete fieldErrors[q.propertyId];
+          onAnswerUpdated?.();
+        };
+        wrap.append(sel);
+      } else {
+        const box = document.createElement('div');
+        box.className = 'db-pill-list ' + (isSingle ? 'is-single-select' : 'is-multi-select');
+        (prop.options || []).forEach(o => {
+          const rowItem = document.createElement('div');
+          rowItem.className = 'db-form-opt-pill';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'db-form-chip-toggle ' + (isSingle ? 'is-single-select' : 'is-multi-select');
+          const syncChip = () => {
+            const active = getSelectedIds().includes(o.id);
+            btn.classList.toggle('is-active', active);
+            if (isSingle) {
+              btn.textContent = `${active ? '◉ ' : '○ '}${o.name}`;
+            } else {
+              btn.textContent = `${active ? '☑ ' : '☐ '}${o.name}`;
+            }
+          };
+          btn.onclick = () => {
+            const cur = getSelectedIds();
+            if (cur.includes(o.id)) {
+              setSelectedIds(cur.filter(x => x !== o.id));
+            } else if (isSingle) {
+              setSelectedIds([o.id]);
+            } else if (maxSel && cur.length >= maxSel) {
+              host?.toast?.(`Maximum ${maxSel} selection${maxSel === 1 ? '' : 's'} allowed.`);
+              return;
+            } else {
+              setSelectedIds([...cur, o.id]);
+            }
+            delete fieldErrors[q.propertyId];
+            if (isSingle) {
+              onRedraw();
+            } else {
+              syncChip();
+              onAnswerUpdated?.();
+            }
+          };
+          syncChip();
+          rowItem.append(btn);
+          if (!isRespondMode && !isReadOnly) {
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'db-form-opt-del';
+            rm.title = `Remove "${o.name}"`;
+            rm.textContent = '×';
+            rm.onclick = () => {
+              prop.options = (prop.options || []).filter(x => x.id !== o.id);
+              persist(false);
+              onRedraw();
+            };
+            rowItem.append(rm);
+          }
+          box.append(rowItem);
+        });
+        if (!isRespondMode && !isReadOnly) {
+          const addOptBtn = document.createElement('button');
+          addOptBtn.type = 'button';
+          addOptBtn.className = 'db-form-add-opt-btn';
+          addOptBtn.textContent = '+ Add option';
+          addOptBtn.onclick = () => {
+            prop.options = prop.options || [];
+            const idx = prop.options.length + 1;
+            const palette: DbColorKey[] = ['blue', 'yellow', 'red', 'green', 'purple', 'orange'];
+            prop.options.push({ id: uid(), name: `Option ${idx}`, color: palette[(idx - 1) % palette.length] });
+            persist(false);
+            onRedraw();
+          };
+          box.append(addOptBtn);
+        }
+        wrap.append(box);
+      }
+    } else if (prop.type === 'date') {
+      const row = document.createElement('div');
+      row.className = 'db-form-date-row';
+      const inp = document.createElement('input');
+      inp.type = q.includeTime ? 'datetime-local' : 'date';
+      inp.className = 'db-form-input';
+      inp.value = draftRow.propertyValues[prop.id]?.start || '';
+      inp.onchange = () => {
+        const prev = draftRow.propertyValues[prop.id] || {};
+        draftRow.propertyValues[prop.id] = inp.value ? { ...prev, start: inp.value, includeTime: !!q.includeTime } : undefined;
+        delete fieldErrors[q.propertyId];
+      };
+      row.append(inp);
+      if (q.includeEndDate) {
+        const endInp = document.createElement('input');
+        endInp.type = q.includeTime ? 'datetime-local' : 'date';
+        endInp.className = 'db-form-input';
+        endInp.placeholder = 'End date';
+        endInp.value = draftRow.propertyValues[prop.id]?.end || '';
+        endInp.onchange = () => {
+          const prev = draftRow.propertyValues[prop.id] || { start: inp.value };
+          draftRow.propertyValues[prop.id] = { ...prev, end: endInp.value || undefined };
+        };
+        row.append(document.createTextNode('→'), endInp);
+      }
+      wrap.append(row);
+    } else if (prop.type === 'files') {
+      const maxMb = Number(q.maxSizeMb) > 0 ? Number(q.maxSizeMb) : 10;
+      const maxBytes = maxMb * 1024 * 1024;
+      const toAssets = db.formUploadsToAssets !== false;
+      const box = document.createElement('div');
+      box.className = 'db-form-files-box';
+      const curFiles: Array<{ name: string; url?: string; assetId?: string; sizeBytes?: number; storageLocation?: string }> = Array.isArray(draftRow.propertyValues[prop.id]) ? draftRow.propertyValues[prop.id] : [];
+      const fileInp = document.createElement('input');
+      fileInp.type = 'file';
+      fileInp.multiple = true;
+      fileInp.className = 'db-form-file-input';
+      fileInp.onchange = async () => {
+        const files = fileInp.files ? Array.from(fileInp.files) : [];
+        if (!files.length) return;
+        const next = [...curFiles];
+        let rejectedMsg = '';
+        for (const f of files) {
+          if (f.size > maxBytes) {
+            rejectedMsg = `File "${f.name}" exceeds max upload limit of ${maxMb} MB.`;
+            continue;
+          }
+          if (toAssets) {
+            if (host?.ingestLocalFile) {
+              try {
+                const rec = await host.ingestLocalFile(f, {
+                  creator: cfg.anonymousSubmissions ? 'Anonymous' : actorName(),
+                  tags: ['form-upload']
+                });
+                if (rec) next.push({ name: rec.name || f.name, url: rec.url || rec.previewDataUrl || '', assetId: rec.id, sizeBytes: f.size, storageLocation: 'assets' });
+              } catch {
+                next.push({ name: f.name, sizeBytes: f.size, storageLocation: 'assets' });
+              }
+            } else {
+              next.push({ name: f.name, sizeBytes: f.size, storageLocation: 'assets' });
+            }
+          } else {
+            if (host?.saveFormSeparateUpload) {
+              try {
+                const rec = await host.saveFormSeparateUpload(f, {
+                  folder: db.formUploadsFolder || (dbPage.title || 'form-uploads'),
+                  creator: cfg.anonymousSubmissions ? 'Anonymous' : actorName()
+                });
+                if (rec) next.push({ name: rec.name || f.name, url: rec.url || '', sizeBytes: f.size, storageLocation: 'form-uploads-folder' });
+              } catch {
+                next.push({ name: f.name, sizeBytes: f.size, storageLocation: 'form-uploads-folder' });
+              }
+            } else {
+              next.push({ name: f.name, sizeBytes: f.size, storageLocation: 'form-uploads-folder' });
+            }
+          }
+        }
+        draftRow.propertyValues[prop.id] = next;
+        if (rejectedMsg) {
+          fieldErrors[q.propertyId] = rejectedMsg;
+          host?.toast?.(rejectedMsg);
+        } else {
+          delete fieldErrors[q.propertyId];
+        }
+        onRedraw();
+      };
+      const hint = document.createElement('div');
+      hint.className = 'db-form-upload-hint';
+      hint.innerHTML = `<span>Max ${maxMb} MB per file</span><span>Destination: ${toAssets ? 'Asset Management' : `Separate folder (${escHtml(db.formUploadsFolder || 'form-uploads')})`}</span>`;
+      box.append(fileInp, hint);
+      if (curFiles.length) {
+        const chips = document.createElement('div');
+        chips.className = 'db-pill-list';
+        curFiles.forEach((f, idx) => {
+          const ch = document.createElement('span');
+          ch.className = 'db-form-file-chip';
+          ch.textContent = `📎 ${f.name} `;
+          const rm = document.createElement('button');
+          rm.type = 'button';
+          rm.textContent = '×';
+          rm.onclick = () => {
+            draftRow.propertyValues[prop.id] = curFiles.filter((_, i) => i !== idx);
+            onRedraw();
+          };
+          ch.append(rm);
+          chips.append(ch);
+        });
+        box.append(chips);
+      }
+      wrap.append(box);
+    } else if (prop.type === 'phone') {
+      const inp = document.createElement('input');
+      inp.type = 'tel';
+      inp.className = 'db-form-input' + (isBuilderEdit ? ' is-builder-placeholder-input' : '');
+      inp.placeholder = isBuilderEdit
+        ? 'Type greyed-out preview placeholder (e.g. +49 0151 1234567)…'
+        : ((q.placeholder && q.placeholder.trim()) ? q.placeholder : '+49 0151 1234567');
+      inp.value = isBuilderEdit ? (q.placeholder || '') : (draftRow.propertyValues[prop.id] ?? '');
+
+      const detectedEl = document.createElement('div');
+      detectedEl.className = 'db-form-phone-detected';
+
+      const refreshPhoneBadge = () => {
+        const raw = String(inp.value || '').trim();
+        const info = detectPhoneCountry(raw);
+        if (!raw) {
+          detectedEl.className = 'db-form-phone-detected';
+          detectedEl.textContent = 'Auto country detection — examples: +49 0151…, (+49) 0151…, DE 0151…, (DE) 0151…';
+          return;
+        }
+        if (!info || !info.hasPrefix || !info.viable) {
+          detectedEl.className = 'db-form-phone-detected is-error';
+          detectedEl.textContent = !info?.hasPrefix
+            ? 'Missing country code — e.g. +49 0151…, (+49) 0151…, DE 0151…, or (DE) 0151…'
+            : 'Missing country code or incomplete number — e.g. +49 0151 1234567';
+          return;
+        }
+        detectedEl.className = 'db-form-phone-detected is-valid';
+        detectedEl.textContent = `${info.flag} ${info.name}${info.code ? ` (${info.code})` : ''}`;
+      };
+
+      inp.oninput = () => {
+        if (isBuilderEdit) {
+          q.placeholder = inp.value;
+          persist(false);
+        } else {
+          draftRow.propertyValues[prop.id] = inp.value;
+          delete fieldErrors[q.propertyId];
+        }
+        refreshPhoneBadge();
+      };
+
+      refreshPhoneBadge();
+      wrap.append(inp, detectedEl);
+    } else if (prop.type === 'relation') {
+      const targetDb = prop.relationDatabaseId ? getPageById(prop.relationDatabaseId) : null;
+      const sel = document.createElement('select');
+      sel.className = 'db-form-input';
+      const targetRows = targetDb ? getDatabaseRows(targetDb.id) : [];
+      sel.innerHTML = `<option value="">${targetDb ? `Link from ${escHtml(targetDb.title || 'database')}…` : 'Select linked database in property settings…'}</option>${targetRows.map((r: any) => `<option value="${escHtml(r.id)}">${escHtml(r.title || 'Untitled')}</option>`).join('')}`;
+      const curArr = Array.isArray(draftRow.propertyValues[prop.id]) ? draftRow.propertyValues[prop.id] : [];
+      sel.value = curArr[0] || '';
+      sel.onchange = () => {
+        draftRow.propertyValues[prop.id] = sel.value ? [sel.value] : [];
+        delete fieldErrors[q.propertyId];
+      };
+      wrap.append(sel);
+    } else {
+      const inp = document.createElement('input');
+      inp.type = prop.type === 'number' ? 'number' : prop.type === 'email' ? 'email' : prop.type === 'url' ? 'url' : 'text';
+      inp.className = 'db-form-input' + (isBuilderEdit ? ' is-builder-placeholder-input' : '');
+      const defaultPh = prop.type === 'email' ? 'name@example.com' : prop.type === 'url' ? 'https://…' : `Enter ${(q.label || prop.name).toLowerCase()}…`;
+      if (isBuilderEdit) {
+        inp.placeholder = 'Type greyed-out preview placeholder text…';
+        inp.value = q.placeholder || '';
+        inp.oninput = () => {
+          q.placeholder = inp.value;
+          persist(false);
+        };
+      } else {
+        inp.placeholder = (q.placeholder && q.placeholder.trim()) ? q.placeholder : defaultPh;
+        inp.value = draftRow.propertyValues[prop.id] ?? '';
+        inp.oninput = () => {
+          draftRow.propertyValues[prop.id] = prop.type === 'number' ? (inp.value === '' ? '' : Number(inp.value)) : inp.value;
+          delete fieldErrors[q.propertyId];
+        };
+      }
+      wrap.append(inp);
+    }
+    return wrap;
+  }
+
+  function renderFormQuestionCard(opts: {
+    dbPage: any;
+    q: DbFormQuestion;
+    prop: DbSchemaProperty;
+    blockId?: string;
+    draftRow: any;
+    fieldErrors: Record<string, string>;
+    isRespondMode: boolean;
+    isReadOnly: boolean;
+    isFocused?: boolean;
+    onFocus?: () => void;
+    onRedraw: () => void;
+    onAnswerUpdated?: () => void;
+    onDuplicate?: () => void;
+    onDelete?: () => void;
+    onAddTextBelow?: () => void;
+    canMoveUp?: boolean;
+    canMoveDown?: boolean;
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
+  }): HTMLElement | null {
+    const { dbPage, q, prop, blockId, draftRow, fieldErrors, isRespondMode, isReadOnly } = opts;
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const visibleByLogic = evaluateFormCondition(dbPage, q, draftRow);
+    if (isRespondMode && !visibleByLogic) return null;
+
+    const isReq = prop.type === 'title' || Boolean(q.required);
+    const fieldCard = document.createElement('div');
+    fieldCard.className = 'db-form-field-card'
+      + (opts.isFocused && !isRespondMode ? ' is-focused' : '')
+      + (fieldErrors[q.propertyId] ? ' has-error' : '');
+    fieldCard.dataset.questionId = q.id;
+    fieldCard.dataset.propId = prop.id;
+    if (blockId) fieldCard.dataset.formBlockId = blockId;
+    fieldCard.onclick = () => { opts.onFocus?.(); };
+
+    if (!isRespondMode && !isReadOnly) {
+      const builderHead = document.createElement('div');
+      builderHead.className = 'db-form-q-builder-head';
+
+      const titleWrap = document.createElement('div');
+      titleWrap.className = 'db-form-q-title-wrap has-rendered';
+
+      const qNameInp = document.createElement('input');
+      qNameInp.type = 'text';
+      qNameInp.className = 'db-form-q-label';
+      qNameInp.value = q.label || prop.name || '';
+      qNameInp.placeholder = 'Question title (supports # Markdown, **bold**, *italic*)…';
+
+      const mdView = document.createElement('div');
+      mdView.className = 'db-form-q-md-preview';
+      mdView.innerHTML = renderQuestionMarkdownHtml(qNameInp.value);
+      mdView.onclick = ev => {
+        ev.stopPropagation();
+        qNameInp.focus({ preventScroll: true });
+      };
+
+      qNameInp.oninput = () => {
+        q.label = qNameInp.value;
+        prop.name = qNameInp.value.trim() || prop.name;
+        mdView.innerHTML = renderQuestionMarkdownHtml(qNameInp.value);
+        persist(false);
+      };
+      qNameInp.onkeydown = ev => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          qNameInp.blur();
+        }
+      };
+
+      titleWrap.append(qNameInp, mdView);
+
+      const typeBadgeOrSelect = (() => {
+        if (prop.type === 'title') {
+          const bPill = document.createElement('span');
+          bPill.className = 'db-form-type-pill';
+          bPill.textContent = 'Aa Primary Title';
+          return bPill;
+        }
+        const sel = document.createElement('select');
+        sel.className = 'db-form-q-type';
+        FORM_QUESTION_TYPES.forEach(qt => {
+          const o = document.createElement('option');
+          o.value = qt.type;
+          o.textContent = `${qt.icon} ${qt.label}`;
+          sel.append(o);
+        });
+        const normalizedType = (prop.type === 'select' || prop.type === 'multi_select') ? 'select' : prop.type;
+        sel.value = FORM_QUESTION_TYPES.some(t => t.type === normalizedType) ? normalizedType : 'text';
+        sel.onchange = () => {
+          const picked = sel.value as DbPropertyType;
+          if (picked === 'select') {
+            prop.type = q.maxSelections === 1 ? 'select' : 'multi_select';
+            if (!prop.options || !prop.options.length) {
+              prop.options = [
+                { id: uid(), name: 'Option 1', color: 'blue' },
+                { id: uid(), name: 'Option 2', color: 'yellow' }
+              ];
+            }
+            if (!q.displayMode) q.displayMode = 'list';
+          } else {
+            prop.type = picked;
+          }
+          if (prop.type === 'files' && !(Number(q.maxSizeMb) > 0)) q.maxSizeMb = 10;
+          delete draftRow.propertyValues[prop.id];
+          persist(false);
+          opts.onRedraw();
+        };
+        return sel;
+      })();
+
+      builderHead.append(titleWrap, typeBadgeOrSelect);
+      if (isReq) {
+        const ast = document.createElement('span');
+        ast.className = 'db-form-req';
+        ast.textContent = '*';
+        builderHead.append(ast);
+      }
+      fieldCard.append(builderHead);
+
+      if (q.showDescription || q.description) {
+        const qDesc = document.createElement('input');
+        qDesc.type = 'text';
+        qDesc.className = 'db-form-q-desc-input';
+        qDesc.placeholder = 'Add helper description for respondents…';
+        qDesc.value = q.description || '';
+        qDesc.oninput = () => { q.description = qDesc.value; persist(false); };
+        fieldCard.append(qDesc);
+      }
+    } else {
+      const top = document.createElement('div');
+      top.className = 'db-form-field-head';
+      const lblEl = document.createElement('label');
+      lblEl.className = 'db-form-field-md-label';
+      lblEl.innerHTML = `${renderQuestionMarkdownHtml(q.label || prop.name)}${isReq ? ' <span class="db-form-req">*</span>' : ''}`;
+      top.append(lblEl);
+      fieldCard.append(top);
+      if (q.showDescription && q.description) {
+        const p = document.createElement('p');
+        p.className = 'db-form-q-desc';
+        p.textContent = q.description;
+        fieldCard.append(p);
+      }
+    }
+
+    const answerCtrl = renderFormQuestionAnswerControl({
+      dbPage,
+      prop,
+      q,
+      draftRow,
+      fieldErrors,
+      isRespondMode,
+      isReadOnly,
+      onRedraw: opts.onRedraw,
+      onAnswerUpdated: () => {
+        if (opts.onAnswerUpdated) opts.onAnswerUpdated();
+        else if (['select', 'multi_select', 'status'].includes(prop.type) && isRespondMode) opts.onRedraw();
+      }
+    });
+    fieldCard.append(answerCtrl);
+
+    if (fieldErrors[q.propertyId]) {
+      const err = document.createElement('div');
+      err.className = 'db-form-field-error';
+      err.textContent = fieldErrors[q.propertyId];
+      fieldCard.append(err);
+    }
+
+    if (!isRespondMode && !isReadOnly) {
+      const qOpts = document.createElement('div');
+      qOpts.className = 'db-form-q-controls';
+
+      if (prop.type === 'text') {
+        const lLbl = document.createElement('label');
+        lLbl.className = 'db-form-mini-check';
+        const lCb = document.createElement('input');
+        lCb.type = 'checkbox';
+        lCb.checked = !!q.longAnswer;
+        lCb.onchange = () => { q.longAnswer = lCb.checked; persist(false); opts.onRedraw(); };
+        lLbl.append(lCb, document.createTextNode('Long answer'));
+        qOpts.append(lLbl);
+      } else if (prop.type === 'select' || prop.type === 'multi_select') {
+        const modeBtn = document.createElement('button');
+        modeBtn.type = 'button';
+        modeBtn.className = 'db-form-ctrl-btn';
+        modeBtn.textContent = q.displayMode === 'dropdown' ? '▾ Dropdown' : '▤ List';
+        modeBtn.onclick = () => { q.displayMode = q.displayMode === 'dropdown' ? 'list' : 'dropdown'; persist(false); opts.onRedraw(); };
+        qOpts.append(modeBtn);
+
+        const maxSel = getSelectMaxSelections(q, prop);
+        const maxWrap = document.createElement('label');
+        maxWrap.className = 'db-form-mini-check db-form-maxsel-wrap';
+        const maxCb = document.createElement('input');
+        maxCb.type = 'checkbox';
+        maxCb.dataset.formQMaxToggle = 'true';
+        maxCb.checked = maxSel !== null;
+        const maxCountInp = document.createElement('input');
+        maxCountInp.type = 'number';
+        maxCountInp.min = '1';
+        maxCountInp.max = '99';
+        maxCountInp.className = 'db-form-maxsel-input';
+        maxCountInp.dataset.formQMaxCount = 'true';
+        maxCountInp.disabled = maxSel === null;
+        maxCountInp.value = String(maxSel ?? 2);
+
+        const syncSelectCap = (nextCap: number | null, redrawNow: boolean) => {
+          q.maxSelections = nextCap ?? undefined;
+          q.limitOne = nextCap === 1;
+          prop.type = nextCap === 1 ? 'select' : 'multi_select';
+          const cur = draftRow.propertyValues[prop.id];
+          if (prop.type === 'select' && Array.isArray(cur)) {
+            draftRow.propertyValues[prop.id] = cur[0] || '';
+          } else if (prop.type === 'multi_select' && typeof cur === 'string') {
+            draftRow.propertyValues[prop.id] = cur ? [cur] : [];
+          }
+          persist(false);
+          if (redrawNow) opts.onRedraw();
+        };
+
+        maxCb.onchange = () => {
+          if (maxCb.checked) {
+            const parsed = Math.max(1, Math.floor(Number(maxCountInp.value) || 1));
+            maxCountInp.disabled = false;
+            maxCountInp.value = String(parsed);
+            syncSelectCap(parsed, true);
+          } else {
+            maxCountInp.disabled = true;
+            syncSelectCap(null, true);
+          }
+        };
+        maxCountInp.oninput = () => {
+          if (!maxCb.checked) return;
+          const rawNum = Math.floor(Number(maxCountInp.value));
+          if (!Number.isFinite(rawNum) || rawNum < 1) return;
+          syncSelectCap(Math.min(99, rawNum), false);
+        };
+        maxCountInp.onchange = () => {
+          if (!maxCb.checked) return;
+          const clamped = Math.max(1, Math.min(99, Math.floor(Number(maxCountInp.value) || 1)));
+          maxCountInp.value = String(clamped);
+          syncSelectCap(clamped, true);
+        };
+        maxWrap.append(maxCb, document.createTextNode('Max '), maxCountInp);
+        qOpts.append(maxWrap);
+      } else if (prop.type === 'date') {
+        const tLbl = document.createElement('label');
+        tLbl.className = 'db-form-mini-check';
+        const tCb = document.createElement('input');
+        tCb.type = 'checkbox';
+        tCb.checked = !!q.includeTime;
+        tCb.onchange = () => { q.includeTime = tCb.checked; persist(false); opts.onRedraw(); };
+        tLbl.append(tCb, document.createTextNode('Time'));
+        const eLbl = document.createElement('label');
+        eLbl.className = 'db-form-mini-check';
+        const eCb = document.createElement('input');
+        eCb.type = 'checkbox';
+        eCb.checked = !!q.includeEndDate;
+        eCb.onchange = () => { q.includeEndDate = eCb.checked; persist(false); opts.onRedraw(); };
+        eLbl.append(eCb, document.createTextNode('End date'));
+        qOpts.append(tLbl, eLbl);
+      } else if (prop.type === 'files') {
+        const maxLbl = document.createElement('label');
+        maxLbl.className = 'db-form-mini-check';
+        maxLbl.textContent = 'Max MB ';
+        const maxInp = document.createElement('input');
+        maxInp.type = 'number';
+        maxInp.min = '1';
+        maxInp.max = '500';
+        maxInp.className = 'db-form-maxmb-input';
+        maxInp.dataset.formQMaxMb = 'true';
+        maxInp.value = String(Number(q.maxSizeMb) > 0 ? Number(q.maxSizeMb) : 10);
+        maxInp.onchange = () => {
+          const val = Math.max(1, Math.min(500, Math.round(Number(maxInp.value) || 10)));
+          q.maxSizeMb = val;
+          persist(false);
+          opts.onRedraw();
+        };
+        maxLbl.append(maxInp);
+        qOpts.append(maxLbl);
+      }
+
+      const rightCtrls = document.createElement('div');
+      rightCtrls.className = 'db-form-q-actions';
+
+      if (opts.onAddTextBelow) {
+        const addTextBelow = document.createElement('button');
+        addTextBelow.type = 'button';
+        addTextBelow.className = 'db-form-ctrl-btn';
+        addTextBelow.textContent = '+ Text';
+        addTextBelow.title = 'Insert free text below';
+        addTextBelow.onclick = e => { e.stopPropagation(); opts.onAddTextBelow!(); };
+        rightCtrls.append(addTextBelow);
+      }
+
+      const descBtn = document.createElement('button');
+      descBtn.type = 'button';
+      descBtn.className = 'db-form-ctrl-btn' + (q.showDescription ? ' is-active' : '');
+      descBtn.textContent = 'Desc';
+      descBtn.title = 'Toggle question description';
+      descBtn.onclick = e => { e.stopPropagation(); q.showDescription = !q.showDescription; persist(false); opts.onRedraw(); };
+      rightCtrls.append(descBtn);
+
+      if (opts.canMoveUp && opts.onMoveUp) {
+        const upBtn = document.createElement('button');
+        upBtn.type = 'button';
+        upBtn.className = 'db-form-ctrl-btn';
+        upBtn.textContent = '↑';
+        upBtn.title = 'Move up';
+        upBtn.onclick = e => { e.stopPropagation(); opts.onMoveUp!(); };
+        rightCtrls.append(upBtn);
+      }
+      if (opts.canMoveDown && opts.onMoveDown) {
+        const dnBtn = document.createElement('button');
+        dnBtn.type = 'button';
+        dnBtn.className = 'db-form-ctrl-btn';
+        dnBtn.textContent = '↓';
+        dnBtn.title = 'Move down';
+        dnBtn.onclick = e => { e.stopPropagation(); opts.onMoveDown!(); };
+        rightCtrls.append(dnBtn);
+      }
+
+      if (prop.type !== 'title') {
+        const dupBtn = document.createElement('button');
+        dupBtn.type = 'button';
+        dupBtn.className = 'db-form-ctrl-btn';
+        dupBtn.textContent = '⧉';
+        dupBtn.title = 'Duplicate question';
+        dupBtn.onclick = e => {
+          e.stopPropagation();
+          if (opts.onDuplicate) opts.onDuplicate();
+          else { duplicateFormQuestionBlock(dbPage, q.id); persist(false); opts.onRedraw(); }
+        };
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'db-form-ctrl-btn danger';
+        delBtn.textContent = '🗑';
+        delBtn.title = 'Remove question';
+        delBtn.onclick = e => {
+          e.stopPropagation();
+          if (opts.onDelete) opts.onDelete();
+          else { deleteFormQuestionBlock(dbPage, q.id); persist(false); opts.onRedraw(); }
+        };
+        const reqLbl = document.createElement('label');
+        reqLbl.className = 'db-form-req-toggle';
+        const reqCb = document.createElement('input');
+        reqCb.type = 'checkbox';
+        reqCb.checked = isReq;
+        reqCb.onchange = () => {
+          q.required = reqCb.checked;
+          cfg.requiredPropertyIds = Array.from(new Set(cfg.questions!.filter(x => x.required).map(x => x.propertyId)));
+          persist(false);
+          opts.onRedraw();
+        };
+        reqLbl.append(reqCb, document.createTextNode('Required'));
+        rightCtrls.append(dupBtn, delBtn, reqLbl);
+      }
+      qOpts.append(rightCtrls);
+      fieldCard.append(qOpts);
+    }
+
+    return fieldCard;
+  }
+
+  function validateAndSubmitForm(dbPage: any, draftRow: any, fieldErrors: Record<string, string>): { ok: boolean; row?: any; firstError?: string } {
+    const { db, cfg } = ensureFormConfig(dbPage);
+    if (cfg.isClosed) {
+      host?.toast?.('This form is closed.');
+      return { ok: false, firstError: 'This form is closed.' };
+    }
+    Object.keys(fieldErrors).forEach(k => delete fieldErrors[k]);
+    const propById = new Map(db.schema.map(s => [s.id, s]));
+    const visibleQuestions = cfg.questions!.filter(q => evaluateFormCondition(dbPage, q, draftRow));
+    const visibleByQId = new Map(visibleQuestions.map(q => [q.id, q]));
+    let firstErrorMsg = '';
+
+    for (const q of visibleQuestions) {
+      const prop = propById.get(q.propertyId);
+      if (!prop) continue;
+      const val = prop.type === 'title' ? draftRow.title : draftRow.propertyValues[q.propertyId];
+      const isEmpty = prop.type === 'checkbox'
+        ? (q.required && !val)
+        : isFormFieldValueEmpty(prop, val);
+      if ((prop.type === 'title' || q.required) && isEmpty) {
+        fieldErrors[q.propertyId] = 'This question is required';
+        if (!firstErrorMsg) firstErrorMsg = `Please fill out "${q.label || prop.name}"`;
+        continue;
+      }
+      if (!isEmpty && typeof val === 'string') {
+        if (prop.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
+          fieldErrors[q.propertyId] = 'Invalid email';
+          if (!firstErrorMsg) firstErrorMsg = `Invalid email in "${q.label || prop.name}"`;
+        } else if (prop.type === 'url' && !/^https?:\/\/[^\s]+/i.test(val.trim())) {
+          fieldErrors[q.propertyId] = 'Invalid URL (include http:// or https://)';
+          if (!firstErrorMsg) firstErrorMsg = `Invalid URL in "${q.label || prop.name}"`;
+        } else if (prop.type === 'phone') {
+          const phoneInfo = detectPhoneCountry(val.trim());
+          if (!phoneInfo || !phoneInfo.hasPrefix || !phoneInfo.viable) {
+            fieldErrors[q.propertyId] = 'Missing country code (e.g. +49 0151…, (+49) 0151…, DE 0151…, or (DE) 0151…)';
+            if (!firstErrorMsg) firstErrorMsg = `Missing country code for "${q.label || prop.name}"`;
+          }
+        }
+      }
+      if (!isEmpty && (prop.type === 'select' || prop.type === 'multi_select')) {
+        const maxSel = getSelectMaxSelections(q, prop);
+        if (maxSel && Array.isArray(val) && val.length > maxSel) {
+          fieldErrors[q.propertyId] = `Select at most ${maxSel} option${maxSel === 1 ? '' : 's'}`;
+          if (!firstErrorMsg) firstErrorMsg = `Too many selections in "${q.label || prop.name}"`;
+        }
+      }
+    }
+
+    // Column-linked validation groups across doc columns blocks
+    const checkLinkedColumns = (blocks: any[]) => {
+      if (!Array.isArray(blocks)) return;
+      for (const blk of blocks) {
+        if (!blk) continue;
+        if (blk.type === 'columns' && (Array.isArray(blk.columns) || Array.isArray(blk.children))) {
+          const rule = blk.columnLinkRule;
+          const groupFields: Array<{ q: DbFormQuestion; prop: DbSchemaProperty; filled: boolean }> = [];
+          const collectCols = (sub: any[]) => {
+            if (!Array.isArray(sub)) return;
+            for (const item of sub) {
+              if (!item) continue;
+              if (item.type === 'form_question' && item.questionId) {
+                const vq = visibleByQId.get(item.questionId);
+                const vp = vq ? propById.get(vq.propertyId) : null;
+                if (vq && vp) {
+                  const val = vp.type === 'title' ? draftRow.title : draftRow.propertyValues[vq.propertyId];
+                  groupFields.push({ q: vq, prop: vp, filled: !isFormFieldValueEmpty(vp, val) });
+                }
+              }
+              if (item.type === 'columns' && Array.isArray(item.columns)) item.columns.forEach(collectCols);
+              if (Array.isArray(item.children)) collectCols(item.children);
+            }
+          };
+          if (Array.isArray(blk.columns)) blk.columns.forEach(collectCols);
+          if (Array.isArray(blk.children)) collectCols(blk.children);
+          if (rule && rule.mode && rule.mode !== 'none' && groupFields.length >= 2) {
+            const filledCount = groupFields.filter(f => f.filled).length;
+            if (rule.mode === 'all_if_any' && filledCount > 0 && filledCount < groupFields.length) {
+              groupFields.filter(f => !f.filled).forEach(f => {
+                fieldErrors[f.q.propertyId] = 'Linked fields: fill all fields in this row or leave all blank';
+              });
+              if (!firstErrorMsg) firstErrorMsg = 'If you fill one field in the linked group, fill all of them.';
+            } else if (rule.mode === 'at_least_one' && filledCount < 1) {
+              groupFields.forEach(f => {
+                fieldErrors[f.q.propertyId] = 'Linked fields: fill at least 1 field in this row';
+              });
+              if (!firstErrorMsg) firstErrorMsg = 'Fill at least 1 field in the linked column group.';
+            } else if (rule.mode === 'at_least_n') {
+              const need = Math.max(1, Math.min(groupFields.length, Math.floor(Number(rule.count) || 2)));
+              if (filledCount < need) {
+                groupFields.filter(f => !f.filled).forEach(f => {
+                  fieldErrors[f.q.propertyId] = `Linked fields: fill at least ${need} fields in this row`;
+                });
+                if (!firstErrorMsg) firstErrorMsg = `Fill at least ${need} fields in the linked column group.`;
+              }
+            }
+          }
+          if (Array.isArray(blk.columns)) blk.columns.forEach(checkLinkedColumns);
+          if (Array.isArray(blk.children)) checkLinkedColumns(blk.children);
+          continue;
+        }
+        if (Array.isArray(blk.children)) checkLinkedColumns(blk.children);
+      }
+    };
+    if (Array.isArray(dbPage.blocks)) checkLinkedColumns(dbPage.blocks);
+
+    if (Object.keys(fieldErrors).length) {
+      host?.toast?.(firstErrorMsg || 'Please check form fields');
+      return { ok: false, firstError: firstErrorMsg };
+    }
+
+    const titleProp = db.schema.find(s => s.type === 'title');
+    const initVals: Record<string, any> = {};
+    visibleQuestions.forEach(q => {
+      if (q.propertyId !== titleProp?.id && draftRow.propertyValues[q.propertyId] !== undefined) {
+        initVals[q.propertyId] = structuredCloneSafe(draftRow.propertyValues[q.propertyId]);
+      }
+    });
+    if (titleProp) initVals[titleProp.id] = (draftRow.title || '').trim();
+
+    const created = createDatabaseRow(dbPage, initVals, [], '📄', { anonymous: !!cfg.anonymousSubmissions });
+    persist(false);
+    host?.toast?.(`Form submitted: “${created.title}”`);
+    return { ok: true, row: created };
+  }
+
+  function triggerSendResponseToMail(dbPage: any, rowOrDraft: any, emailAddr: string): boolean {
+    const email = String(emailAddr || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      host?.toast?.('Enter a valid email address to receive your copy.');
+      return false;
+    }
+    const { db, cfg } = ensureFormConfig(dbPage);
+    const lines: string[] = [`Form: ${cfg.title || dbPage.title || 'Form'}`];
+    cfg.questions!.forEach(q => {
+      const prop = db.schema.find(s => s.id === q.propertyId);
+      if (!prop) return;
+      const val = prop.type === 'title' ? rowOrDraft?.title : rowOrDraft?.propertyValues?.[prop.id];
+      const textVal = Array.isArray(val) ? val.map(v => v?.name || prop.options?.find(o => o.id === v)?.name || v).join(', ')
+        : (val && typeof val === 'object' ? JSON.stringify(val) : (prop.options?.find(o => o.id === val)?.name || val || ''));
+      lines.push(`- ${q.label || prop.name}: ${textVal}`);
+    });
+    const w = window as any;
+    if (!Array.isArray(w.__architectFormMailQueue)) w.__architectFormMailQueue = [];
+    w.__architectFormMailQueue.push({
+      formId: dbPage.id,
+      formTitle: cfg.title || dbPage.title || 'Form',
+      to: email,
+      body: lines.join('\n'),
+      queuedAt: Date.now()
+    });
+    host?.toast?.(`Response copy queued for ${email}`);
+    return true;
+  }
+
   function renderFormView(canvas: HTMLElement, view: DbView, dbPage: any) {
     const db = ensureDatabaseConfig(dbPage);
+    if (db.formUploadsToAssets === undefined) db.formUploadsToAssets = true;
+    if (!db.formUploadsFolder) db.formUploadsFolder = 'form-uploads';
     const ro = roMode(dbPage);
     view.formConfig = view.formConfig || {};
     const cfg = view.formConfig;
-    cfg.requiredPropertyIds = cfg.requiredPropertyIds || [];
-    cfg.hiddenPropertyIds = cfg.hiddenPropertyIds || [];
+    cfg.requiredPropertyIds = Array.isArray(cfg.requiredPropertyIds) ? cfg.requiredPropertyIds : [];
+    cfg.hiddenPropertyIds = Array.isArray(cfg.hiddenPropertyIds) ? cfg.hiddenPropertyIds : [];
+    cfg.allowSubmitAnotherResponse = cfg.allowSubmitAnotherResponse !== false;
+    if (cfg.allowSendToEmail === undefined) {
+      cfg.allowSendToEmail = cfg.allowViewResponse !== undefined ? Boolean(cfg.allowViewResponse) : true;
+    }
+    cfg.submissionPermissions = cfg.submissionPermissions || 'workspace';
 
-    const shell = document.createElement('div');
-    shell.className = 'db-form-shell';
+    // Sync questions from schema while preserving custom question order and excluding person/checkbox/meta types
+    const eligibleProps = db.schema.filter(s => !FORM_EXCLUDED_PROP_TYPES.has(s.type));
+    const eligibleIds = new Set(eligibleProps.map(s => s.id));
+    if (!Array.isArray(cfg.questions)) cfg.questions = [];
+    cfg.questions = cfg.questions.filter(q => eligibleIds.has(q.propertyId) && !cfg.hiddenPropertyIds!.includes(q.propertyId));
+    const coveredPropIds = new Set(cfg.questions.map(q => q.propertyId));
+    eligibleProps.forEach(prop => {
+      if (coveredPropIds.has(prop.id)) return;
+      if (cfg.hiddenPropertyIds!.includes(prop.id) && prop.type !== 'title') return;
+      cfg.questions!.push({
+        id: uid(),
+        propertyId: prop.id,
+        label: prop.name,
+        required: prop.type === 'title' || cfg.requiredPropertyIds!.includes(prop.id),
+        displayMode: prop.type === 'multi_select' ? 'list' : undefined,
+        maxSizeMb: prop.type === 'files' ? 10 : undefined
+      });
+    });
+
+    const syncFormBlocks = () => {
+      if (!Array.isArray(cfg.blocks)) cfg.blocks = [];
+      const validQIds = new Set(cfg.questions!.map(q => q.id));
+      const seenQIds = new Set<string>();
+      cfg.blocks = cfg.blocks.filter(b => {
+        if (!b || !b.kind) return false;
+        if (b.kind === 'question') {
+          if (!b.questionId || !validQIds.has(b.questionId) || seenQIds.has(b.questionId)) return false;
+          seenQIds.add(b.questionId);
+          return true;
+        }
+        return ['text', 'h1', 'h2', 'h3', 'bullet', 'callout', 'divider'].includes(b.kind);
+      });
+      cfg.questions!.forEach(q => {
+        if (!seenQIds.has(q.id)) {
+          cfg.blocks!.push({ id: uid(), kind: 'question', questionId: q.id });
+          seenQIds.add(q.id);
+        }
+      });
+      // Reorder cfg.questions to match block stream order so conditions & responses stay consistent
+      const byQId = new Map(cfg.questions!.map(q => [q.id, q]));
+      const ordered: DbFormQuestion[] = [];
+      cfg.blocks.forEach(b => {
+        if (b.kind === 'question' && b.questionId && byQId.has(b.questionId)) {
+          ordered.push(byQId.get(b.questionId)!);
+        }
+      });
+      if (ordered.length === cfg.questions!.length) cfg.questions = ordered;
+    };
+
+    const syncRequiredFromQuestions = () => {
+      cfg.requiredPropertyIds = Array.from(new Set(
+        cfg.questions!.filter(q => q.required).map(q => q.propertyId)
+      ));
+    };
+    cfg.questions.forEach(q => {
+      const prop = db.schema.find(s => s.id === q.propertyId);
+      if (prop?.type === 'title') q.required = true;
+      else if (q.required === undefined && cfg.requiredPropertyIds!.includes(q.propertyId)) q.required = true;
+      if (prop?.type === 'files' && !(Number(q.maxSizeMb) > 0)) q.maxSizeMb = 10;
+    });
+    syncRequiredFromQuestions();
+    syncFormBlocks();
+
+    const isRespondActive = () => {
+      return ro || cfg.formMode === 'respond' || (window as any).__architectFormOpenMode === dbPage.id;
+    };
+    let isRespondMode = isRespondActive();
 
     const draftRow: any = {
       id: '__form_draft__',
@@ -6129,186 +9593,710 @@ const ArchitectDatabase = (() => {
       icon: '📄',
       propertyValues: {}
     };
-    const fakePropMeta = (pid: string) => db.schema.find(s => s.id === pid);
-    const eligibleProps = db.schema.filter(s => !['created_time', 'created_by', 'last_edited_time', 'last_edited_by', 'formula', 'rollup', 'unique_id', 'button'].includes(s.type));
+    const fieldErrors: Record<string, string> = {};
+    let submittedRow: any = null;
+    let activeQuestionId: string | null = null;
+    let activeFormBlockId: string | null = null;
 
-    const header = document.createElement('div');
-    header.className = 'db-form-header';
-    const titleInp = document.createElement('input');
-    titleInp.type = 'text';
-    titleInp.className = 'db-form-title-input';
-    titleInp.value = cfg.title || `${dbPage.title || 'Database'} intake form`;
-    titleInp.disabled = ro;
-    titleInp.onchange = () => { cfg.title = titleInp.value; persist(false); };
-    const descInp = document.createElement('textarea');
-    descInp.className = 'db-form-desc-input';
-    descInp.placeholder = 'Optional form instructions…';
-    descInp.value = cfg.description || '';
-    descInp.disabled = ro;
-    descInp.onchange = () => { cfg.description = descInp.value; persist(false); };
-    header.append(titleInp, descInp);
+    const shell = document.createElement('div');
+    shell.className = 'db-form-shell' + (isRespondMode ? ' is-responder-mode' : ' is-builder-mode');
+    shell.dataset.formMode = isRespondMode ? 'respond' : 'editor';
 
-    const statusBanner = document.createElement('div');
-    statusBanner.className = 'db-form-submitted';
-    statusBanner.hidden = true;
+    let slashMenuEl: HTMLElement | null = null;
+    const closeSlashMenu = () => {
+      if (slashMenuEl) {
+        slashMenuEl.remove();
+        slashMenuEl = null;
+      }
+    };
+
+    const openFormSettingsPopover = (anchor: HTMLElement) => openFormDesignAndSettingsPopover(anchor, dbPage, () => renderShell());
+
+    const addTextBlock = (kind: DbFormBlockKind = 'text', afterBlockId?: string | null) => {
+      syncFormBlocks();
+      const nb: DbFormBlock = { id: uid(), kind, html: '' };
+      const idx = afterBlockId ? cfg.blocks!.findIndex(b => b.id === afterBlockId) : -1;
+      if (idx >= 0) cfg.blocks!.splice(idx + 1, 0, nb);
+      else cfg.blocks!.push(nb);
+      activeFormBlockId = nb.id;
+      activeQuestionId = null;
+      persist(false);
+      drawFormBody();
+      if (kind !== 'divider') {
+        const el = shell.querySelector(`[data-form-block-id="${CSS.escape(nb.id)}"] .db-form-text-editable`) as HTMLElement | null;
+        if (el) el.focus({ preventScroll: true });
+      }
+      return nb;
+    };
+
+    const addNewQuestion = (type: DbPropertyType, afterBlockId?: string | null) => {
+      if (type === 'person' || type === 'checkbox') type = 'select';
+      const nextNum = cfg.questions!.length + 1;
+      const baseLabel = type === 'files' ? `Upload file ${nextNum}` : `Question ${nextNum}`;
+      const newProp: DbSchemaProperty = {
+        id: uid(),
+        name: baseLabel,
+        type,
+        width: 170
+      };
+      if (type === 'select' || type === 'multi_select') {
+        newProp.options = [
+          { id: uid(), name: 'Option 1', color: 'blue' },
+          { id: uid(), name: 'Option 2', color: 'yellow' }
+        ];
+      }
+      db.schema.push(newProp);
+      db.views.forEach(v => {
+        if (!v.propertyOrder.includes(newProp.id)) v.propertyOrder.push(newProp.id);
+        if (!v.visiblePropertyIds.includes(newProp.id)) v.visiblePropertyIds.push(newProp.id);
+      });
+      const newQ: DbFormQuestion = {
+        id: uid(),
+        propertyId: newProp.id,
+        label: baseLabel,
+        required: false,
+        displayMode: type === 'multi_select' ? 'list' : undefined,
+        maxSizeMb: type === 'files' ? 10 : undefined
+      };
+      cfg.questions!.push(newQ);
+      const nb: DbFormBlock = { id: uid(), kind: 'question', questionId: newQ.id };
+      const targetAnchorId = afterBlockId || activeFormBlockId || (activeQuestionId ? cfg.blocks!.find(b => b.questionId === activeQuestionId)?.id : null);
+      const idx = targetAnchorId ? cfg.blocks!.findIndex(b => b.id === targetAnchorId) : -1;
+      if (idx >= 0) cfg.blocks!.splice(idx + 1, 0, nb);
+      else cfg.blocks!.push(nb);
+      syncFormBlocks();
+      activeQuestionId = newQ.id;
+      activeFormBlockId = nb.id;
+      persist(false);
+      renderShell();
+      const inp = shell.querySelector(`[data-question-id="${CSS.escape(newQ.id)}"] .db-form-q-label`) as HTMLInputElement | null;
+      if (inp) { inp.focus({ preventScroll: true }); inp.select(); }
+      return newQ;
+    };
+
+    activeFormControllers.set(dbPage.id, {
+      addQuestion: (t, afterId) => addNewQuestion(t, afterId),
+      addTextBlock: (k, afterId) => addTextBlock(k, afterId)
+    });
+
+    const jumpToResponses = () => {
+      let tableView = db.views.find(v => v.type === 'table');
+      if (!tableView) {
+        tableView = buildDefaultView(db.schema, 'table', 'Responses');
+        db.views.push(tableView);
+      }
+      db.activeViewId = tableView.id;
+      persist(false);
+      refreshAllDatabaseViews();
+    };
 
     const formBody = document.createElement('form');
     formBody.className = 'db-form-fields';
+    formBody.noValidate = true;
 
-    const drawFields = () => {
+    const FORM_SLASH_COMMANDS: Array<{ cmd: string; label: string; kind: 'question' | 'block'; propType?: DbPropertyType; blockKind?: DbFormBlockKind }> = [
+      { cmd: '/question', label: 'Question (Text)', kind: 'question', propType: 'text' },
+      { cmd: '/select', label: 'Select question', kind: 'question', propType: 'multi_select' },
+      { cmd: '/upload', label: 'Upload file question', kind: 'question', propType: 'files' },
+      { cmd: '/phone', label: 'Phone (+country) question', kind: 'question', propType: 'phone' },
+      { cmd: '/number', label: 'Number question', kind: 'question', propType: 'number' },
+      { cmd: '/date', label: 'Date question', kind: 'question', propType: 'date' },
+      { cmd: '/email', label: 'Email question', kind: 'question', propType: 'email' },
+      { cmd: '/url', label: 'URL question', kind: 'question', propType: 'url' },
+      { cmd: '/text', label: 'Free text paragraph', kind: 'block', blockKind: 'text' },
+      { cmd: '/h1', label: 'Heading 1', kind: 'block', blockKind: 'h1' },
+      { cmd: '/h2', label: 'Heading 2', kind: 'block', blockKind: 'h2' },
+      { cmd: '/h3', label: 'Heading 3', kind: 'block', blockKind: 'h3' },
+      { cmd: '/bullet', label: 'Bullet item', kind: 'block', blockKind: 'bullet' },
+      { cmd: '/callout', label: 'Callout box', kind: 'block', blockKind: 'callout' },
+      { cmd: '/divider', label: 'Divider line', kind: 'block', blockKind: 'divider' }
+    ];
+
+    const moveFormBlock = (blockIdx: number, delta: number) => {
+      const targetIdx = blockIdx + delta;
+      if (targetIdx < 0 || targetIdx >= cfg.blocks!.length) return;
+      const arr = cfg.blocks!;
+      [arr[blockIdx], arr[targetIdx]] = [arr[targetIdx], arr[blockIdx]];
+      syncFormBlocks();
+      persist(false);
+      drawFormBody();
+    };
+
+    const drawFormBody = () => {
+      closeSlashMenu();
+      syncFormBlocks();
       formBody.replaceChildren();
-      eligibleProps.forEach(prop => {
-        if (cfg.hiddenPropertyIds!.includes(prop.id) && prop.type !== 'title') return;
-        const isReq = prop.type === 'title' || cfg.requiredPropertyIds!.includes(prop.id);
-        const fieldCard = document.createElement('div');
-        fieldCard.className = 'db-form-field-card';
-        const top = document.createElement('div');
-        top.className = 'db-form-field-head';
-        top.innerHTML = `<label><strong>${escHtml(prop.name)}</strong>${isReq ? ' <span class="db-form-req">*</span>' : ''}</label>`;
-        if (!ro && prop.type !== 'title') {
-          const reqLbl = document.createElement('label');
-          reqLbl.className = 'db-form-req-toggle';
-          const reqCb = document.createElement('input');
-          reqCb.type = 'checkbox';
-          reqCb.checked = isReq;
-          reqCb.onchange = () => {
-            cfg.requiredPropertyIds = reqCb.checked
-              ? [...new Set([...cfg.requiredPropertyIds!, prop.id])]
-              : cfg.requiredPropertyIds!.filter(id => id !== prop.id);
-            persist(false);
-            drawFields();
-          };
-          reqLbl.append(reqCb, document.createTextNode('Required'));
-          top.append(reqLbl);
-        }
-        fieldCard.append(top);
+      if (isRespondMode && cfg.isClosed) {
+        const closed = document.createElement('div');
+        closed.className = 'db-form-closed-banner';
+        closed.innerHTML = '<strong>This form is closed.</strong><span>No new responses can be submitted.</span>';
+        formBody.append(closed);
+        return;
+      }
 
-        // Local draft control avoiding mutating real workspace until Submit
-        if (prop.type === 'title') {
-          const inp = document.createElement('input');
-          inp.type = 'text';
-          inp.className = 'db-form-input';
-          inp.placeholder = 'Enter title…';
-          inp.value = draftRow.title;
-          inp.oninput = () => { draftRow.title = inp.value; };
-          fieldCard.append(inp);
-        } else if (prop.type === 'checkbox') {
-          const lbl = document.createElement('label');
-          lbl.style.display = 'inline-flex'; lbl.style.alignItems = 'center'; lbl.style.gap = '6px';
-          const cb = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.checked = Boolean(draftRow.propertyValues[prop.id]);
-          cb.onchange = () => { draftRow.propertyValues[prop.id] = cb.checked; };
-          lbl.append(cb, document.createTextNode(prop.name));
-          fieldCard.append(lbl);
-        } else if (prop.type === 'select' || prop.type === 'status') {
-          const sel = document.createElement('select');
-          sel.className = 'db-form-input';
-          sel.innerHTML = `<option value="">Choose option…</option>${(prop.options || []).map(o => `<option value="${escHtml(o.id)}">${escHtml(o.name)}</option>`).join('')}`;
-          sel.value = draftRow.propertyValues[prop.id] || '';
-          sel.onchange = () => { draftRow.propertyValues[prop.id] = sel.value; };
-          fieldCard.append(sel);
-        } else if (prop.type === 'multi_select') {
-          const box = document.createElement('div');
-          box.className = 'db-pill-list';
-          (prop.options || []).forEach(o => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'db-form-chip-toggle';
-            const syncChip = () => {
-              const arr: string[] = draftRow.propertyValues[prop.id] || [];
-              const active = arr.includes(o.id);
-              btn.classList.toggle('is-active', active);
-              btn.textContent = `${active ? '✓ ' : ''}${o.name}`;
+      if (submittedRow && isRespondMode) {
+        const doneBox = document.createElement('div');
+        doneBox.className = 'db-form-submitted';
+        doneBox.innerHTML = `<strong>✓ ${escHtml(cfg.confirmationTitle || 'Thank you!')}</strong><span>${escHtml(cfg.confirmationBody || `Submitted “${submittedRow.title}”`)}</span>`;
+        const btnRow = document.createElement('div');
+        btnRow.className = 'db-form-submitted-actions';
+        if (cfg.allowSendToEmail !== false) {
+          const emailWrap = document.createElement('div');
+          emailWrap.className = 'db-form-sendmail-inline';
+          const emailToggle = document.createElement('button');
+          emailToggle.type = 'button';
+          emailToggle.className = 'secondary-button';
+          emailToggle.dataset.formAction = 'send-to-email';
+          emailToggle.textContent = '✉ Send response to my mail';
+          emailToggle.onclick = () => {
+            if (emailWrap.querySelector('input')) return;
+            const inp = document.createElement('input');
+            inp.type = 'email';
+            inp.className = 'db-form-input';
+            inp.placeholder = 'you@example.com';
+            const sendBtn = document.createElement('button');
+            sendBtn.type = 'button';
+            sendBtn.className = 'primary-button';
+            sendBtn.textContent = 'Send copy';
+            sendBtn.onclick = () => {
+              if (triggerSendResponseToMail(dbPage, submittedRow, inp.value)) {
+                emailWrap.replaceChildren(document.createTextNode(`✓ Sent copy to ${inp.value.trim()}`));
+              }
             };
-            btn.onclick = () => {
-              const cur: string[] = draftRow.propertyValues[prop.id] || [];
-              draftRow.propertyValues[prop.id] = cur.includes(o.id) ? cur.filter(x => x !== o.id) : [...cur, o.id];
-              syncChip();
-            };
-            syncChip();
-            box.append(btn);
-          });
-          fieldCard.append(box);
-        } else if (prop.type === 'date') {
-          const inp = document.createElement('input');
-          inp.type = 'date';
-          inp.className = 'db-form-input';
-          inp.value = draftRow.propertyValues[prop.id]?.start || '';
-          inp.onchange = () => { draftRow.propertyValues[prop.id] = inp.value ? { start: inp.value } : undefined; };
-          fieldCard.append(inp);
-        } else if (prop.type === 'person') {
-          const sel = document.createElement('select');
-          sel.className = 'db-form-input';
-          const users = getState()?.users || [];
-          sel.innerHTML = `<option value="">Choose person…</option>${users.map((u: any) => `<option value="${escHtml(u.id)}">${escHtml(u.name)}</option>`).join('')}`;
-          sel.onchange = () => { draftRow.propertyValues[prop.id] = sel.value ? [sel.value] : []; };
-          fieldCard.append(sel);
-        } else {
-          const inp = document.createElement('input');
-          inp.type = prop.type === 'number' ? 'number' : prop.type === 'email' ? 'email' : prop.type === 'url' ? 'url' : 'text';
-          inp.className = 'db-form-input';
-          inp.placeholder = `Enter ${prop.name.toLowerCase()}…`;
-          inp.value = draftRow.propertyValues[prop.id] ?? '';
-          inp.oninput = () => {
-            draftRow.propertyValues[prop.id] = prop.type === 'number' ? (inp.value === '' ? '' : Number(inp.value)) : inp.value;
+            emailWrap.append(inp, sendBtn);
+            inp.focus();
           };
-          fieldCard.append(inp);
+          emailWrap.append(emailToggle);
+          btnRow.append(emailWrap);
         }
-        formBody.append(fieldCard);
+        if (cfg.allowSubmitAnotherResponse !== false) {
+          const anotherBtn = document.createElement('button');
+          anotherBtn.type = 'button';
+          anotherBtn.className = 'primary-button';
+          anotherBtn.textContent = 'Submit another response';
+          anotherBtn.onclick = () => {
+            submittedRow = null;
+            draftRow.title = '';
+            draftRow.propertyValues = {};
+            Object.keys(fieldErrors).forEach(k => delete fieldErrors[k]);
+            drawFormBody();
+          };
+          btnRow.append(anotherBtn);
+        }
+        doneBox.append(btnRow);
+        formBody.append(doneBox);
+        return;
+      }
+
+      cfg.blocks!.forEach((b, bIdx) => {
+        if (b.kind !== 'question') {
+          if (isRespondMode || ro) {
+            if (b.kind === 'divider') {
+              const hr = document.createElement('div');
+              hr.className = 'db-form-divider-row';
+              hr.innerHTML = '<div class="db-form-divider-line"></div>';
+              formBody.append(hr);
+              return;
+            }
+            if (!stripFormHtml(b.html)) return;
+            const out = document.createElement('div');
+            out.className = `db-form-text-block is-responder is-${b.kind}`;
+            out.dataset.formBlockId = b.id;
+            const inner = document.createElement('div');
+            inner.className = 'db-form-text-editable';
+            inner.innerHTML = sanitizeFormRichHtml(b.html || '');
+            out.append(inner);
+            formBody.append(out);
+            return;
+          }
+
+          const wrap = document.createElement('div');
+          wrap.className = `db-form-text-block is-builder is-${b.kind}`;
+          wrap.dataset.formBlockId = b.id;
+          const tools = document.createElement('div');
+          tools.className = 'db-form-text-block-tools';
+
+          if (b.kind !== 'divider') {
+            const kSel = document.createElement('select');
+            kSel.className = 'db-form-ctrl-btn';
+            [['text', '¶ Text'], ['h1', 'H1'], ['h2', 'H2'], ['h3', 'H3'], ['bullet', '• Bullet'], ['callout', '💡 Callout']].forEach(([k, l]) => {
+              const o = document.createElement('option');
+              o.value = k;
+              o.textContent = l;
+              kSel.append(o);
+            });
+            kSel.value = b.kind;
+            kSel.onchange = () => { b.kind = kSel.value as DbFormBlockKind; persist(false); drawFormBody(); };
+            tools.append(kSel);
+          }
+
+          if (bIdx > 0) {
+            const up = document.createElement('button');
+            up.type = 'button';
+            up.className = 'db-form-ctrl-btn';
+            up.textContent = '↑';
+            up.onclick = () => moveFormBlock(bIdx, -1);
+            tools.append(up);
+          }
+          if (bIdx < cfg.blocks!.length - 1) {
+            const dn = document.createElement('button');
+            dn.type = 'button';
+            dn.className = 'db-form-ctrl-btn';
+            dn.textContent = '↓';
+            dn.onclick = () => moveFormBlock(bIdx, 1);
+            tools.append(dn);
+          }
+          const del = document.createElement('button');
+          del.type = 'button';
+          del.className = 'db-form-ctrl-btn danger';
+          del.textContent = '🗑';
+          del.onclick = () => {
+            cfg.blocks = cfg.blocks!.filter(x => x.id !== b.id);
+            persist(false);
+            drawFormBody();
+          };
+          tools.append(del);
+
+          if (b.kind === 'divider') {
+            const row = document.createElement('div');
+            row.className = 'db-form-divider-row';
+            row.innerHTML = '<div class="db-form-divider-line"></div>';
+            wrap.append(tools, row);
+            formBody.append(wrap);
+            return;
+          }
+
+          const ed = document.createElement('div');
+          ed.className = 'db-form-text-editable';
+          ed.contentEditable = 'true';
+          ed.dataset.placeholder = b.kind === 'h1' ? 'Heading 1…' : b.kind === 'h2' ? 'Heading 2…' : b.kind === 'h3' ? 'Heading 3…' : b.kind === 'callout' ? 'Callout note…' : "Write freely between questions, or type '/' for commands (/question, /upload…)";
+          ed.innerHTML = sanitizeFormRichHtml(b.html || '');
+          ed.onfocus = () => {
+            activeFormBlockId = b.id;
+            activeQuestionId = null;
+          };
+
+          let slashSelectionIdx = 0;
+          const openOrUpdateSlashMenu = () => {
+            const txt = (ed.textContent || '').replace(/\u00a0/g, ' ');
+            const match = /(?:^|\s)(\/[a-z-]*)$/i.exec(txt);
+            if (!match) {
+              closeSlashMenu();
+              return;
+            }
+            const query = match[1].toLowerCase();
+            const hits = FORM_SLASH_COMMANDS.filter(c => c.cmd.includes(query) || c.label.toLowerCase().includes(query.slice(1)));
+            if (!hits.length) {
+              closeSlashMenu();
+              return;
+            }
+            if (slashSelectionIdx >= hits.length) slashSelectionIdx = 0;
+            closeSlashMenu();
+            const menu = document.createElement('div');
+            menu.className = 'db-form-slash-menu';
+            const r = ed.getBoundingClientRect();
+            menu.style.left = `${Math.max(12, Math.min(window.innerWidth - 250, r.left))}px`;
+            menu.style.top = `${Math.min(window.innerHeight - 290, r.bottom + 4)}px`;
+            hits.forEach((cmd, idx) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'db-form-slash-item' + (idx === slashSelectionIdx ? ' is-selected' : '');
+              btn.dataset.formSlashCmd = cmd.cmd;
+              btn.innerHTML = `<span>${escHtml(cmd.label)}</span><small>${escHtml(cmd.cmd)}</small>`;
+              btn.onmousedown = e => {
+                e.preventDefault();
+                runFormSlashCommand(cmd);
+              };
+              menu.append(btn);
+            });
+            document.body.append(menu);
+            slashMenuEl = menu;
+          };
+
+          const runFormSlashCommand = (cmd: (typeof FORM_SLASH_COMMANDS)[number]) => {
+            closeSlashMenu();
+            const plain = (ed.textContent || '').replace(/\u00a0/g, ' ');
+            const cleaned = plain.replace(/(?:^|\s)\/[a-z-]*$/i, '').trim();
+            if (!cleaned) {
+              if (cmd.kind === 'block' && cmd.blockKind && cmd.blockKind !== 'divider') {
+                b.kind = cmd.blockKind;
+                b.html = '';
+                persist(false);
+                drawFormBody();
+                const nextEd = shell.querySelector(`[data-form-block-id="${CSS.escape(b.id)}"] .db-form-text-editable`) as HTMLElement | null;
+                if (nextEd) nextEd.focus();
+                return;
+              }
+              cfg.blocks = cfg.blocks!.filter(x => x.id !== b.id);
+              if (cmd.kind === 'question' && cmd.propType) {
+                addNewQuestion(cmd.propType, bIdx > 0 ? cfg.blocks![bIdx - 1]?.id : null);
+              } else if (cmd.kind === 'block' && cmd.blockKind) {
+                addTextBlock(cmd.blockKind, bIdx > 0 ? cfg.blocks![bIdx - 1]?.id : null);
+              }
+              return;
+            }
+            b.html = escHtml(cleaned);
+            if (cmd.kind === 'question' && cmd.propType) {
+              addNewQuestion(cmd.propType, b.id);
+            } else if (cmd.kind === 'block' && cmd.blockKind) {
+              addTextBlock(cmd.blockKind, b.id);
+            }
+          };
+
+          ed.oninput = () => {
+            b.html = sanitizeFormRichHtml(ed.innerHTML);
+            persist(false);
+            openOrUpdateSlashMenu();
+          };
+          ed.onkeydown = e => {
+            if (slashMenuEl) {
+              const items = Array.from(slashMenuEl.querySelectorAll('.db-form-slash-item')) as HTMLElement[];
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                slashSelectionIdx = (slashSelectionIdx + 1) % Math.max(1, items.length);
+                items.forEach((el, i) => el.classList.toggle('is-selected', i === slashSelectionIdx));
+                return;
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                slashSelectionIdx = (slashSelectionIdx - 1 + Math.max(1, items.length)) % Math.max(1, items.length);
+                items.forEach((el, i) => el.classList.toggle('is-selected', i === slashSelectionIdx));
+                return;
+              }
+              if (e.key === 'Enter' && items[slashSelectionIdx]) {
+                e.preventDefault();
+                const cmdName = items[slashSelectionIdx].dataset.formSlashCmd;
+                const found = FORM_SLASH_COMMANDS.find(c => c.cmd === cmdName);
+                if (found) runFormSlashCommand(found);
+                return;
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                closeSlashMenu();
+                return;
+              }
+            }
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              addTextBlock('text', b.id);
+            } else if (e.key === 'Backspace' && !stripFormHtml(ed.innerHTML)) {
+              e.preventDefault();
+              cfg.blocks = cfg.blocks!.filter(x => x.id !== b.id);
+              persist(false);
+              drawFormBody();
+            }
+          };
+
+          wrap.append(tools, ed);
+          formBody.append(wrap);
+          return;
+        }
+
+        const q = cfg.questions!.find(x => x.id === b.questionId);
+        if (!q) return;
+        const prop = db.schema.find(s => s.id === q.propertyId);
+        if (!prop) return;
+
+        const fieldCard = renderFormQuestionCard({
+          dbPage,
+          q,
+          prop,
+          blockId: b.id,
+          draftRow,
+          fieldErrors,
+          isRespondMode,
+          isReadOnly: ro,
+          isFocused: activeQuestionId === q.id,
+          onFocus: () => {
+            if (!isRespondMode && (activeQuestionId !== q.id || activeFormBlockId !== b.id)) {
+              activeQuestionId = q.id;
+              activeFormBlockId = b.id;
+              formBody.querySelectorAll('.db-form-field-card').forEach(el => el.classList.toggle('is-focused', (el as HTMLElement).dataset.questionId === q.id));
+            }
+          },
+          onRedraw: () => drawFormBody(),
+          onAnswerUpdated: () => {
+            if (['select', 'multi_select', 'status'].includes(prop.type) && isRespondMode) drawFormBody();
+          },
+          onAddTextBelow: () => addTextBlock('text', b.id),
+          canMoveUp: bIdx > 0,
+          canMoveDown: bIdx < cfg.blocks!.length - 1,
+          onMoveUp: () => moveFormBlock(bIdx, -1),
+          onMoveDown: () => moveFormBlock(bIdx, 1),
+          onDuplicate: () => {
+            const dupProp: DbSchemaProperty = structuredCloneSafe(prop);
+            dupProp.id = uid();
+            dupProp.name = `${prop.name} (copy)`;
+            db.schema.push(dupProp);
+            const dupQ: DbFormQuestion = { ...structuredCloneSafe(q), id: uid(), propertyId: dupProp.id, label: `${q.label || prop.name} (copy)`, condition: null };
+            const qIdx = cfg.questions!.findIndex(x => x.id === q.id);
+            cfg.questions!.splice(qIdx + 1, 0, dupQ);
+            cfg.blocks!.splice(bIdx + 1, 0, { id: uid(), kind: 'question', questionId: dupQ.id });
+            syncFormBlocks();
+            cfg.requiredPropertyIds = Array.from(new Set(cfg.questions!.filter(x => x.required).map(x => x.propertyId)));
+            persist(false);
+            drawFormBody();
+          },
+          onDelete: () => {
+            cfg.questions = cfg.questions!.filter(x => x.id !== q.id);
+            cfg.questions.forEach(other => {
+              if (other.condition?.parentQuestionId === q.id) other.condition = null;
+            });
+            cfg.blocks = cfg.blocks!.filter(x => x.questionId !== q.id);
+            cfg.hiddenPropertyIds = [...new Set([...cfg.hiddenPropertyIds!, q.propertyId])];
+            cfg.requiredPropertyIds = Array.from(new Set(cfg.questions.filter(x => x.required).map(x => x.propertyId)));
+            persist(false);
+            drawFormBody();
+          }
+        });
+
+        if (fieldCard) formBody.append(fieldCard);
       });
+
+      if (submittedRow && !isRespondMode) {
+        const doneBox = document.createElement('div');
+        doneBox.className = 'db-form-submitted';
+        doneBox.innerHTML = `<strong>✓ Submitted “${escHtml(submittedRow.title)}”</strong>`;
+        const anotherBtn = document.createElement('button');
+        anotherBtn.type = 'button';
+        anotherBtn.className = 'secondary-button';
+        anotherBtn.textContent = 'Submit another response';
+        anotherBtn.onclick = () => {
+          submittedRow = null;
+          draftRow.title = '';
+          draftRow.propertyValues = {};
+          drawFormBody();
+        };
+        doneBox.append(anotherBtn);
+        formBody.append(doneBox);
+      }
 
       const footer = document.createElement('div');
       footer.className = 'db-form-footer';
+      const identPill = document.createElement('span');
+      identPill.className = 'db-form-identity-pill';
+      identPill.textContent = cfg.anonymousSubmissions
+        ? '🕶 Anonymous responses'
+        : `Submitting as ${actorName()}`;
       const subBtn = document.createElement('button');
       subBtn.type = 'submit';
       subBtn.className = 'share-button db-form-submit-btn';
-      subBtn.textContent = cfg.submitLabel || 'Submit response';
-      footer.append(subBtn);
+      subBtn.textContent = cfg.submitLabel || 'Submit';
+      footer.append(identPill, subBtn);
       formBody.append(footer);
     };
 
     formBody.onsubmit = e => {
       e.preventDefault();
-      if (!String(draftRow.title || '').trim()) {
-        host?.toast?.('Please fill out the required Name field');
+      if (cfg.isClosed && isRespondMode) {
+        host?.toast?.('This form is closed.');
         return;
       }
-      for (const reqId of cfg.requiredPropertyIds!) {
-        const p = fakePropMeta(reqId);
-        if (!p || p.type === 'title') continue;
-        const v = draftRow.propertyValues[reqId];
-        if (v == null || v === '' || (Array.isArray(v) && !v.length)) {
-          host?.toast?.(`Please fill required field “${p.name}”`);
-          return;
-        }
+      const res = validateAndSubmitForm(dbPage, draftRow, fieldErrors);
+      if (!res.ok) {
+        drawFormBody();
+        return;
       }
-      const titleProp = db.schema.find(s => s.type === 'title');
-      const initVals: Record<string, any> = { ...draftRow.propertyValues };
-      if (titleProp) initVals[titleProp.id] = draftRow.title.trim();
-      const created = createDatabaseRow(dbPage, initVals);
-      persist(false);
-      statusBanner.hidden = false;
-      statusBanner.innerHTML = `<strong>✓ Submitted “${escHtml(created.title)}”</strong>`;
-      const anotherBtn = document.createElement('button');
-      anotherBtn.type = 'button';
-      anotherBtn.className = 'secondary-button';
-      anotherBtn.textContent = 'Submit another response';
-      anotherBtn.onclick = () => {
-        draftRow.title = '';
-        draftRow.propertyValues = {};
-        statusBanner.hidden = true;
-        drawFields();
-      };
-      statusBanner.append(anotherBtn);
-      host?.toast?.(`Form submitted: “${created.title}”`);
+      submittedRow = res.row;
       draftRow.title = '';
       draftRow.propertyValues = {};
-      drawFields();
+      drawFormBody();
     };
 
-    drawFields();
-    shell.append(header, statusBanner, formBody);
+    const buildDedicatedFormToolbar = (): HTMLElement => {
+      const tb = document.createElement('div');
+      tb.className = 'db-form-toolbar';
+      tb.setAttribute('role', 'toolbar');
+      tb.setAttribute('aria-label', 'Forms builder toolbar');
+
+      const closeAllMenus = () => {
+        tb.querySelectorAll('.db-form-tb-menu').forEach(m => m.setAttribute('hidden', ''));
+      };
+
+      const mkBtn = (label: string, title: string, cls = '', onClick?: () => void) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `db-form-tb-btn ${cls}`.trim();
+        b.title = title;
+        b.textContent = label;
+        if (onClick) b.onclick = () => { closeAllMenus(); onClick(); };
+        return b;
+      };
+
+      // Free text / formatting controls
+      const textGroup = document.createElement('div');
+      textGroup.className = 'db-form-tb-group';
+      const txtInsertBtn = mkBtn('¶ Text block', 'Insert free-text paragraph block (also via Enter)', '', () => addTextBlock('text', activeFormBlockId));
+      txtInsertBtn.dataset.formTb = 'insert-text';
+      textGroup.append(txtInsertBtn);
+
+      const hDrop = document.createElement('div');
+      hDrop.className = 'db-form-tb-dropdown';
+      const hBtn = mkBtn('Blocks ▾', 'Insert heading, bullet, callout or divider', '');
+      hBtn.dataset.formTb = 'blocks-dropdown';
+      const hMenu = document.createElement('div');
+      hMenu.className = 'db-form-tb-menu';
+      hMenu.setAttribute('hidden', '');
+      [
+        { kind: 'h1' as DbFormBlockKind, label: 'H1 Heading 1' },
+        { kind: 'h2' as DbFormBlockKind, label: 'H2 Heading 2' },
+        { kind: 'h3' as DbFormBlockKind, label: 'H3 Heading 3' },
+        { kind: 'bullet' as DbFormBlockKind, label: '• Bullet list item' },
+        { kind: 'callout' as DbFormBlockKind, label: '💡 Callout block' },
+        { kind: 'divider' as DbFormBlockKind, label: '― Divider line' }
+      ].forEach(item => {
+        const mi = document.createElement('button');
+        mi.type = 'button';
+        mi.className = 'db-form-tb-item';
+        mi.dataset.formBlockInsert = item.kind;
+        mi.textContent = item.label;
+        mi.onclick = () => { closeAllMenus(); addTextBlock(item.kind, activeFormBlockId); };
+        hMenu.append(mi);
+      });
+      hBtn.onclick = e => {
+        e.stopPropagation();
+        const open = hMenu.hasAttribute('hidden');
+        closeAllMenus();
+        if (open) hMenu.removeAttribute('hidden');
+      };
+      hDrop.append(hBtn, hMenu);
+      textGroup.append(hDrop);
+
+      [['B', 'Bold', 'bold'], ['I', 'Italic', 'italic'], ['U', 'Underline', 'underline']].forEach(([lbl, tip, cmd]) => {
+        const fb = mkBtn(lbl, tip, 'is-fmt');
+        fb.onmousedown = e => {
+          e.preventDefault();
+          try { document.execCommand(cmd, false); } catch {}
+        };
+        textGroup.append(fb);
+      });
+
+      const sep = document.createElement('span');
+      sep.className = 'db-form-tb-sep';
+
+      // Question insertion controls: Select dropdown (Select + Multi-select), no Checkbox, no Person, includes Phone & Upload
+      const qGroup = document.createElement('div');
+      qGroup.className = 'db-form-tb-group';
+
+      const textQBtn = mkBtn('+ ¶ Question', 'Add text question (/question)', 'is-primary-q', () => addNewQuestion('text'));
+      textQBtn.dataset.addQuestionType = 'text';
+      qGroup.append(textQBtn);
+
+      const selBtn = mkBtn('+ ▾ Select', 'Add Select question (/select)', 'is-primary-q', () => addNewQuestion('multi_select'));
+      selBtn.dataset.addQuestionType = 'select';
+      qGroup.append(selBtn);
+
+      [
+        { type: 'number' as DbPropertyType, label: '# Number' },
+        { type: 'date' as DbPropertyType, label: '📅 Date' },
+        { type: 'email' as DbPropertyType, label: '@ Email' },
+        { type: 'phone' as DbPropertyType, label: '☎ Phone' },
+        { type: 'url' as DbPropertyType, label: '🔗 URL' },
+        { type: 'files' as DbPropertyType, label: '📎 Upload' }
+      ].forEach(item => {
+        const b = mkBtn(item.label, `Add ${item.label.slice(2)} question`, 'is-primary-q', () => addNewQuestion(item.type));
+        b.dataset.addQuestionType = item.type;
+        qGroup.append(b);
+      });
+
+      const onDocClick = () => {
+        if (!tb.isConnected) {
+          document.removeEventListener('click', onDocClick);
+          return;
+        }
+        closeAllMenus();
+      };
+      document.addEventListener('click', onDocClick);
+      tb.append(textGroup, qGroup);
+      return tb;
+    };
+
+    const renderShell = () => {
+      shell.replaceChildren();
+      isRespondMode = isRespondActive();
+      const respondActive = isRespondMode;
+      shell.className = 'db-form-shell' + (respondActive ? ' is-responder-mode' : ' is-builder-mode');
+      shell.dataset.formMode = respondActive ? 'respond' : 'editor';
+
+      if (!ro) {
+        const topStrip = document.createElement('div');
+        topStrip.className = 'db-form-top-actions';
+        const modePill = document.createElement('span');
+        modePill.className = 'db-form-mode-badge';
+        modePill.textContent = respondActive ? '👁 Responder preview' : '📝 Form builder';
+
+        const rightBtns = document.createElement('div');
+        rightBtns.className = 'db-form-top-btns';
+
+        const respCount = getDatabaseRows(dbPage.id).length;
+        const respBtn = document.createElement('button');
+        respBtn.type = 'button';
+        respBtn.className = 'db-toolbar-btn';
+        respBtn.dataset.formAction = 'view-responses';
+        respBtn.textContent = `📊 Responses (${respCount})`;
+        respBtn.onclick = jumpToResponses;
+
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.className = 'db-toolbar-btn' + (respondActive ? ' is-active' : '');
+        prevBtn.dataset.formAction = 'toggle-preview';
+        prevBtn.textContent = respondActive ? '✎ Edit form' : '👁 Preview';
+        prevBtn.onclick = () => {
+          (window as any).__architectFormOpenMode = null;
+          cfg.formMode = respondActive ? 'editor' : 'respond';
+          submittedRow = null;
+          persist(false);
+          renderShell();
+        };
+
+        const settingsBtn = document.createElement('button');
+        settingsBtn.type = 'button';
+        settingsBtn.className = 'db-toolbar-btn';
+        settingsBtn.dataset.formAction = 'form-settings';
+        settingsBtn.textContent = '⚙ Settings & Link';
+        settingsBtn.onclick = () => openFormSettingsPopover(settingsBtn);
+
+        rightBtns.append(respBtn, prevBtn, settingsBtn);
+        topStrip.append(modePill, rightBtns);
+        shell.append(topStrip);
+
+        if (!respondActive) {
+          shell.append(buildDedicatedFormToolbar());
+        }
+      }
+
+      const header = document.createElement('div');
+      header.className = 'db-form-header';
+      if (respondActive || ro) {
+        const h2 = document.createElement('h2');
+        h2.className = 'db-form-title-static';
+        h2.textContent = cfg.title || dbPage.title || 'Form';
+        header.append(h2);
+        if (cfg.description) {
+          const p = document.createElement('p');
+          p.className = 'db-form-desc-static';
+          p.textContent = cfg.description;
+          header.append(p);
+        }
+      } else {
+        const titleInp = document.createElement('input');
+        titleInp.type = 'text';
+        titleInp.className = 'db-form-title-input';
+        titleInp.value = cfg.title || `${dbPage.title || 'New form'}`;
+        titleInp.onchange = () => { cfg.title = titleInp.value; persist(false); };
+        const descInp = document.createElement('textarea');
+        descInp.className = 'db-form-desc-input';
+        descInp.placeholder = 'Optional form instructions…';
+        descInp.value = cfg.description || '';
+        descInp.onchange = () => { cfg.description = descInp.value; persist(false); };
+        header.append(titleInp, descInp);
+      }
+
+      shell.append(header, formBody);
+      drawFormBody();
+    };
+
+    renderShell();
     canvas.append(shell);
   }
 
@@ -7392,6 +11380,7 @@ const ArchitectDatabase = (() => {
     const draw = () => {
       hostEl.classList.add('db-view-wrap', 'db-interactive-surface', isInline ? 'is-inline' : 'is-fullpage');
       hostEl.dataset.dbPageId = dbPage.id || '';
+      hostEl.dataset.dbHostKey = hostKey;
       hostEl.replaceChildren();
       const currentDb = getPageById(dbPage.id);
       if (!currentDb || !isDatabasePage(currentDb)) {
@@ -7453,9 +11442,11 @@ const ArchitectDatabase = (() => {
         right.className = 'db-inline-actions';
         const openFull = document.createElement('button');
         openFull.type = 'button';
-        openFull.className = 'db-toolbar-btn';
-        openFull.textContent = '⤢ Open as full page';
-        openFull.title = `Opens "${currentDb.title || 'Database'}" (Ctrl/middle-click for new tab)`;
+        openFull.className = 'db-toolbar-btn db-icon-tool-btn';
+        openFull.dataset.dbAction = 'open-full';
+        openFull.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5H13.5V6.5M6.5 13.5H2.5V9.5M13.5 2.5L9 7M2.5 13.5L7 9"/></svg>';
+        openFull.title = `Open "${currentDb.title || 'Database'}" as full page (Ctrl/middle-click for new tab)`;
+        openFull.setAttribute('aria-label', 'Open as full page');
         openFull.onclick = e => {
           if (e.ctrlKey || e.metaKey) { host?.openPageInNewTab?.(currentDb.id); return; }
           host?.navigateToPage?.(currentDb.id);
@@ -7468,9 +11459,11 @@ const ArchitectDatabase = (() => {
         if (!ro && options.onChangeSourceDb) {
           const linkSource = document.createElement('button');
           linkSource.type = 'button';
-          linkSource.className = 'db-toolbar-btn';
-          linkSource.textContent = '⇄ Source';
-          linkSource.title = 'Link to another database page';
+          linkSource.className = 'db-toolbar-btn db-icon-tool-btn';
+          linkSource.dataset.dbAction = 'source';
+          linkSource.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5H12.5L10 3M13 10.5H3.5L6 13"/></svg>';
+          linkSource.title = 'Change data source';
+          linkSource.setAttribute('aria-label', 'Source');
           linkSource.onclick = () => openLinkSourcePopover(linkSource, options.onChangeSourceDb);
           right.append(linkSource);
         }
@@ -7492,15 +11485,26 @@ const ArchitectDatabase = (() => {
         tab.role = 'tab';
         tab.setAttribute('aria-selected', String(isCurrent));
         tab.className = 'db-tab' + (isCurrent ? ' active' : '');
-        tab.innerHTML = `<span class="db-tab-ico">${viewMeta(v.type).icon}</span><span>${escHtml(v.name)}</span>`;
+        const rawViewIco = escHtml(viewMeta(v.type).icon);
+        const resolvedViewIco = (window as any).ArchitectIcons?.resolveUiSlotMarkup?.(`db-view-${v.type}`, rawViewIco) || rawViewIco;
+        tab.innerHTML = `<span class="db-tab-ico">${resolvedViewIco}</span><span>${escHtml(v.name)}</span>`;
         tab.onclick = () => {
           if (isCurrent) {
             if (!hostRo) openViewSettingsPopover(tab, v, currentDb, viewSettingsOpts);
           } else {
-            if (options.inlineBlock) options.inlineBlock.viewId = v.id;
-            else db.activeViewId = v.id;
-            persist(false);
-            draw();
+            if (options.inlineBlock) {
+              options.inlineBlock.viewId = v.id;
+              persist(false);
+              draw();
+            } else {
+              db.activeViewId = v.id;
+              if (isFormPage(currentDb)) {
+                persist(true);
+              } else {
+                persist(false);
+                draw();
+              }
+            }
           }
         };
         tabList.append(tab);
@@ -7522,69 +11526,113 @@ const ArchitectDatabase = (() => {
 
       const toolbar = document.createElement('div');
       toolbar.className = 'db-toolbar';
+      const iconBtn = (toolKey: string, svg: string, label: string, count = 0, active = false) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'db-toolbar-btn db-icon-tool-btn' + (active ? ' is-active' : '');
+        btn.dataset.dbTool = toolKey;
+        const fullLabel = count ? `${label} (${count})` : label;
+        btn.title = fullLabel;
+        btn.setAttribute('aria-label', fullLabel);
+        btn.innerHTML = `${svg}${count ? `<span class="db-tool-badge">${count}</span>` : ''}`;
+        return btn;
+      };
 
       const filterCount = countFilterRules(view);
-      const filterBtn = document.createElement('button');
-      filterBtn.type = 'button';
-      filterBtn.className = 'db-toolbar-btn' + (filterCount ? ' is-active' : '');
-      filterBtn.textContent = filterCount ? `Filter (${filterCount})` : 'Filter';
+      const filterBtn = iconBtn(
+        'filter',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4.5H13.5M4.5 8H11.5M6.5 11.5H9.5"/></svg>',
+        'Filter',
+        filterCount,
+        filterCount > 0
+      );
       filterBtn.onclick = () => openFilterPopover(filterBtn, view, currentDb, hostKey);
 
-      const sortBtn = document.createElement('button');
-      sortBtn.type = 'button';
-      sortBtn.className = 'db-toolbar-btn' + (view.sorts.length ? ' is-active' : '');
-      sortBtn.textContent = view.sorts.length ? `Sort (${view.sorts.length})` : 'Sort';
+      const sortBtn = iconBtn(
+        'sort',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5V12.5M5.5 3.5L3.5 5.5M5.5 3.5L7.5 5.5M10.5 12.5V3.5M10.5 12.5L8.5 10.5M10.5 12.5L12.5 10.5"/></svg>',
+        'Sort',
+        view.sorts.length,
+        view.sorts.length > 0
+      );
       sortBtn.onclick = () => openSortPopover(sortBtn, view, currentDb);
 
-      const groupBtn = document.createElement('button');
-      groupBtn.type = 'button';
-      groupBtn.className = 'db-toolbar-btn' + (view.groupBy ? ' is-active' : '');
-      groupBtn.textContent = view.groupBy ? 'Grouped' : 'Group';
+      const groupBtn = iconBtn(
+        'group',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.2" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9.3" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.2" y="9" width="4.5" height="4.5" rx="1"/><rect x="9.3" y="9" width="4.5" height="4.5" rx="1"/></svg>',
+        'Group',
+        0,
+        !!view.groupBy
+      );
       groupBtn.onclick = () => openGroupPopover(groupBtn, view, currentDb);
 
-      const propsBtn = document.createElement('button');
-      propsBtn.type = 'button';
-      propsBtn.className = 'db-toolbar-btn';
-      propsBtn.textContent = 'Properties';
+      const propsBtn = iconBtn(
+        'properties',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.8 8C3 5.3 5.2 4 8 4C10.8 4 13 5.3 14.2 8C13 10.7 10.8 12 8 12C5.2 12 3 10.7 1.8 8Z"/><circle cx="8" cy="8" r="1.8"/></svg>',
+        'Properties'
+      );
       propsBtn.onclick = () => openPropertiesMenu(propsBtn, view, currentDb);
 
+      const autoCount = (db.automations || []).filter(a => a.enabled).length;
+      const autoBtn = iconBtn(
+        'automations',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2L4 9H8L7 14L12 7H8L9 2Z"/></svg>',
+        'Automations',
+        autoCount,
+        autoCount > 0
+      );
+      if (!ro) autoBtn.onclick = () => openAutomationsPopover(autoBtn, currentDb);
+      else autoBtn.disabled = true;
+
       const searchWrap = document.createElement('div');
-      searchWrap.className = 'db-search-wrap';
+      searchWrap.className = 'db-search-wrap' + (searchQ ? ' is-open' : '');
+      const searchToggle = iconBtn(
+        'search',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L13.5 13.5"/></svg>',
+        'Search'
+      );
       const searchInput = document.createElement('input');
       searchInput.type = 'search';
       searchInput.className = 'db-search-input';
       searchInput.placeholder = 'Search…';
       searchInput.setAttribute('aria-label', 'Search database');
       searchInput.value = searchQ;
+      searchToggle.onclick = () => {
+        const opening = !searchWrap.classList.contains('is-open');
+        searchWrap.classList.toggle('is-open', opening);
+        if (opening) {
+          searchInput.focus();
+          searchInput.select();
+        } else if (!searchInput.value.trim()) {
+          searchInput.blur();
+        }
+      };
+      searchInput.addEventListener('blur', () => {
+        if (!searchInput.value.trim()) searchWrap.classList.remove('is-open');
+      });
       searchInput.addEventListener('input', () => {
         searchQueriesByKey.set(hostKey, searchInput.value);
+        searchWrap.classList.toggle('is-open', !!searchInput.value || document.activeElement === searchInput);
         drawCanvas();
       });
-      searchWrap.append(searchInput);
+      searchWrap.append(searchToggle, searchInput);
 
-      const autoCount = (db.automations || []).filter(a => a.enabled).length;
-      const autoBtn = document.createElement('button');
-      autoBtn.type = 'button';
-      autoBtn.className = 'db-toolbar-btn' + (autoCount ? ' is-active' : '');
-      autoBtn.textContent = autoCount ? `⚡ Automations (${autoCount})` : '⚡ Automations';
-      autoBtn.title = 'Database automations';
-      if (!ro) autoBtn.onclick = () => openAutomationsPopover(autoBtn, currentDb);
-      else autoBtn.disabled = true;
-
-      const settingsBtn = document.createElement('button');
-      settingsBtn.type = 'button';
-      settingsBtn.className = 'db-toolbar-btn';
-      settingsBtn.textContent = '⚙';
+      const settingsBtn = iconBtn(
+        'settings',
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5H13.5M2.5 11H13.5"/><circle cx="5.5" cy="5" r="1.4" fill="currentColor"/><circle cx="10.5" cy="11" r="1.4" fill="currentColor"/></svg>',
+        'Settings'
+      );
       settingsBtn.title = 'View settings';
-      settingsBtn.setAttribute('aria-label', 'Settings');
       settingsBtn.onclick = () => openViewSettingsPopover(settingsBtn, view, currentDb, viewSettingsOpts);
 
       if (db.locked) {
         const lockBtn = document.createElement('button');
         lockBtn.type = 'button';
         lockBtn.className = 'db-toolbar-btn db-locked-badge';
-        lockBtn.textContent = '🔒 Locked';
-        lockBtn.title = hostRo ? 'Database is locked' : 'Database is locked (click to unlock)';
+        lockBtn.dataset.dbTool = 'lock';
+        lockBtn.textContent = '🔒';
+        lockBtn.title = hostRo ? 'Database is locked' : 'Database locked (click to unlock)';
+        lockBtn.setAttribute('aria-label', 'Unlock database');
         lockBtn.disabled = hostRo;
         lockBtn.onclick = () => {
           if (hostRo) return;
@@ -7593,12 +11641,14 @@ const ArchitectDatabase = (() => {
           refreshAllDatabaseViews();
           host?.toast?.('Database unlocked');
         };
-        toolbar.append(lockBtn, filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
+        if (view.type === 'form') toolbar.append(lockBtn, propsBtn, autoBtn, settingsBtn);
+        else toolbar.append(lockBtn, filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
       } else {
-        toolbar.append(filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
+        if (view.type === 'form') toolbar.append(propsBtn, autoBtn, settingsBtn);
+        else toolbar.append(filterBtn, sortBtn, groupBtn, propsBtn, autoBtn, searchWrap, settingsBtn);
       }
 
-      if (!ro) {
+      if (!ro && view.type !== 'form') {
         const newSplit = document.createElement('div');
         newSplit.className = 'db-new-split';
         const newPrimary = document.createElement('button');
@@ -7820,12 +11870,14 @@ const ArchitectDatabase = (() => {
       header.textContent = 'Select a data source';
       const list = document.createElement('div');
       list.className = 'db-pop-list';
+      ensureOfficialQuestboardPage();
       const dbs = getDatabasePages().filter((d: any) => !host?.canViewPage || host.canViewPage(d));
       dbs.forEach((d: any) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'db-pop-option-btn';
-        b.innerHTML = `<span>${escHtml(d.icon?.startsWith('data:image') ? '🗃️' : (d.icon || '🗃️'))} ${escHtml(d.title || 'Untitled database')}</span><small>${getDatabaseRows(d.id).length} pages</small>`;
+        const basePrefix = isHiddenBasePage(d) ? 'Base DB · ' : '';
+        b.innerHTML = `<span>${dbIconHtml(d.icon, '🗃️')} ${escHtml(d.title || 'Untitled database')}</span><small>${basePrefix}${getDatabaseRows(d.id).length} pages</small>`;
         b.onclick = () => {
           close();
           onChoose?.(d);
@@ -7929,12 +11981,61 @@ const ArchitectDatabase = (() => {
 
   return {
     initHost,
+    isFormPage,
     isDatabasePage,
     getDatabasePages,
     getDatabaseRows,
     ensureDatabaseConfig,
     convertPageToDatabase,
     createDatabasePage,
+    createQuestboardPage,
+    getOfficialQuestboardPage,
+    setOfficialQuestboardPage,
+    ensureOfficialQuestboardPage,
+    isHiddenBasePage,
+    getSubtasksForRow,
+    createSubtaskForRow,
+    isRowComplete,
+    toggleRowComplete,
+    resolveOption,
+    getRawValue,
+    valueAsSearchText,
+    activeViewFor,
+    convertPageToForm,
+    createFormPage,
+    formShareUrl,
+    formSubdomainUrl,
+    ensureFormConfig,
+    syncFormDocBlocks,
+    syncFormQuestionOrderFromBlocks,
+    addFormQuestionBlock,
+    deleteFormQuestionBlock,
+    duplicateFormQuestionBlock,
+    evaluateFormCondition,
+    describeFormCondition,
+    openFormConditionPopover,
+    renderFormDesignPanel,
+    openFormDesignAndSettingsPopover,
+    renderFormQuestionCard,
+    validateAndSubmitForm,
+    triggerSendResponseToMail,
+    getDefaultFormButtonConfig,
+    readFormAssetsByKind,
+    resolveFormAssetUrl,
+    triggerFormInsert: (pageId: string, propType: DbPropertyType) => {
+      const ctrl = activeFormControllers.get(pageId);
+      if (ctrl) {
+        ctrl.addQuestion(propType);
+        return true;
+      }
+      const pg = getPageById(pageId);
+      if (pg && isFormPage(pg)) {
+        addFormQuestionBlock(pg, propType);
+        persist(true);
+        return true;
+      }
+      return false;
+    },
     createDatabaseRow,
     deleteDatabaseRow,
     setRowValue,

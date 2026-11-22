@@ -27,6 +27,19 @@ contextBridge.exposeInMainWorld('architectHost', {
     originalUrl: string;
     previewUrl?: string;
   }> => ipcRenderer.invoke('architect:save-asset', payload),
+  saveFormUpload: (payload: {
+    id: string;
+    folder?: string;
+    name: string;
+    mimeType: string;
+    base64: string;
+  }): Promise<{
+    ok: boolean;
+    folder: string;
+    fileName: string;
+    sizeBytes: number;
+    url: string;
+  }> => ipcRenderer.invoke('architect:save-form-upload', payload),
   deleteAsset: (fileName?: string, previewName?: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('architect:delete-asset', fileName, previewName),
   downloadAsset: (fileName: string, suggestedName: string): Promise<{ ok: boolean; savedPath?: string; canceled?: boolean }> =>

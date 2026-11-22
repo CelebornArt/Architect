@@ -21,7 +21,7 @@ const ArchitectToolbar = (() => {
     customFonts: CustomFontDef[];
     appearance?: {
       theme: 'obsidian' | 'warm';
-      textScale: 'compact' | 'default' | 'comfortable';
+      textScale: 'small' | 'compact' | 'default' | 'comfortable' | 'large';
       defaultFullWidth: boolean;
     };
     files?: {
@@ -35,6 +35,7 @@ const ArchitectToolbar = (() => {
   const HOTKEY_CATALOG: Array<{ id: string; label: string; category: string; defaultBinding: string }> = [
     { id: 'quick-search', label: 'Quick search: Search workspace', category: 'Navigation', defaultBinding: 'Ctrl + K' },
     { id: 'new-page', label: 'Pages: Create new page', category: 'Creation', defaultBinding: 'Ctrl + N' },
+    { id: 'new-form', label: 'Forms: Create new form', category: 'Creation', defaultBinding: '' },
     { id: 'new-board', label: 'Boards: Create new board', category: 'Creation', defaultBinding: '' },
     { id: 'new-database', label: 'Databases: Create new database', category: 'Creation', defaultBinding: '' },
     { id: 'new-tab', label: 'Tabs: Open new tab', category: 'Tabs', defaultBinding: 'Ctrl + T' },
@@ -90,6 +91,7 @@ const ArchitectToolbar = (() => {
     underline: '<span class="tb-glyph-text tb-under">U</span>',
     textOptions: '<span class="tb-glyph-text">T<sup>°</sup></span>',
     font: '<span class="tb-glyph-text">Aa</span>',
+    fontSize: '<span class="tb-glyph-text">T<small>↕</small></span>',
     textColor: '<span class="tb-glyph-color"><span>A</span><i class="tb-color-bar" data-tb-color-indicator="text"></i></span>',
     highlightColor: '<span class="tb-glyph-color"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 2.6L13.4 6.2L6.8 12.8H3.2V9.2L9.8 2.6Z"/><path d="M8.3 4.1L11.9 7.7"/></svg><i class="tb-color-bar" data-tb-color-indicator="bg"></i></span>',
     formatTools: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5L15.5 7.5L11.8 11.2L6.8 6.2L10.5 2.5Z"/><path d="M8.3 7.7L3.5 12.5C2.9 13.1 2.9 14.1 3.5 14.7C4.1 15.3 5.1 15.3 5.7 14.7L10.5 9.9"/></svg>',
@@ -113,8 +115,9 @@ const ArchitectToolbar = (() => {
     { id: 'italic', label: 'Italic', title: 'Italic (Ctrl+I)', category: 'Text', svg: ICONS.italic },
     { id: 'strikethrough', label: 'Strikethrough', title: 'Strikethrough', category: 'Text', svg: ICONS.strikethrough },
     { id: 'underline', label: 'Underline', title: 'Underline (Ctrl+U)', category: 'Text', svg: ICONS.underline },
-    { id: 'text-options', label: 'Text options', title: 'Text options (Caps, Super, Sub, Link, Embed, Math)', category: 'Text', hasDropdown: true, svg: ICONS.textOptions },
-    { id: 'font', label: 'Font', title: 'Font family & custom fonts', category: 'Style', hasDropdown: true, svg: ICONS.font },
+    { id: 'text-options', label: 'Text options', title: 'Text options (Caps, Super, Sub, Size, Link, Embed, Math)', category: 'Text', hasDropdown: true, svg: ICONS.textOptions },
+    { id: 'font', label: 'Font', title: 'Font family & workspace custom fonts', category: 'Style', hasDropdown: true, svg: ICONS.font },
+    { id: 'font-size', label: 'Font size (optional)', title: 'Optional inline text size', category: 'Style', hasDropdown: true, svg: ICONS.fontSize },
     { id: 'text-color', label: 'Font color', title: 'Text color', category: 'Style', hasDropdown: true, svg: ICONS.textColor },
     { id: 'highlight-color', label: 'Highlight', title: 'Highlight color', category: 'Style', hasDropdown: true, svg: ICONS.highlightColor },
     { id: 'format-tools', label: 'Formatting tools', title: 'Formatting tools', category: 'Style', hasDropdown: true, svg: ICONS.formatTools },
@@ -167,7 +170,7 @@ const ArchitectToolbar = (() => {
     if (!Array.isArray(up.customFonts)) up.customFonts = [];
     up.appearance = {
       theme: up.appearance?.theme === 'warm' ? 'warm' : 'obsidian',
-      textScale: ['compact', 'default', 'comfortable'].includes(up.appearance?.textScale) ? up.appearance.textScale : 'default',
+      textScale: ['small', 'compact', 'default', 'comfortable', 'large'].includes(up.appearance?.textScale) ? up.appearance.textScale : 'default',
       defaultFullWidth: !!up.appearance?.defaultFullWidth
     };
     up.files = {
@@ -255,12 +258,26 @@ const ArchitectToolbar = (() => {
     hoverCloseTimer = window.setTimeout(() => closeDropdown(), 165);
   }
 
+  function getWorkspaceCustomFonts(): CustomFontDef[] {
+    const state = host?.getState?.();
+    const prefs = getPrefs();
+    if (state) {
+      if (!Array.isArray(state.customFonts)) state.customFonts = [];
+      if (Array.isArray(prefs.customFonts) && prefs.customFonts.length) {
+        const known = new Set(state.customFonts.map((f: CustomFontDef) => f.id));
+        prefs.customFonts.forEach(cf => { if (!known.has(cf.id)) state.customFonts.push(cf); });
+        prefs.customFonts = [];
+      }
+      return state.customFonts;
+    }
+    return prefs.customFonts || [];
+  }
+
   function fontCssFamily(fontKey?: string): string {
     if (!fontKey || fontKey === 'default') return BUILTIN_FONTS[0].family;
     const builtin = BUILTIN_FONTS.find(f => f.id === fontKey);
     if (builtin) return builtin.family;
-    const prefs = getPrefs();
-    const custom = prefs.customFonts.find(f => f.id === fontKey || `custom:${f.id}` === fontKey);
+    const custom = getWorkspaceCustomFonts().find(f => f.id === fontKey || `custom:${f.id}` === fontKey);
     if (custom) return `"${custom.family.replace(/"/g, '')}", sans-serif`;
     return BUILTIN_FONTS[0].family;
   }
@@ -279,7 +296,7 @@ const ArchitectToolbar = (() => {
         rules.push(`[data-font="${f.id}"]{font-family:${f.family}!important}`);
       }
     });
-    const customList = prefs.customFonts || [];
+    const customList = getWorkspaceCustomFonts();
     customList.forEach(cf => {
       const key = `custom:${cf.id}`;
       const safeFam = cf.family.replace(/["\\]/g, '');
@@ -304,11 +321,12 @@ const ArchitectToolbar = (() => {
     if (defKey !== 'default') {
       rules.push(`#editor .block-editor, #editor .page-heading{font-family:${fontCssFamily(defKey)}}`);
     }
-    styleEl.textContent = rules.join('\n');
+    const nextCss = rules.join('\n');
+    if (styleEl.textContent !== nextCss) styleEl.textContent = nextCss;
   }
 
-  async function handleCustomFontUpload(file: File) {
-    if (!file) return;
+  async function handleCustomFontUpload(file: File): Promise<CustomFontDef | null> {
+    if (!file) return null;
     const rawName = file.name.replace(/\.(ttf|otf|woff2?|TTF|OTF|WOFF2?)$/, '').trim() || 'Custom Font';
     const cleanFamily = rawName.replace(/[^a-zA-Z0-9 _-]/g, '').trim() || `CustomFont-${Date.now()}`;
     const fontId = `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -318,7 +336,7 @@ const ArchitectToolbar = (() => {
       if (typeof ArchitectBackend !== 'undefined') {
         const state = host?.getState?.();
         const rec = await ArchitectBackend.ingestLocalFile(file, {
-          creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Jordan Davis',
+          creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Raphael',
           category: 'other',
           storageMode: state?.assetStorageMode || 'local',
           previewPolicy: state?.assetPreviewPolicy
@@ -335,17 +353,33 @@ const ArchitectToolbar = (() => {
           fr.readAsDataURL(file);
         });
       }
-      const prefs = getPrefs();
-      prefs.customFonts.push({ id: fontId, name: rawName, family: cleanFamily, assetId, dataUrl });
+      const list = getWorkspaceCustomFonts();
+      const created: CustomFontDef = { id: fontId, name: rawName, family: cleanFamily, assetId, dataUrl };
+      list.push(created);
       syncCustomFontStyles();
       host?.save?.(true);
-      host?.applyFontChoice?.(`custom:${fontId}`);
       renderToolbar();
       renderFontManagerList();
-      host?.toast?.(`Uploaded custom font "${rawName}"`);
+      host?.toast?.(`Added workspace font "${rawName}"`);
+      return created;
     } catch {
       host?.toast?.('Could not upload custom font file');
+      return null;
     }
+  }
+
+  function removeCustomFont(fontId: string) {
+    const state = host?.getState?.();
+    const prefs = getPrefs();
+    if (state && Array.isArray(state.customFonts)) {
+      state.customFonts = state.customFonts.filter((x: CustomFontDef) => x.id !== fontId);
+    }
+    prefs.customFonts = (prefs.customFonts || []).filter(x => x.id !== fontId);
+    if (prefs.defaultFont === `custom:${fontId}`) prefs.defaultFont = 'default';
+    syncCustomFontStyles();
+    host?.save?.(true);
+    renderFontManagerList();
+    renderToolbar();
   }
 
   function triggerCustomFontUpload() {
@@ -412,10 +446,13 @@ const ArchitectToolbar = (() => {
       d.className = 'tb-dd-divider';
       dd.append(d);
     };
-    const addItem = (label: string, iconHtml: string, run: () => void, opts: { active?: boolean; kbd?: string } = {}) => {
+    const addItem = (label: string, iconHtml: string, run: () => void, opts: { active?: boolean; kbd?: string; dataAttrs?: Record<string, string> } = {}) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tb-dd-item' + (opts.active ? ' is-active' : '');
+      if (opts.dataAttrs) {
+        Object.entries(opts.dataAttrs).forEach(([k, v]) => btn.setAttribute(k, v));
+      }
       btn.innerHTML = `<span class="tb-dd-ico">${iconHtml}</span><span class="tb-dd-label">${esc(label)}</span>${opts.kbd ? `<kbd class="tb-dd-kbd">${esc(opts.kbd)}</kbd>` : ''}${opts.active ? '<span class="tb-dd-check">✓</span>' : ''}`;
       btn.onmousedown = e => e.preventDefault();
       btn.onclick = () => { closeDropdown(); run(); updateToolbarState(); };
@@ -445,6 +482,16 @@ const ArchitectToolbar = (() => {
       addItem('Superscript', 'x²', () => host?.applyInlineFormat?.('superscript'), { active: !!ctxState.superscript });
       addItem('Subscript', 'x₂', () => host?.applyInlineFormat?.('subscript'), { active: !!ctxState.subscript });
       addItem('Inline code', '&lt;/&gt;', () => host?.applyInlineCode?.(), { active: !!ctxState.inlineCode });
+      addDivider();
+      addHeader('Optional text size');
+      [
+        { id: 'sm', label: 'Small (12px)', ico: 's' },
+        { id: 'default', label: 'Default', ico: 'M' },
+        { id: 'lg', label: 'Large (17px)', ico: 'L' },
+        { id: 'xl', label: 'Extra large (21px)', ico: 'XL' }
+      ].forEach(sz => {
+        addItem(sz.label, sz.ico, () => host?.applyFontSize?.(sz.id));
+      });
       addDivider();
       addHeader('Insert inline / media');
       addItem('Link (URL)', '🔗', () => host?.insertLinkOnSelection?.());
@@ -505,10 +552,11 @@ const ArchitectToolbar = (() => {
         btn.onclick = () => { closeDropdown(); host?.applyFontChoice?.(f.id); updateToolbarState(); };
         dd.append(btn);
       });
-      if (prefs.customFonts.length) {
+      const customFonts = getWorkspaceCustomFonts();
+      if (customFonts.length) {
         addDivider();
-        addHeader('Uploaded custom fonts');
-        prefs.customFonts.forEach(cf => {
+        addHeader('Workspace custom fonts');
+        customFonts.forEach(cf => {
           const key = `custom:${cf.id}`;
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -519,8 +567,16 @@ const ArchitectToolbar = (() => {
           dd.append(btn);
         });
       }
-      addDivider();
-      addItem('Upload custom font…', '↑', () => triggerCustomFontUpload());
+    } else if (toolId === 'font-size') {
+      addHeader('Optional font size');
+      [
+        { id: 'sm', label: 'Small (12px)', ico: 'S' },
+        { id: 'default', label: 'Default', ico: 'M' },
+        { id: 'lg', label: 'Large (17px)', ico: 'L' },
+        { id: 'xl', label: 'Extra large (21px)', ico: 'XL' }
+      ].forEach(sz => {
+        addItem(sz.label, sz.ico, () => host?.applyFontSize?.(sz.id));
+      });
     } else if (toolId === 'format-tools') {
       addHeader('Formatting tools');
       addItem('Clear formatting', '⌫', () => host?.clearFormatting?.());
@@ -556,12 +612,36 @@ const ArchitectToolbar = (() => {
         const pill = `<span class="tb-callout-pill" style="color:${v.accent};background:${v.bg}">${v.icon}</span>`;
         addItem(v.label, pill, () => host?.applyCalloutOrQuote?.(v), { active: isActive });
       });
+    } else if (toolId === 'form-question') {
+      addHeader('Insert Form Question');
+      addItem('Text question', '¶', () => host?.insertFormQuestion?.('text'), { kbd: '/question', dataAttrs: { 'data-add-question-type': 'text' } });
+      addDivider();
+      addItem('Select', '▾', () => host?.insertFormQuestion?.('select'), { kbd: '/select', dataAttrs: { 'data-add-question-type': 'select' } });
+      addDivider();
+      addItem('Number', '#', () => host?.insertFormQuestion?.('number'), { kbd: '/number', dataAttrs: { 'data-add-question-type': 'number' } });
+      addItem('Date', '📅', () => host?.insertFormQuestion?.('date'), { kbd: '/date', dataAttrs: { 'data-add-question-type': 'date' } });
+      addItem('Email', '@', () => host?.insertFormQuestion?.('email'), { kbd: '/email', dataAttrs: { 'data-add-question-type': 'email' } });
+      addItem('Phone (+country code)', '☎', () => host?.insertFormQuestion?.('phone'), { kbd: '/phone', dataAttrs: { 'data-add-question-type': 'phone' } });
+      addItem('URL', '🔗', () => host?.insertFormQuestion?.('url'), { kbd: '/url', dataAttrs: { 'data-add-question-type': 'url' } });
+      addItem('Upload file (max MB)', '📎', () => host?.insertFormQuestion?.('files'), { kbd: '/upload', dataAttrs: { 'data-add-question-type': 'files' } });
+      addItem('Relation', '↗', () => host?.insertFormQuestion?.('relation'), { dataAttrs: { 'data-add-question-type': 'relation' } });
+    } else if (toolId === 'form-button') {
+      addHeader('Insert Form Button');
+      addItem('Submit response', '✓', () => host?.insertFormButton?.('submit'), { kbd: '/submit button', dataAttrs: { 'data-add-form-button': 'submit' } });
+      addItem('Download response', '↓', () => host?.insertFormButton?.('download'), { kbd: '/download button', dataAttrs: { 'data-add-form-button': 'download' } });
+      addItem('Send response to my mail', '✉', () => host?.insertFormButton?.('send_email'), { kbd: '/mail button', dataAttrs: { 'data-add-form-button': 'send_email' } });
+      addItem('Custom styled button', '✦', () => host?.insertFormButton?.('custom'), { kbd: '/form button', dataAttrs: { 'data-add-form-button': 'custom' } });
     }
 
     positionDropdown(trigger, dd, prefs.toolbar.position);
   }
 
   function runSingleToolAction(toolId: string, trigger: HTMLElement, event?: MouseEvent) {
+    if (toolId === 'form-question' || toolId === 'form-button') {
+      if (openDropdownToolId === toolId && dropdownEl && !dropdownEl.hidden) closeDropdown();
+      else openDropdownForTool(toolId, trigger);
+      return;
+    }
     if (toolId === 'text-color' || toolId === 'highlight-color') {
       const targetEl = event?.target as HTMLElement | null;
       if (targetEl?.closest('.tb-caret')) {
@@ -616,8 +696,6 @@ const ArchitectToolbar = (() => {
     dock.hidden = !visible;
     bar.hidden = !visible;
     if (!visible) {
-      lastToolbarRenderKey = '';
-      bar.replaceChildren();
       closeDropdown();
       return;
     }
@@ -634,9 +712,12 @@ const ArchitectToolbar = (() => {
       dock.style.removeProperty('--tb-collapsed-x');
       dock.style.removeProperty('--tb-collapsed-y');
     }
-    const renderKey = `${orientation}:${isCollapsed ? 'min' : 'full'}:${prefs.toolbar.items.join(',')}`;
+    const isForm = !!host?.isFormEditor?.();
+    const activePackKey = (window as any).ArchitectIcons?.getActiveUiPackId?.() || 'builtin';
+    const renderKey = `${orientation}:${isCollapsed ? 'min' : 'full'}:${isForm ? 'form' : 'doc'}:${activePackKey}:${prefs.toolbar.items.join(',')}`;
     bar.dataset.orientation = orientation;
     bar.classList.toggle('is-collapsed', isCollapsed);
+    bar.classList.toggle('has-form-tools', isForm);
     if (lastToolbarRenderKey === renderKey && bar.childElementCount > 0) {
       if (!isCollapsed) updateToolbarState();
       return;
@@ -699,7 +780,9 @@ const ArchitectToolbar = (() => {
       btn.title = def.title;
       btn.setAttribute('aria-label', def.label);
       if (def.hasDropdown) btn.setAttribute('aria-haspopup', 'menu');
-      const icoHtml = def.id === 'fullscreen' && isFullscreen ? ICONS.fullscreenExit : def.svg;
+      const rawIco = def.id === 'fullscreen' && isFullscreen ? ICONS.fullscreenExit : def.svg;
+      const uiSlot = def.id === 'fullscreen' && isFullscreen ? 'toolbar-fullscreen-exit' : `toolbar-${def.id}`;
+      const icoHtml = (window as any).ArchitectIcons?.resolveUiSlotMarkup?.(uiSlot, rawIco) ?? rawIco;
       btn.innerHTML = `<span class="tb-ico">${icoHtml}</span>${def.hasDropdown ? '<span class="tb-caret" aria-hidden="true">▾</span>' : ''}`;
       btn.onmousedown = e => e.preventDefault();
       btn.onclick = e => runSingleToolAction(def.id, btn, e);
@@ -714,6 +797,41 @@ const ArchitectToolbar = (() => {
       }
       bar.append(btn);
     });
+
+    if (isForm) {
+      const formSep = document.createElement('span');
+      formSep.className = 'tb-sep tb-form-sep';
+      formSep.setAttribute('role', 'separator');
+      bar.append(formSep);
+
+      [
+        { id: 'form-question', label: '+ Question', title: 'Insert form question (/question, /select, /upload, /phone)', hasDropdown: true },
+        { id: 'form-button', label: '+ Button', title: 'Insert customizable Submit, Download, Mail, or Custom button', hasDropdown: true }
+      ].forEach(item => {
+        const fb = document.createElement('button');
+        fb.type = 'button';
+        fb.className = 'tb-btn tb-form-ext-btn' + (item.hasDropdown ? ' has-dropdown' : '');
+        fb.dataset.tbTool = item.id;
+        fb.title = item.title;
+        fb.setAttribute('aria-label', item.label);
+        if (item.hasDropdown) fb.setAttribute('aria-haspopup', 'menu');
+        const customExtIco = (window as any).ArchitectIcons?.resolveUiSlotMarkup?.(`toolbar-${item.id}`, '') || '';
+        fb.innerHTML = `${customExtIco ? `<span class="tb-ico">${customExtIco}</span>` : ''}<span class="tb-form-ext-label">${esc(item.label)}</span>${item.hasDropdown ? '<span class="tb-caret" aria-hidden="true">▾</span>' : ''}`;
+        fb.onmousedown = e => e.preventDefault();
+        fb.onclick = e => runSingleToolAction(item.id, fb, e);
+        if (item.hasDropdown) {
+          fb.onmouseenter = () => {
+            clearTimeout(hoverCloseTimer);
+            clearTimeout(hoverOpenTimer);
+            const delay = openDropdownToolId ? 35 : 85;
+            hoverOpenTimer = window.setTimeout(() => openDropdownForTool(item.id, fb), delay);
+          };
+          fb.onmouseleave = () => scheduleCloseDropdown();
+        }
+        bar.append(fb);
+      });
+    }
+
     updateToolbarState();
   }
 
@@ -789,50 +907,24 @@ const ArchitectToolbar = (() => {
   }
 
   function renderFontManagerList() {
-    const list = document.getElementById('user-custom-fonts-list');
     const sel = document.getElementById('user-default-font') as HTMLSelectElement | null;
-    if (!list && !sel) return;
+    if (!sel) return;
     const prefs = getPrefs();
-    if (sel) {
-      sel.replaceChildren();
-      BUILTIN_FONTS.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.id;
-        opt.textContent = f.label;
-        sel.append(opt);
-      });
-      prefs.customFonts.forEach(cf => {
-        const opt = document.createElement('option');
-        opt.value = `custom:${cf.id}`;
-        opt.textContent = `${cf.name} (Custom)`;
-        sel.append(opt);
-      });
-      sel.value = prefs.defaultFont || 'default';
-    }
-    if (list) {
-      list.replaceChildren();
-      if (!prefs.customFonts.length) {
-        const empty = document.createElement('span');
-        empty.className = 'user-font-empty';
-        empty.textContent = 'No custom fonts uploaded yet (.ttf, .otf, .woff, .woff2).';
-        list.append(empty);
-        return;
-      }
-      prefs.customFonts.forEach(cf => {
-        const chip = document.createElement('div');
-        chip.className = 'user-font-chip';
-        chip.innerHTML = `<span style="font-family:'${esc(cf.family)}',sans-serif">${esc(cf.name)}</span><button type="button" class="user-font-remove" title="Remove font" aria-label="Remove ${esc(cf.name)}">×</button>`;
-        chip.querySelector('button')!.addEventListener('click', () => {
-          prefs.customFonts = prefs.customFonts.filter(x => x.id !== cf.id);
-          if (prefs.defaultFont === `custom:${cf.id}`) prefs.defaultFont = 'default';
-          syncCustomFontStyles();
-          host?.save?.(true);
-          renderFontManagerList();
-          renderToolbar();
-        });
-        list.append(chip);
-      });
-    }
+    const customFonts = getWorkspaceCustomFonts();
+    sel.replaceChildren();
+    BUILTIN_FONTS.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.label;
+      sel.append(opt);
+    });
+    customFonts.forEach(cf => {
+      const opt = document.createElement('option');
+      opt.value = `custom:${cf.id}`;
+      opt.textContent = `${cf.name} (Workspace)`;
+      sel.append(opt);
+    });
+    sel.value = prefs.defaultFont || 'default';
   }
 
   function renderToolbarCustomizer() {
@@ -1133,7 +1225,7 @@ const ArchitectToolbar = (() => {
     const prefs = getPrefs();
     applyAppearanceStyles();
     const nameInput = document.getElementById('user-display-name-input') as HTMLInputElement | null;
-    if (nameInput) nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Jordan Davis';
+    if (nameInput) nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Raphael';
     syncTimeZoneSelect(prefs.timeZone || 'auto');
     const themeSel = document.getElementById('user-appearance-theme') as HTMLSelectElement | null;
     if (themeSel) themeSel.value = prefs.appearance?.theme || 'obsidian';
@@ -1230,12 +1322,6 @@ const ArchitectToolbar = (() => {
       prefs.defaultFont = (e.target as HTMLSelectElement).value || 'default';
       syncCustomFontStyles();
       host?.save?.(true);
-    });
-    document.getElementById('user-font-upload')?.addEventListener('change', async e => {
-      const inp = e.target as HTMLInputElement;
-      const file = inp.files?.[0];
-      inp.value = '';
-      if (file) await handleCustomFontUpload(file);
     });
     document.querySelectorAll('#user-settings-dialog [data-settings-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1367,6 +1453,9 @@ const ArchitectToolbar = (() => {
     isRecordingHotkey: () => !!recordingHotkeyId,
     applyAppearanceStyles,
     syncCustomFontStyles,
+    getWorkspaceCustomFonts,
+    addCustomFont: handleCustomFontUpload,
+    removeCustomFont,
     fontCssFamily,
     toggleFullscreen,
     closeDropdown,

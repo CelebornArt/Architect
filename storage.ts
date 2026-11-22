@@ -67,6 +67,19 @@ interface ArchitectHostBridge {
     originalUrl: string;
     previewUrl?: string;
   }>;
+  saveFormUpload?(payload: {
+    id: string;
+    folder?: string;
+    name: string;
+    mimeType: string;
+    base64: string;
+  }): Promise<{
+    ok: boolean;
+    folder: string;
+    fileName: string;
+    sizeBytes: number;
+    url: string;
+  }>;
   deleteAsset(fileName?: string, previewName?: string): Promise<{ ok: boolean }>;
   downloadAsset(fileName: string, suggestedName: string): Promise<{ ok: boolean; savedPath?: string; canceled?: boolean }>;
   chooseSyncFolder(): Promise<{ canceled: boolean; path?: string }>;
@@ -80,6 +93,7 @@ interface ArchitectHostBridge {
 const ArchitectBackend = (() => {
   const ASSET_DB_NAME = 'architect-local-assets-v1';
   const ASSET_META_KEY = 'workspace-assets';
+  const FORM_UPLOADS_META_KEY = 'architect-form-uploads-v1';
   const objectUrlCache = new Map<string, string>();
   const inflightRemoteCache = new Map<string, Promise<string | null>>();
   let currentPreviewPolicy: AssetPreviewPolicy = {
@@ -105,21 +119,30 @@ const ArchitectBackend = (() => {
     return (window as unknown as { architectHost?: ArchitectHostBridge }).architectHost || null;
   }
 
+  let assetDbPromise: Promise<IDBDatabase | null> | null = null;
   function openAssetDb(): Promise<IDBDatabase | null> {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
-    return new Promise(resolve => {
+    if (assetDbPromise) return assetDbPromise;
+    assetDbPromise = new Promise(resolve => {
       try {
         const req = indexedDB.open(ASSET_DB_NAME, 1);
         req.onupgradeneeded = () => {
           const db = req.result;
           if (!db.objectStoreNames.contains('blobs')) db.createObjectStore('blobs');
         };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
+        req.onsuccess = () => {
+          const db = req.result;
+          db.onversionchange = () => { try { db.close(); } catch {} assetDbPromise = null; };
+          db.onclose = () => { assetDbPromise = null; };
+          resolve(db);
+        };
+        req.onerror = () => { assetDbPromise = null; resolve(null); };
       } catch {
+        assetDbPromise = null;
         resolve(null);
       }
     });
+    return assetDbPromise;
   }
 
   async function idbPut(key: string, blob: Blob): Promise<boolean> {
@@ -346,11 +369,22 @@ const ArchitectBackend = (() => {
     });
   }
 
+  let cachedCatalog: AssetRecord[] | null = null;
+  let lastRawAssetJson: string | null = null;
+
   function readAssetCatalog(): AssetRecord[] {
     try {
-      const raw = JSON.parse(localStorage.getItem(ASSET_META_KEY) || '[]');
-      if (!Array.isArray(raw)) return [];
-      return raw
+      const rawStr = localStorage.getItem(ASSET_META_KEY) || '[]';
+      if (cachedCatalog && rawStr === lastRawAssetJson) {
+        return cachedCatalog;
+      }
+      const raw = JSON.parse(rawStr);
+      if (!Array.isArray(raw)) {
+        lastRawAssetJson = rawStr;
+        cachedCatalog = [];
+        return cachedCatalog;
+      }
+      const normalized = raw
         .filter((item): item is Partial<AssetRecord> & { name: string } => !!item && typeof item.name === 'string')
         .map(item => {
           const fileType = typeof item.fileType === 'string' && item.fileType ? item.fileType : 'image/*';
@@ -361,8 +395,8 @@ const ArchitectBackend = (() => {
             name: item.name,
             fileType,
             category,
-            creator: typeof item.creator === 'string' && item.creator ? item.creator : 'Jordan Davis',
-            uploadedBy: typeof item.uploadedBy === 'string' && item.uploadedBy ? item.uploadedBy : 'Jordan Davis',
+            creator: typeof item.creator === 'string' && item.creator ? item.creator : 'Raphael',
+            uploadedBy: typeof item.uploadedBy === 'string' && item.uploadedBy ? item.uploadedBy : 'Raphael',
             tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
             metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : {},
             storageMode: item.storageMode || 'local',
@@ -380,7 +414,12 @@ const ArchitectBackend = (() => {
             updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now
           };
         });
+      lastRawAssetJson = rawStr;
+      cachedCatalog = normalized;
+      return normalized;
     } catch {
+      cachedCatalog = null;
+      lastRawAssetJson = null;
       return [];
     }
   }
@@ -388,6 +427,8 @@ const ArchitectBackend = (() => {
   function saveAssetCatalog(assets: AssetRecord[]): void {
     const serialized = JSON.stringify(assets);
     localStorage.setItem(ASSET_META_KEY, serialized);
+    cachedCatalog = assets;
+    lastRawAssetJson = serialized;
     const desktop = host();
     if (desktop) desktop.writeAssets(serialized).catch(() => {});
   }
@@ -511,7 +552,7 @@ const ArchitectBackend = (() => {
     const assetId = crypto.randomUUID();
     const mime = file.type || 'application/octet-stream';
     const category = opts.category || inferCategory(file.name, mime);
-    const creator = (opts.creator || 'Jordan Davis').trim() || 'Jordan Davis';
+    const creator = (opts.creator || 'Raphael').trim() || 'Raphael';
     const tags = (opts.tags || []).map(t => t.trim()).filter(Boolean);
     const now = Date.now();
     const meta: Record<string, string | number> = { ...(opts.metadata || {}), sizeBytes: file.size };
@@ -649,8 +690,8 @@ const ArchitectBackend = (() => {
       name: input.name.trim(),
       fileType: resolvedType,
       category: resolvedCategory,
-      creator: input.creator.trim() || 'Jordan Davis',
-      uploadedBy: input.creator.trim() || 'Jordan Davis',
+      creator: input.creator.trim() || 'Raphael',
+      uploadedBy: input.creator.trim() || 'Raphael',
       tags: (input.tags || []).map(t => t.trim()).filter(Boolean),
       metadata: input.metadata || {},
       storageMode: 'drive-reference',
@@ -779,6 +820,9 @@ const ArchitectBackend = (() => {
     return task;
   }
 
+  const inflightOrigResolve = new Map<string, Promise<string | null>>();
+  const inflightProxyResolve = new Map<string, Promise<string | null>>();
+
   async function resolveAssetOriginalUrl(asset: AssetRecord): Promise<string | null> {
     const cachedRemote = objectUrlCache.get(`remote-cache:${asset.id}`);
     if (cachedRemote) return cachedRemote;
@@ -786,15 +830,26 @@ const ArchitectBackend = (() => {
     if (asset.fileName && host()) {
       return `architect-asset://files/${encodeURIComponent(asset.fileName)}`;
     }
-    const cached = objectUrlCache.get(`orig:${asset.id}`);
+    const cacheKey = `orig:${asset.id}`;
+    const cached = objectUrlCache.get(cacheKey);
     if (cached) return cached;
-    const blob = await idbGet(`orig:${asset.id}`);
-    if (blob) {
-      const objUrl = URL.createObjectURL(blob);
-      objectUrlCache.set(`orig:${asset.id}`, objUrl);
-      return objUrl;
-    }
-    return asset.url || asset.previewDataUrl || null;
+    const existing = inflightOrigResolve.get(cacheKey);
+    if (existing) return existing;
+    const task = (async () => {
+      try {
+        const blob = await idbGet(cacheKey);
+        if (blob) {
+          const objUrl = URL.createObjectURL(blob);
+          objectUrlCache.set(cacheKey, objUrl);
+          return objUrl;
+        }
+        return asset.url || asset.previewDataUrl || null;
+      } finally {
+        inflightOrigResolve.delete(cacheKey);
+      }
+    })();
+    inflightOrigResolve.set(cacheKey, task);
+    return task;
   }
 
   async function resolveAssetPreviewUrl(asset: AssetRecord, policyOverride?: AssetPreviewPolicy): Promise<string | null> {
@@ -814,29 +869,55 @@ const ArchitectBackend = (() => {
       return resolveAssetOriginalUrl(asset);
     }
 
-    // smart-proxy mode: respect maxProxySizeKB without fixed-percentage pixelation
-    const maxBytes = Math.max(50, Number(policy.maxProxySizeKB) || 500) * 1024;
+    // smart-proxy mode: reuse prebuilt/cached proxies when budget matches before decoding on main thread
+    const maxKb = Math.max(50, Number(policy.maxProxySizeKB) || 500);
+    const maxBytes = maxKb * 1024;
     const proxyKey = `proxy:${asset.id}:${maxBytes}`;
     const memProxy = objectUrlCache.get(proxyKey);
     if (memProxy) return memProxy;
 
-    if (asset.fileType.startsWith('image/')) {
-      const blob = await fetchRemoteAssetBlob(asset);
-      if (blob) {
-        const proxy = await createByteLimitedProxy(blob, maxBytes);
-        if (proxy.proxyBlob) {
-          const objUrl = URL.createObjectURL(proxy.proxyBlob);
+    const storedMaxKb = Number(asset.metadata?.maxProxySizeKB);
+    if (asset.previewName && host() && (!storedMaxKb || storedMaxKb === Math.round(maxKb))) {
+      return `architect-asset://previews/${encodeURIComponent(asset.previewName)}`;
+    }
+    if (asset.previewDataUrl && (storedMaxKb === Math.round(maxKb) || (asset.storageMode === 'drive-reference' && !storedMaxKb && maxKb === 500))) {
+      return asset.previewDataUrl;
+    }
+
+    const existingTask = inflightProxyResolve.get(proxyKey);
+    if (existingTask) return existingTask;
+
+    const task = (async () => {
+      try {
+        const idbCachedProxy = await idbGet(proxyKey);
+        if (idbCachedProxy) {
+          const objUrl = URL.createObjectURL(idbCachedProxy);
           objectUrlCache.set(proxyKey, objUrl);
           return objUrl;
         }
+        if (asset.fileType.startsWith('image/')) {
+          const blob = await fetchRemoteAssetBlob(asset);
+          if (blob) {
+            const proxy = await createByteLimitedProxy(blob, maxBytes);
+            if (proxy.proxyBlob) {
+              await idbPut(proxyKey, proxy.proxyBlob).catch(() => {});
+              const objUrl = URL.createObjectURL(proxy.proxyBlob);
+              objectUrlCache.set(proxyKey, objUrl);
+              return objUrl;
+            }
+          }
+        }
+        if (asset.previewName && host()) {
+          return `architect-asset://previews/${encodeURIComponent(asset.previewName)}`;
+        }
+        if (asset.previewDataUrl) return asset.previewDataUrl;
+        return resolveAssetOriginalUrl(asset);
+      } finally {
+        inflightProxyResolve.delete(proxyKey);
       }
-    }
-
-    if (asset.previewName && host()) {
-      return `architect-asset://previews/${encodeURIComponent(asset.previewName)}`;
-    }
-    if (asset.previewDataUrl) return asset.previewDataUrl;
-    return resolveAssetOriginalUrl(asset);
+    })();
+    inflightProxyResolve.set(proxyKey, task);
+    return task;
   }
 
   async function downloadFullAsset(asset: AssetRecord): Promise<void> {
@@ -898,16 +979,21 @@ const ArchitectBackend = (() => {
       if (filter.creator && filter.creator !== 'all' && asset.creator !== filter.creator) return false;
       if (filter.storageMode && filter.storageMode !== 'all' && asset.storageMode !== filter.storageMode) return false;
       if (!q) return true;
-      const hay = [
-        asset.name,
-        asset.fileType,
-        asset.category,
-        asset.creator,
-        asset.provider,
-        ...(asset.tags || []),
-        JSON.stringify(asset.metadata || {})
-      ].join(' ').toLowerCase();
-      return hay.includes(q);
+      if (
+        asset.name.toLowerCase().includes(q)
+        || asset.fileType.toLowerCase().includes(q)
+        || asset.category.toLowerCase().includes(q)
+        || asset.creator.toLowerCase().includes(q)
+        || (asset.provider || '').toLowerCase().includes(q)
+        || (asset.tags || []).some(t => t.toLowerCase().includes(q))
+      ) return true;
+      const meta = asset.metadata;
+      if (meta) {
+        for (const v of Object.values(meta)) {
+          if (String(v ?? '').toLowerCase().includes(q)) return true;
+        }
+      }
+      return false;
     });
   }
 
@@ -1011,6 +1097,93 @@ const ArchitectBackend = (() => {
     return pickBrowserFolder('remote-cache-dir-handle');
   }
 
+  function readFormUploadsCatalog(): Array<{
+    id: string;
+    name: string;
+    fileType: string;
+    sizeBytes: number;
+    folder: string;
+    fileName?: string;
+    url?: string;
+    storageLocation: 'form-uploads-folder';
+    creator: string;
+    createdAt: number;
+  }> {
+    try {
+      const raw = JSON.parse(localStorage.getItem(FORM_UPLOADS_META_KEY) || '[]');
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Store a form file upload in a dedicated form-uploads folder without adding it to Asset Management. */
+  async function saveSeparateFormUpload(
+    file: File,
+    opts: { folder?: string; creator?: string } = {}
+  ): Promise<{
+    id: string;
+    name: string;
+    fileType: string;
+    sizeBytes: number;
+    folder: string;
+    fileName?: string;
+    url: string;
+    storageLocation: 'form-uploads-folder';
+    creator: string;
+    createdAt: number;
+  }> {
+    const id = crypto.randomUUID();
+    const mime = file.type || 'application/octet-stream';
+    const folder = (opts.folder || 'form-uploads').trim().replace(/[^a-zA-Z0-9._-]+/g, '-') || 'form-uploads';
+    const creator = (opts.creator || 'Raphael').trim() || 'Raphael';
+    const now = Date.now();
+    const desktop = host();
+    let fileName: string | undefined;
+    let url = '';
+    if (desktop?.saveFormUpload) {
+      const buffer = await file.arrayBuffer();
+      const saved = await desktop.saveFormUpload({
+        id,
+        folder,
+        name: file.name,
+        mimeType: mime,
+        base64: arrayBufferToBase64(buffer)
+      });
+      fileName = saved.fileName;
+      url = saved.url;
+    } else {
+      const ok = await idbPut(`form-upload:${id}`, file);
+      if (!ok) {
+        if (file.size < 2_500_000) {
+          url = await fileToDataUrl(file);
+        } else {
+          throw new Error('Browser storage unavailable for large form upload without IndexedDB');
+        }
+      } else {
+        url = `form-upload://${encodeURIComponent(folder)}/${encodeURIComponent(id + '-' + file.name)}`;
+      }
+    }
+    const record = {
+      id,
+      name: file.name,
+      fileType: mime,
+      sizeBytes: file.size,
+      folder,
+      fileName,
+      url,
+      storageLocation: 'form-uploads-folder' as const,
+      creator,
+      createdAt: now
+    };
+    const all = readFormUploadsCatalog();
+    all.unshift(record);
+    try {
+      localStorage.setItem(FORM_UPLOADS_META_KEY, JSON.stringify(all));
+    } catch {}
+    return record;
+  }
+
   return {
     isDesktop: () => !!host(),
     host,
@@ -1022,6 +1195,8 @@ const ArchitectBackend = (() => {
     createByteLimitedProxy,
     readAssetCatalog,
     saveAssetCatalog,
+    readFormUploadsCatalog,
+    saveSeparateFormUpload,
     findDuplicateAsset,
     hydrateAssetsFromHost,
     ingestLocalFile,
@@ -1038,3 +1213,4 @@ const ArchitectBackend = (() => {
     pickBrowserCacheFolder
   };
 })();
+if (typeof window !== 'undefined') (window as any).ArchitectBackend = ArchitectBackend;
