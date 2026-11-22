@@ -2,7 +2,7 @@
 
 - Use Conventional Commits with a clear scope and imperative summary: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, or `chore`.
 - Keep releases SemVer, starting at `0.1.0`. For every release, update `package.json`, `package-lock.json`, and `CHANGELOG.md`; tag releases as `vX.Y.Z`.
-- Keep commits focused. Do not commit dependencies or generated output (`node_modules/`, `dist/`, `dist-electron/`, `release/`).
+- Keep commits focused. Do not commit dependencies or desktop/build artifacts (`node_modules/`, `dist-electron/`, `release/`); compiled browser `dist/*.js` bundles are tracked for direct GitHub Pages local preview.
 
 # Global stuff
 
