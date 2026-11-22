@@ -4,6 +4,21 @@ Project releases follow Semantic Versioning. Every release gets an entry here.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-23
+
+### Added
+
+- **First-Launch Workspace Onboarding & Native App Menu**: Clean installs open on a minimal blank screen displaying the Electron top menu bar (`File`, `Edit`, `View`, `Window`, `Help`), bottom-left Personal Options (`architect-client-prefs-v1`), and two large centered actions (**Input an invite code** and **Create your first workspace**, defaulting to Offline Local mode).
+- **Automatic GitHub Releases Self-Updater**: Wired default GitHub Releases checking (`https://api.github.com/repos/CelebornArt/Architect/releases/latest`), optional disk-only read-only GitHub token configuration (`update-auth.json`), live download/verification progress inside `#app-update-banner`, SHA-256 and `latest.yml` SHA-512 verification, silent NSIS updates (`--updated /S --force-run`), and self-replacing Portable `.exe` relaunches alongside General settings controls (`Workspace settings -> General`).
+
+### Changed
+
+- **Clean Initial Workspaces & Gitignore Hygiene**: Removed pre-seeded sample tasks, studio project tags, and hardcoded sample teammates from fresh workspaces and Questboard creation (`freshWorkspace`, `configureQuestboardDatabase`), and updated `.gitignore` to exclude local workspace backups and `ArchitectData/`.
+
+### Fixed
+
+- Fixed Electron update IPC version field mapping (`host.info()` + `latestVersion`), SemVer comparison in [electron/main.ts](../../electron/main.ts), and cross-origin `Authorization` stripping on GitHub Release asset CDN redirects.
+
 ## [0.2.0] - 2026-11-22
 
 ### Added
