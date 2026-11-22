@@ -336,7 +336,7 @@ const ArchitectToolbar = (() => {
       if (typeof ArchitectBackend !== 'undefined') {
         const state = host?.getState?.();
         const rec = await ArchitectBackend.ingestLocalFile(file, {
-          creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Raphael',
+          creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Owner',
           category: 'other',
           storageMode: state?.assetStorageMode || 'local',
           previewPolicy: state?.assetPreviewPolicy
@@ -1225,7 +1225,7 @@ const ArchitectToolbar = (() => {
     const prefs = getPrefs();
     applyAppearanceStyles();
     const nameInput = document.getElementById('user-display-name-input') as HTMLInputElement | null;
-    if (nameInput) nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Raphael';
+    if (nameInput) nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || '';
     syncTimeZoneSelect(prefs.timeZone || 'auto');
     const themeSel = document.getElementById('user-appearance-theme') as HTMLSelectElement | null;
     if (themeSel) themeSel.value = prefs.appearance?.theme || 'obsidian';

@@ -3,6 +3,11 @@ dist/*
 !dist/*.js
 dist-electron/
 release/
+ArchitectData/
+workspace*.json
+architect-sync.json
+update-auth.json
+*-backup*.json
 .env
 .env.*
 !.env.example

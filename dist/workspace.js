@@ -20,7 +20,7 @@ const TEAM_DEPARTMENT_OPTIONS = [
     'Animation', 'Art', 'Comics', 'Community', 'Content Creation',
     'Digital Marketing | Mail/Web', 'Documentary', 'Editing', 'Fashion', 'Featurettes', 'Production'
 ];
-const TEAM_PROJECT_OPTIONS = ['Grimhald', 'Trials of Akash', 'Edany EP', 'Anomaly', 'Leilani', 'Soul Atlas'];
+const TEAM_PROJECT_OPTIONS = [];
 const STORE = 'notion-clone-workspace-v2';
 const oldStore = 'notion-clone-pages';
 const RESET_MARKER = 'architect-fresh-workspace-reset-v1';
@@ -59,7 +59,7 @@ function readWorkspaceIndex() {
         }
     }
     catch { }
-    let primaryName = 'Acme Studio';
+    let primaryName = 'My Workspace';
     try {
         const rawPrimary = localStorage.getItem(STORE);
         if (rawPrimary) {
@@ -189,23 +189,13 @@ function ensureWorkspaceDefaults(w) {
             if (idx === 0 && u.linkedAccount === undefined && !u.accountUnlinked)
                 u.linkedAccount = u.name;
             if (!u.memberStatus) {
-                const defaultDepts = [['Production', 'Art'], ['Documentary', 'Animation'], ['Comics', 'Fashion']];
-                const defaultRoles = [['Producer', 'Art Director'], ['Animation', 'Layout'], ['Concept', 'Graphic Design']];
-                const defaultProjs = [['Grimhald', 'Trials of Akash'], ['Anomaly', 'Trials of Akash'], ['Leilani', 'Soul Atlas']];
-                const defaultCountries = ['United States', 'Germany', 'Canada'];
-                u.memberStatus = idx === 2 ? 'Standby' : 'On Project';
+                u.memberStatus = 'On Project';
                 if (!Array.isArray(u.departments))
-                    u.departments = defaultDepts[idx] || [];
+                    u.departments = [];
                 if (!Array.isArray(u.specialtyRoles))
-                    u.specialtyRoles = defaultRoles[idx] || [];
+                    u.specialtyRoles = [];
                 if (!Array.isArray(u.currentProjects))
-                    u.currentProjects = defaultProjs[idx] || [];
-                if (u.country === undefined && idx < 3)
-                    u.country = defaultCountries[idx];
-                if (u.email === undefined && idx < 3)
-                    u.email = `${u.name.toLowerCase().replace(/[^a-z0-9]+/g, '.')}@architect.studio`;
-                if (u.availabilityNotes === undefined && idx === 0)
-                    u.availabilityNotes = 'Full-time studio hours';
+                    u.currentProjects = [];
             }
             u.departments = Array.isArray(u.departments) ? u.departments.filter(Boolean) : [];
             u.specialtyRoles = Array.isArray(u.specialtyRoles) ? u.specialtyRoles.filter(Boolean) : [];
@@ -213,10 +203,8 @@ function ensureWorkspaceDefaults(w) {
             if (!u.presenceStatus || !['online', 'unavailable', 'offline'].includes(u.presenceStatus)) {
                 if (u.memberStatus === 'No Return')
                     u.presenceStatus = 'offline';
-                else if (idx === 1 && w.users.length >= 2)
+                else if (u.memberStatus === 'Standby' || u.memberStatus === 'Limited Availability')
                     u.presenceStatus = 'unavailable';
-                else if (idx === 2 || u.memberStatus === 'Standby' || u.memberStatus === 'Limited Availability')
-                    u.presenceStatus = idx === 2 ? 'offline' : 'unavailable';
                 else
                     u.presenceStatus = 'online';
             }
@@ -268,30 +256,6 @@ function ensureWorkspaceDefaults(w) {
         c.unreadCount = Number(c.unreadCount) || 0;
     });
     flushScheduledNotifications(w, false);
-    if (!w._migratedRaphaelV1) {
-        w._migratedRaphaelV1 = true;
-        if (Array.isArray(w.users)) {
-            const hasRaphael = w.users.some((u) => String(u?.name || '').trim().toLowerCase() === 'raphael');
-            if (!hasRaphael) {
-                const target = w.users.find((u) => u?.id === 'jordan.davis' || String(u?.name || '').trim() === 'Jordan Davis');
-                if (target) {
-                    target.name = 'Raphael';
-                    if (!target.linkedAccount || target.linkedAccount === 'Jordan Davis')
-                        target.linkedAccount = 'Raphael';
-                    if (target.email === 'jordan.davis@architect.studio')
-                        target.email = 'raphael@architect.studio';
-                    if (w.loggedInAccount === 'Jordan Davis')
-                        w.loggedInAccount = 'Raphael';
-                    try {
-                        if (localStorage.getItem(LOGGED_IN_ACCOUNT_KEY) === 'Jordan Davis') {
-                            localStorage.setItem(LOGGED_IN_ACCOUNT_KEY, 'Raphael');
-                        }
-                    }
-                    catch { }
-                }
-            }
-        }
-    }
     if (typeof ArchitectBackend !== 'undefined')
         ArchitectBackend.setPreviewPolicy(w.assetPreviewPolicy);
     if (typeof ArchitectToolbar !== 'undefined')
@@ -314,7 +278,13 @@ function getLoggedInAccountName(ws = state) {
         return cachedLoggedInAccount;
     if (ws?.loggedInAccount && String(ws.loggedInAccount).trim())
         return String(ws.loggedInAccount).trim();
-    return ws?.users?.[0]?.linkedAccount || ws?.users?.[0]?.name || 'Raphael';
+    const savedPrefName = (() => { try {
+        return JSON.parse(localStorage.getItem('architect-client-prefs-v1') || 'null')?.displayName || '';
+    }
+    catch {
+        return '';
+    } })();
+    return ws?.users?.[0]?.linkedAccount || ws?.users?.[0]?.name || String(savedPrefName || '').trim() || 'Owner';
 }
 function setLoggedInAccountName(accountName, ws = state) {
     const clean = accountName.trim();
@@ -794,7 +764,7 @@ function isVisibleDocsPage(pg, requireViewPerm = false) {
     return Boolean(pg && !pg.databaseId && !isHiddenBaseDocsPage(pg) && (!requireViewPerm || resolvePagePermissions(pg).view));
 }
 function getActorDisplayName(ws = state) {
-    return getCurrentActorUser(ws)?.name || ws?.users?.[0]?.name || 'Raphael';
+    return getCurrentActorUser(ws)?.name || ws?.users?.[0]?.name || getLoggedInAccountName(ws) || 'Owner';
 }
 function effectivePageReadOnly(page = current()) {
     if (isReadOnlyMirror())
@@ -865,7 +835,67 @@ function redeemWorkspaceInvite(codeRaw, accountNameRaw) {
     render();
     return { ok: true, user: targetUser };
 }
-function freshWorkspace(name = 'Acme Studio', users) { return ensureWorkspaceDefaults({ version: 2, workspaceName: name || 'Acme Studio', activePageId: 'home', pages: [{ id: 'home', title: 'New hub', icon: '📄', blocks: [block('text')], createdAt: Date.now(), updatedAt: Date.now() }], users: users || [{ id: 'raphael', name: 'Raphael' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }); }
+const CLIENT_PREFS_KEY = 'architect-client-prefs-v1';
+let needsWorkspaceOnboarding = false;
+function readClientPrefs() {
+    try {
+        const raw = localStorage.getItem(CLIENT_PREFS_KEY);
+        if (!raw)
+            return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    }
+    catch {
+        return {};
+    }
+}
+function saveClientPrefs(displayName, userPreferences) {
+    try {
+        const cur = readClientPrefs();
+        const next = { ...cur };
+        if (typeof displayName === 'string')
+            next.displayName = displayName.trim() || undefined;
+        if (userPreferences && typeof userPreferences === 'object')
+            next.userPreferences = userPreferences;
+        localStorage.setItem(CLIENT_PREFS_KEY, JSON.stringify(next));
+    }
+    catch { }
+}
+function hasAnyStoredWorkspace() {
+    try {
+        if (localStorage.getItem(STORE) || localStorage.getItem(oldStore) || localStorage.getItem(WORKSPACES_INDEX_KEY) || localStorage.getItem(LAST_RICH_BACKUP)) {
+            return true;
+        }
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('architect-workspace-'))
+                return true;
+        }
+    }
+    catch { }
+    return false;
+}
+function defaultOwnerUsers(ownerNameRaw) {
+    const prefs = readClientPrefs();
+    const clean = String(ownerNameRaw || prefs.displayName || '').trim() || 'Owner';
+    return [{ id: 'owner', name: clean, linkedAccount: clean, roleId: 'role-admin', roleIds: ['role-admin'] }];
+}
+function freshWorkspace(name = 'My Workspace', users, opts = {}) {
+    const clientPrefs = readClientPrefs();
+    const resolvedUsers = Array.isArray(users) && users.length ? users : defaultOwnerUsers(opts.ownerName);
+    const coord = opts.coordinationMode || 'local';
+    return ensureWorkspaceDefaults({
+        version: 2,
+        workspaceName: name || 'My Workspace',
+        activePageId: 'home',
+        coordinationMode: coord,
+        assetStorageMode: coord === 'server' ? 'server' : 'local',
+        syncConfig: opts.serverUrl ? { driveProvider: 'local-folder', readOnlyMirror: false, cadence: 'on-start', intervalMinutes: 5, serverUrl: opts.serverUrl } : undefined,
+        pages: [{ id: 'home', title: 'New hub', icon: '📄', blocks: [block('text')], createdAt: Date.now(), updatedAt: Date.now() }],
+        users: resolvedUsers,
+        userPreferences: clientPrefs.userPreferences ? JSON.parse(JSON.stringify(clientPrefs.userPreferences)) : undefined
+    });
+}
 function isRichWorkspace(w) {
     if (!w || !Array.isArray(w.pages) || !w.pages.length)
         return false;
@@ -910,14 +940,17 @@ function loadWorkspace(storeKeyOverride) {
         const raw = localStorage.getItem(storeKey);
         if (raw) {
             const w = JSON.parse(raw);
-            if (w.version === 2 && Array.isArray(w.pages) && w.pages.length)
+            if (w.version === 2 && Array.isArray(w.pages) && w.pages.length) {
+                needsWorkspaceOnboarding = false;
                 return storeKey === STORE ? applyFreshReset(w, raw) : ensureWorkspaceDefaults(w);
+            }
         }
         if (storeKey === STORE) {
             const old = JSON.parse(localStorage.getItem(oldStore) || 'null');
             if (Array.isArray(old) && old.length) {
+                needsWorkspaceOnboarding = false;
                 const pages = old.map((p) => ({ id: p.id || id(), title: p.title || 'Untitled', icon: p.icon || '📄', parentId: p.parent || undefined, blocks: (p.blocks || []).map((b) => ({ id: id(), type: { paragraph: 'text' }[b.type] || b.type, text: b.text || '', checked: b.checked })), createdAt: Date.now(), updatedAt: Date.now() }));
-                return applyFreshReset({ version: 2, workspaceName: 'Acme Studio', activePageId: localStorage.getItem('notion-clone-active') || pages[0]?.id, pages, users: [{ id: 'raphael', name: 'Raphael' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }] }, JSON.stringify(old));
+                return applyFreshReset({ version: 2, workspaceName: 'My Workspace', activePageId: localStorage.getItem('notion-clone-active') || pages[0]?.id, pages, users: defaultOwnerUsers() }, JSON.stringify(old));
             }
         }
     }
@@ -927,7 +960,12 @@ function loadWorkspace(storeKeyOverride) {
         if (storeKeyOverride !== STORE)
             return loadWorkspace(STORE);
     }
-    return applyFreshReset(freshWorkspace('Acme Studio', [{ id: 'raphael', name: 'Raphael' }, { id: 'alex.morgan', name: 'Alex Morgan' }, { id: 'sam.lee', name: 'Sam Lee' }]), null);
+    if (!hasAnyStoredWorkspace()) {
+        needsWorkspaceOnboarding = true;
+        return freshWorkspace('My Workspace', defaultOwnerUsers());
+    }
+    needsWorkspaceOnboarding = false;
+    return applyFreshReset(freshWorkspace('My Workspace', defaultOwnerUsers()), null);
 }
 let state = loadWorkspace();
 let pageHistory = [state.activePageId];
@@ -1628,7 +1666,7 @@ function trimNotificationsList(ws = state) {
 }
 function getNotificationActorIdentity() {
     const actor = getCurrentActorUser();
-    const userName = actor?.name || getLoggedInAccountName() || 'Raphael';
+    const userName = actor?.name || getLoggedInAccountName() || 'Owner';
     const userId = actor?.id || userName.toLowerCase().replace(/[^a-z0-9]+/g, '.') || 'user';
     return { userId, userName };
 }
@@ -1768,7 +1806,7 @@ function pushInboxNotification(item) {
         pageId: item.pageId,
         blockId: item.blockId,
         commentThreadId: item.commentThreadId,
-        actor: item.actor || getCurrentActorUser()?.name || state.users?.[0]?.name || 'Raphael',
+        actor: item.actor || getCurrentActorUser()?.name || state.users?.[0]?.name || 'Owner',
         targetAccount: item.targetAccount,
         read: isScheduled ? false : !!item.read,
         createdAt: item.createdAt || now,
@@ -5550,7 +5588,7 @@ let pendingChatCommentRef = null;
 function openPrivateCommentReply(page, thread, msg) {
     if (!page || !thread || !msg)
         return;
-    const rawAuthor = msg.authorId || msg.authorName || 'Raphael';
+    const rawAuthor = msg.authorId || msg.authorName || 'Owner';
     const user = findWorkspaceUser(rawAuthor);
     const targetRef = user?.linkedAccount || user?.name || rawAuthor;
     pendingChatCommentRef = {
@@ -7578,10 +7616,14 @@ function renderWorkspaceGraphView(host) {
     };
     graphAnimFrame = requestAnimationFrame(stepAndDraw);
 }
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.2.1';
+const DEFAULT_UPDATE_FEED_URL = 'https://api.github.com/repos/CelebornArt/Architect/releases/latest';
 const UPDATE_DISMISSED_SESSION_KEY = 'architect-update-dismissed-v1';
 let currentRuntimeVersion = APP_VERSION;
 let pendingUpdateInfo = null;
+let updateInstallActive = false;
+let updateBannerProgress = null;
+let updateProgressUnsub = null;
 function compareSemver(a, b) {
     const pa = String(a || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
     const pb = String(b || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
@@ -7590,6 +7632,11 @@ function compareSemver(a, b) {
             return (pa[i] || 0) > (pb[i] || 0) ? 1 : -1;
     }
     return 0;
+}
+function setSettingsUpdateStatusText(msg) {
+    const el = $('#settings-update-status');
+    if (el)
+        el.textContent = msg;
 }
 function dismissAppUpdateForSession(version) {
     try {
@@ -7613,32 +7660,78 @@ function renderAppUpdateBanner(info = pendingUpdateInfo) {
         dismissedVer = sessionStorage.getItem(UPDATE_DISMISSED_SESSION_KEY) || '';
     }
     catch { }
-    if (dismissedVer === info.availableVersion) {
+    if (dismissedVer === info.availableVersion && !updateInstallActive) {
         banner.hidden = true;
         return;
     }
+    const host = ArchitectBackend.host?.();
+    const canInAppInstall = Boolean(host?.installUpdate && (info.installerUrl || info.installerApiUrl));
+    const prog = updateBannerProgress;
+    const isError = prog?.phase === 'error';
+    const isWorking = updateInstallActive && prog && !isError;
+    const pct = Math.max(0, Math.min(100, Number(prog?.percent || 0)));
+    const progressHtml = isWorking
+        ? `<div class="app-update-progress"><div>${esc(prog.message || (prog.phase === 'verifying' ? 'Verifying download…' : prog.phase === 'installing' ? 'Installing update and restarting…' : `Downloading ${info.assetName || 'update'}… ${pct}%`))}</div><div class="app-update-progress-track"><div class="app-update-progress-fill" style="width:${pct}%"></div></div></div>`
+        : isError && prog?.message
+            ? `<div class="app-update-error">${esc(prog.message)}</div>`
+            : '';
     banner.hidden = false;
     banner.innerHTML = `
         <button type="button" class="app-update-close" data-update-dismiss aria-label="Dismiss update notification" title="Dismiss until next startup">×</button>
         <div class="app-update-copy">
             <strong>A new version of Architect is available! (${esc(info.currentVersion)} → ${esc(info.availableVersion)})</strong>
-            <div>Would you like to install it now?</div>
+            <div>${canInAppInstall ? 'Would you like to download and install it now?' : 'Would you like to install it now?'}</div>
             <div>We'll reopen your pages and tabs for you.</div>
+            ${progressHtml}
         </div>
         <div class="app-update-actions">
-            <button type="button" class="app-update-later" data-update-dismiss>Remind me later</button>
-            <button type="button" class="app-update-install" data-update-install>Install now</button>
+            <button type="button" class="app-update-later" data-update-dismiss ${isWorking ? 'disabled' : ''}>Remind me later</button>
+            <button type="button" class="app-update-install" data-update-install ${isWorking ? 'disabled' : ''}>${isWorking ? 'Updating…' : isError ? 'Retry install' : 'Install now'}</button>
         </div>
     `;
     banner.querySelectorAll('[data-update-dismiss]').forEach(btn => {
-        btn.addEventListener('click', () => dismissAppUpdateForSession(info.availableVersion));
+        btn.addEventListener('click', () => {
+            if (!updateInstallActive)
+                dismissAppUpdateForSession(info.availableVersion);
+        });
     });
-    banner.querySelector('[data-update-install]')?.addEventListener('click', () => {
+    banner.querySelector('[data-update-install]')?.addEventListener('click', async () => {
+        if (updateInstallActive)
+            return;
         save(true);
+        if (host?.installUpdate && (info.installerUrl || info.installerApiUrl)) {
+            updateInstallActive = true;
+            updateBannerProgress = { phase: 'downloading', percent: 0, message: `Downloading Architect ${info.availableVersion}…` };
+            if (!updateProgressUnsub && host.onUpdateProgress) {
+                updateProgressUnsub = host.onUpdateProgress(p => {
+                    updateBannerProgress = p;
+                    if (p.phase === 'error')
+                        updateInstallActive = false;
+                    renderAppUpdateBanner(pendingUpdateInfo);
+                });
+            }
+            renderAppUpdateBanner(pendingUpdateInfo);
+            const res = await host.installUpdate({
+                url: info.installerUrl || info.installerApiUrl || '',
+                apiUrl: info.installerApiUrl,
+                assetName: info.assetName || `Architect-Setup-${info.availableVersion}.exe`,
+                expectedSize: info.assetSize,
+                sha256: info.assetSha256,
+                latestYmlUrl: info.latestYmlUrl,
+                latestYmlApiUrl: info.latestYmlApiUrl,
+                installKind: info.installKind
+            });
+            if (!res?.ok) {
+                updateInstallActive = false;
+                updateBannerProgress = { phase: 'error', message: res?.error || 'Could not install update' };
+                renderAppUpdateBanner(pendingUpdateInfo);
+                toast(res?.error || 'Update installation failed');
+            }
+            return;
+        }
         if (info.downloadUrl && /^https?:\/\//i.test(info.downloadUrl)) {
             window.open(info.downloadUrl, '_blank', 'noopener,noreferrer');
         }
-        const host = ArchitectBackend.host?.();
         if (host?.relaunch) {
             toast(`Installing Architect ${info.availableVersion} and reopening workspace…`);
             setTimeout(() => host.relaunch(), 350);
@@ -7652,12 +7745,23 @@ function renderAppUpdateBanner(info = pendingUpdateInfo) {
 async function checkForAppUpdates(feedUrlOverride, manual = false) {
     const host = ArchitectBackend.host?.();
     try {
-        const hostInfo = host?.getInfo ? await host.getInfo() : null;
+        const infoFn = host?.info || host?.getInfo;
+        const hostInfo = infoFn ? await infoFn() : null;
         if (hostInfo?.version)
             currentRuntimeVersion = String(hostInfo.version);
     }
     catch { }
-    const feedUrl = String(feedUrlOverride || state?.updateFeedUrl || '').trim();
+    if (!manual && !feedUrlOverride) {
+        if (state?.autoCheckUpdates === false)
+            return null;
+        try {
+            const cfg = host?.getUpdateConfig ? await host.getUpdateConfig() : null;
+            if (cfg && cfg.autoCheck === false)
+                return null;
+        }
+        catch { }
+    }
+    const feedUrl = String(feedUrlOverride || state?.updateFeedUrl || DEFAULT_UPDATE_FEED_URL).trim();
     if (!feedUrl) {
         if (pendingUpdateInfo)
             renderAppUpdateBanner(pendingUpdateInfo);
@@ -7665,6 +7769,8 @@ async function checkForAppUpdates(feedUrlOverride, manual = false) {
             toast(`Architect v${currentRuntimeVersion} is up to date`);
         return pendingUpdateInfo;
     }
+    if (manual)
+        setSettingsUpdateStatusText('Checking GitHub for updates…');
     try {
         let payload = null;
         if (host?.checkUpdate) {
@@ -7674,24 +7780,51 @@ async function checkForAppUpdates(feedUrlOverride, manual = false) {
             const resp = await fetch(feedUrl, { cache: 'no-store' });
             if (resp.ok)
                 payload = await resp.json();
+            else
+                payload = { error: `HTTP ${resp.status}`, requiresAuth: resp.status === 404 && feedUrl.includes('api.github.com') };
         }
-        const available = String(payload?.version || payload?.tag_name || '').replace(/^v/i, '').trim();
+        const available = String(payload?.latestVersion || payload?.version || payload?.tag_name || '').replace(/^v/i, '').trim();
         if (available && compareSemver(available, currentRuntimeVersion) > 0) {
             pendingUpdateInfo = {
                 currentVersion: currentRuntimeVersion,
                 availableVersion: available,
                 notes: payload?.notes || payload?.body || '',
-                downloadUrl: payload?.downloadUrl || payload?.html_url || ''
+                downloadUrl: payload?.downloadUrl || payload?.html_url || '',
+                installerUrl: payload?.installerUrl || '',
+                installerApiUrl: payload?.installerApiUrl || '',
+                assetName: payload?.assetName || '',
+                assetSize: payload?.assetSize || 0,
+                assetSha256: payload?.assetSha256 || '',
+                latestYmlUrl: payload?.latestYmlUrl || '',
+                latestYmlApiUrl: payload?.latestYmlApiUrl || '',
+                installKind: payload?.installKind || ''
             };
+            updateBannerProgress = null;
+            updateInstallActive = false;
             renderAppUpdateBanner(pendingUpdateInfo);
+            const foundMsg = `Update available: v${currentRuntimeVersion} → v${available}`;
+            setSettingsUpdateStatusText(foundMsg);
+            if (manual)
+                toast(foundMsg);
             return pendingUpdateInfo;
         }
+        if (payload?.error) {
+            if (manual) {
+                setSettingsUpdateStatusText(payload.error);
+                toast(payload.requiresAuth ? 'GitHub release not reachable anonymously' : payload.error);
+            }
+            return null;
+        }
+        const upToDateMsg = `Architect v${currentRuntimeVersion} is up to date`;
+        setSettingsUpdateStatusText(upToDateMsg);
         if (manual)
-            toast(`Architect v${currentRuntimeVersion} is up to date`);
+            toast(upToDateMsg);
     }
     catch {
-        if (manual)
+        if (manual) {
+            setSettingsUpdateStatusText('Could not reach GitHub update feed');
             toast('Could not reach update feed');
+        }
     }
     return null;
 }
@@ -7816,7 +7949,7 @@ function updateSidebarModeBadge() {
 let hostWorkspaceHydrated = typeof ArchitectBackend === 'undefined' || !ArchitectBackend.host();
 let lastRichBackupAt = 0;
 function persistAllStorage(serialized, forceBackup = false) {
-    if (!state || !Array.isArray(state.pages) || !state.pages.length)
+    if (needsWorkspaceOnboarding || !state || !Array.isArray(state.pages) || !state.pages.length)
         return;
     const key = getActiveStoreKey();
     try {
@@ -7843,6 +7976,10 @@ window.addEventListener('beforeunload', () => {
     }
 });
 function save(force = false) {
+    if (needsWorkspaceOnboarding) {
+        saveClientPrefs(readClientPrefs().displayName, state?.userPreferences);
+        return;
+    }
     if (isReadOnlyMirror() && !force) {
         $('#saved-status').textContent = 'View-only mirror';
         return;
@@ -8065,13 +8202,14 @@ function createAndSwitchWorkspace(rawName) {
     const name = String(rawName || '').trim();
     if (!name)
         return;
+    if (needsWorkspaceOnboarding) {
+        completeOnboardingCreateWorkspace(name, undefined, 'local');
+        return;
+    }
     commitOutgoingWorkspace();
     const newId = id();
     const storeKey = `architect-workspace-${newId}`;
-    const clonedUsers = Array.isArray(state.users) && state.users.length
-        ? JSON.parse(JSON.stringify(state.users))
-        : undefined;
-    const created = freshWorkspace(name, clonedUsers);
+    const created = freshWorkspace(name, defaultOwnerUsers(getActorDisplayName()));
     try {
         localStorage.setItem(storeKey, JSON.stringify(created));
     }
@@ -8437,6 +8575,31 @@ function openWorkspaceSettings() {
         delete fbEl.dataset.customNotice;
     renderWorkspaceIconPacksSettings();
     $('#settings-workspace-name').value = state.workspaceName || '';
+    const autoUpdateEl = $('#ws-auto-update-enabled');
+    if (autoUpdateEl)
+        autoUpdateEl.checked = state.autoCheckUpdates !== false;
+    const feedInput = $('#ws-update-feed-url');
+    if (feedInput)
+        feedInput.value = state.updateFeedUrl || '';
+    const verLabel = $('#ws-app-version-label');
+    if (verLabel)
+        verLabel.textContent = `Current version v${currentRuntimeVersion} — checks GitHub Releases on startup and shows the in-app update banner.`;
+    const tokenRow = $('#ws-update-token-row');
+    const hostBridge = ArchitectBackend.host?.();
+    if (tokenRow)
+        tokenRow.hidden = !hostBridge?.setUpdateConfig;
+    if (hostBridge?.getUpdateConfig) {
+        hostBridge.getUpdateConfig().then(cfg => {
+            const tokStatus = $('#ws-update-token-status');
+            if (tokStatus) {
+                tokStatus.textContent = cfg.hasToken
+                    ? 'Token saved locally on disk (never included in workspace backups).'
+                    : 'Stored locally on this machine only — never included in workspace backups.';
+            }
+            if (autoUpdateEl && state.autoCheckUpdates === undefined)
+                autoUpdateEl.checked = cfg.autoCheck !== false;
+        }).catch(() => { });
+    }
     $('#settings-coord-mode').value = state.coordinationMode || 'local';
     $('#settings-asset-mode').value = state.assetStorageMode || 'local';
     const policy = state.assetPreviewPolicy || { mode: 'smart-proxy', maxProxySizeKB: 500, cacheFolderPath: '' };
@@ -8478,7 +8641,7 @@ function exportPreviousWorkspaceBackup() { try {
         throw new Error('No previous-workspace backup was found.');
     let workspace = JSON.parse(raw);
     if (Array.isArray(workspace))
-        workspace = { version: 2, workspaceName: 'Acme Studio', activePageId: workspace[0]?.id, pages: workspace.map(page => ({ id: page.id || id(), title: page.title || 'Untitled', icon: page.icon || '📄', parentId: page.parent, blocks: (page.blocks || []).map(item => ({ id: item.id || id(), type: item.type === 'paragraph' ? 'text' : item.type, text: item.text || '', checked: item.checked })), createdAt: Date.now(), updatedAt: Date.now() })), users: state.users };
+        workspace = { version: 2, workspaceName: 'My Workspace', activePageId: workspace[0]?.id, pages: workspace.map(page => ({ id: page.id || id(), title: page.title || 'Untitled', icon: page.icon || '📄', parentId: page.parent, blocks: (page.blocks || []).map(item => ({ id: item.id || id(), type: item.type === 'paragraph' ? 'text' : item.type, text: item.text || '', checked: item.checked })), createdAt: Date.now(), updatedAt: Date.now() })), users: state.users };
     if (workspace.version !== 2 || !Array.isArray(workspace.pages))
         throw new Error('The preserved data is not a supported workspace backup.');
     const payload = { format: 'architect-workspace-backup', formatVersion: 1, exportedAt: new Date().toISOString(), workspace, assets: readAssets() };
@@ -9677,6 +9840,24 @@ function pruneRemovedFormQuestionBlocks(p, formStateOverride) {
 function render() {
     stopAllAudioPlayers();
     syncActiveUiIconPack();
+    initFeatureRailIcons();
+    const obSection = $('#workspace-onboarding');
+    if (needsWorkspaceOnboarding) {
+        document.body.dataset.onboarding = 'true';
+        if (obSection)
+            obSection.hidden = false;
+        const ownerInp = $('#onboarding-owner-name');
+        const savedPrefName = readClientPrefs().displayName || '';
+        if (ownerInp && !ownerInp.value.trim() && savedPrefName)
+            ownerInp.value = savedPrefName;
+        const invAccInp = $('#onboarding-invite-account');
+        if (invAccInp && !invAccInp.value.trim() && savedPrefName)
+            invAccInp.value = savedPrefName;
+        return;
+    }
+    delete document.body.dataset.onboarding;
+    if (obSection)
+        obSection.hidden = true;
     document.body.classList.toggle('ws-rounded-images', !!state.roundedImageCorners);
     const p = current();
     if (!p)
@@ -11979,7 +12160,7 @@ function renderBlockContent(p, b, i, list = p.blocks) {
                     imgEl.src = url;
             });
         }
-        const openLb = () => openImageLightbox(asset || { id: b.id, name: displayName, fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || 'Raphael', uploadedBy: 'Raphael', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() });
+        const openLb = () => openImageLightbox(asset || { id: b.id, name: displayName, fileType: b.mimeType || 'image/*', category: b.category || 'image', creator: b.creator || getActorDisplayName(), uploadedBy: getActorDisplayName(), tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline image', url: b.url, createdAt: Date.now(), updatedAt: Date.now() });
         imgEl.ondblclick = e => { e.preventDefault(); e.stopPropagation(); openLb(); };
         el.querySelector('[data-img-expand]')?.addEventListener('click', e => { e.stopPropagation(); openLb(); });
         el.querySelector('[data-img-download]')?.addEventListener('click', e => { e.stopPropagation(); downloadAssetOrBlock(asset, b, displayName); });
@@ -12404,7 +12585,7 @@ function renderBlockContent(p, b, i, list = p.blocks) {
                 el.querySelector('button')?.addEventListener('click', () => uploadForBlock(b, p, 'audio'));
             return el;
         }
-        const card = buildAudioPlayerElement(asset || { id: b.id, name: b.text || 'Audio track', fileType: b.mimeType || 'audio/*', category: b.category || 'music', creator: b.creator || 'Raphael', uploadedBy: 'Raphael', tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline audio', url: b.url, externalUrl: /^https?:\/\//i.test(b.url || '') ? b.url : undefined, createdAt: Date.now(), updatedAt: Date.now() }, b);
+        const card = buildAudioPlayerElement(asset || { id: b.id, name: b.text || 'Audio track', fileType: b.mimeType || 'audio/*', category: b.category || 'music', creator: b.creator || getActorDisplayName(), uploadedBy: getActorDisplayName(), tags: b.tags || [], metadata: {}, storageMode: 'local', provider: 'Inline audio', url: b.url, externalUrl: /^https?:\/\//i.test(b.url || '') ? b.url : undefined, createdAt: Date.now(), updatedAt: Date.now() }, b);
         el.append(card);
         return el;
     }
@@ -17265,7 +17446,8 @@ let selToolbarState = null;
 let badgeLayoutFrame = 0;
 function commentUserProfile() {
     const u = getCurrentActorUser() || state.users?.[0];
-    return { id: u?.id || 'raphael', name: u?.name || 'Raphael' };
+    const fallbackName = readClientPrefs().displayName || 'Owner';
+    return { id: u?.id || 'owner', name: u?.name || fallbackName };
 }
 function commentUserInitials(name) {
     return (name || 'U').split(/\s+/).filter(Boolean).map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'U';
@@ -17608,7 +17790,7 @@ function renderCommentThreadCard(page, thread, opts = {}) {
         row.dataset.commentMsgId = msg.id;
         const head = document.createElement('div');
         head.className = 'comment-msg-head';
-        const userRef = msg.authorId || msg.authorName || 'Raphael';
+        const userRef = msg.authorId || msg.authorName || 'Owner';
         const avatar = document.createElement('span');
         avatar.className = 'comment-avatar user-ref-trigger';
         avatar.dataset.userRef = userRef;
@@ -17618,7 +17800,7 @@ function renderCommentThreadCard(page, thread, opts = {}) {
         const author = document.createElement('span');
         author.className = 'comment-msg-author user-ref-trigger';
         author.dataset.userRef = userRef;
-        author.textContent = msg.authorName || 'Raphael';
+        author.textContent = msg.authorName || 'Owner';
         author.onclick = e => { e.stopPropagation(); openUserDashboard(userRef); };
         author.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); openUserContextMenu(e, userRef, { page, thread, msg }); };
         const time = document.createElement('span');
@@ -19808,7 +19990,7 @@ function wireAllModalDialogs() {
                 return;
             }
             if (dlg.id === 'settings-dialog') {
-                if (target.closest('#settings-sync-now, #settings-check-updates, #export-workspace, #export-pre-reset-backup, #choose-sync-folder, #choose-asset-cache-folder, #sync-pull-now, #sync-push-now, #apply-workspace-import'))
+                if (target.closest('#settings-sync-now, #settings-check-updates, #ws-check-updates-now, #ws-save-update-feed, #ws-save-update-token, #ws-clear-update-token, #ws-update-token-input, #export-workspace, #export-pre-reset-backup, #choose-sync-folder, #choose-asset-cache-folder, #sync-pull-now, #sync-push-now, #apply-workspace-import'))
                     return;
                 e.preventDefault();
                 const nameInput = $('#settings-workspace-name');
@@ -19841,6 +20023,8 @@ function wireAllModalDialogs() {
                 const trimmed = nameInput?.value.trim() || '';
                 const actor = getCurrentActorUser();
                 const curName = actor?.name || state.users?.[0]?.name || '';
+                if (trimmed)
+                    saveClientPrefs(trimmed, state?.userPreferences);
                 if (trimmed && trimmed !== curName) {
                     state.users = state.users || [];
                     const targetUser = (actor && state.users.find(u => u.id === actor.id)) || state.users[0];
@@ -19849,12 +20033,14 @@ function wireAllModalDialogs() {
                         targetUser.linkedAccount = trimmed;
                     }
                     else {
-                        state.users.push({ id: 'user.local', name: trimmed, linkedAccount: trimmed, roleId: 'role-admin', roleIds: ['role-admin'] });
+                        state.users.push({ id: 'owner', name: trimmed, linkedAccount: trimmed, roleId: 'role-admin', roleIds: ['role-admin'] });
                     }
                     setLoggedInAccountName(trimmed);
                     syncUserProfileUi();
                 }
                 save(true);
+                if (needsWorkspaceOnboarding)
+                    render();
                 dlg.close('save');
                 toast('User settings saved');
                 return;
@@ -20273,6 +20459,67 @@ $('#save-workspace-name').addEventListener('click', () => { const name = $('#set
 } state.workspaceName = name; save(); syncActiveWorkspaceInIndex(); renderNav(); renderBreadcrumbs(current()); $('#settings-feedback').textContent = 'Workspace name saved.'; toast('Workspace name updated'); });
 $('#settings-sync-now')?.addEventListener('click', () => synchronizeNow());
 $('#settings-check-updates')?.addEventListener('click', () => checkForAppUpdates(undefined, true));
+$('#ws-check-updates-now')?.addEventListener('click', () => checkForAppUpdates(undefined, true));
+$('#ws-auto-update-enabled')?.addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    state.autoCheckUpdates = enabled;
+    save();
+    const hostBridge = ArchitectBackend.host?.();
+    if (hostBridge?.setUpdateConfig)
+        await hostBridge.setUpdateConfig({ autoCheck: enabled }).catch(() => { });
+    toast(enabled ? 'Automatic GitHub update checks enabled' : 'Automatic GitHub update checks disabled');
+});
+$('#ws-save-update-feed')?.addEventListener('click', () => {
+    const inp = $('#ws-update-feed-url');
+    const raw = inp?.value.trim() || '';
+    if (raw) {
+        const clean = ArchitectBackend.safeHttpUrl(raw);
+        if (!clean) {
+            setSettingsUpdateStatusText('Feed URL must start with https:// (or http://)');
+            toast('Feed URL must use https://');
+            return;
+        }
+        state.updateFeedUrl = clean;
+    }
+    else {
+        delete state.updateFeedUrl;
+    }
+    save();
+    setSettingsUpdateStatusText(state.updateFeedUrl ? `Saved feed: ${state.updateFeedUrl}` : 'Using default GitHub Releases feed');
+    toast(state.updateFeedUrl ? 'Custom update feed saved' : 'Reset to default GitHub Releases feed');
+});
+$('#ws-save-update-token')?.addEventListener('click', async () => {
+    const inp = $('#ws-update-token-input');
+    const token = inp?.value.trim() || '';
+    const hostBridge = ArchitectBackend.host?.();
+    if (!hostBridge?.setUpdateConfig)
+        return;
+    if (!token) {
+        toast('Paste a GitHub token first');
+        inp?.focus();
+        return;
+    }
+    const res = await hostBridge.setUpdateConfig({ token });
+    if (inp)
+        inp.value = '';
+    const tokStatus = $('#ws-update-token-status');
+    if (tokStatus && res.hasToken)
+        tokStatus.textContent = 'Token saved locally on disk (never included in workspace backups).';
+    toast('GitHub token saved locally');
+});
+$('#ws-clear-update-token')?.addEventListener('click', async () => {
+    const hostBridge = ArchitectBackend.host?.();
+    if (!hostBridge?.setUpdateConfig)
+        return;
+    await hostBridge.setUpdateConfig({ clearToken: true });
+    const inp = $('#ws-update-token-input');
+    if (inp)
+        inp.value = '';
+    const tokStatus = $('#ws-update-token-status');
+    if (tokStatus)
+        tokStatus.textContent = 'Stored locally on this machine only — never included in workspace backups.';
+    toast('Saved GitHub token cleared');
+});
 $('#export-workspace').addEventListener('click', exportWorkspaceBackup);
 $('#export-pre-reset-backup').addEventListener('click', exportPreviousWorkspaceBackup);
 $('#import-workspace-file').addEventListener('change', async (e) => { const file = e.target.files?.[0]; if (!file)
@@ -20393,6 +20640,18 @@ function persistSettingsChange() {
     $('#settings-sync-url-row').hidden = isFolderSync;
     $('#settings-sync-interval').disabled = state.syncConfig.cadence !== 'interval';
     $('#sync-push-now').disabled = isReadOnlyMirror();
+    const rawFeedUrl = $('#ws-update-feed-url')?.value.trim() || '';
+    if (rawFeedUrl) {
+        const cleanFeed = ArchitectBackend.safeHttpUrl(rawFeedUrl);
+        if (cleanFeed)
+            state.updateFeedUrl = cleanFeed;
+    }
+    else if ($('#ws-update-feed-url')) {
+        delete state.updateFeedUrl;
+    }
+    const autoCheckEl = $('#ws-auto-update-enabled');
+    if (autoCheckEl)
+        state.autoCheckUpdates = autoCheckEl.checked;
     persistAllStorage(JSON.stringify(state));
     updateSettingsSyncStatus();
     if (currentAppMode === 'dashboard')
@@ -21747,7 +22006,7 @@ function handleDocumentContextMenu(event) {
         const msgEl = rawTarget.closest('.comment-message[data-comment-msg-id]');
         const msg = th ? ((msgEl && th.comments.find(m => m.id === msgEl.dataset.commentMsgId)) || th.comments[0]) : null;
         if (curPg && th && msg) {
-            const authorName = msg.authorName || 'Raphael';
+            const authorName = msg.authorName || 'Owner';
             const resolvedRef = msg.authorId || authorName;
             const cItems = [
                 { label: 'Reply in private', meta: `DM ${authorName}`, run: () => openPrivateCommentReply(curPg, th, msg) },
@@ -22007,12 +22266,19 @@ window.ArchitectWorkspace = {
     findPageBacklinks,
     checkForUpdates: (feedUrl, manual) => checkForAppUpdates(feedUrl, manual),
     setUpdateInfo: (info) => {
+        updateBannerProgress = null;
+        updateInstallActive = false;
         pendingUpdateInfo = info
-            ? { currentVersion: info.currentVersion || currentRuntimeVersion, availableVersion: info.availableVersion, notes: info.notes, downloadUrl: info.downloadUrl }
+            ? {
+                ...info,
+                currentVersion: info.currentVersion || currentRuntimeVersion,
+                availableVersion: info.availableVersion
+            }
             : null;
         renderAppUpdateBanner(pendingUpdateInfo);
     },
     getState: () => state,
+    isOnboarding: () => needsWorkspaceOnboarding,
     getFormRadioState: () => ({ playing: formMusicPlaying, muted: formMusicMuted, paused: formMusicAudioEl ? formMusicAudioEl.paused : true, hasSrc: Boolean(formMusicAudioEl?.src), lastError: formMusicLastError, trackCount: formMusicActiveTracks.length, trackIndex: formMusicTrackIdx }),
     render: () => render(),
     save: (force) => save(!!force),
@@ -22354,10 +22620,205 @@ if (initialPageId && state.pages.some(page => page.id === initialPageId)) {
 else {
     ensureTabs();
 }
+function extractInviteCodeInput(raw) {
+    const trimmed = String(raw || '').trim();
+    const hashMatch = trimmed.match(/invite=([^&#\s]+)/i);
+    return (hashMatch ? decodeURIComponent(hashMatch[1]) : trimmed).trim();
+}
+function showOnboardingView(mode, prefillInviteCode) {
+    const choices = $('#onboarding-choices');
+    const createPanel = $('#onboarding-create-panel');
+    const invitePanel = $('#onboarding-invite-panel');
+    const createErr = $('#onboarding-create-error');
+    const inviteErr = $('#onboarding-invite-error');
+    if (choices)
+        choices.hidden = mode !== 'choices';
+    if (createPanel)
+        createPanel.hidden = mode !== 'create';
+    if (invitePanel)
+        invitePanel.hidden = mode !== 'invite';
+    if (createErr) {
+        createErr.hidden = true;
+        createErr.textContent = '';
+    }
+    if (inviteErr) {
+        inviteErr.hidden = true;
+        inviteErr.textContent = '';
+    }
+    const savedName = readClientPrefs().displayName || '';
+    if (mode === 'create') {
+        const wsInp = $('#onboarding-ws-name');
+        const ownerInp = $('#onboarding-owner-name');
+        if (ownerInp && !ownerInp.value.trim() && savedName)
+            ownerInp.value = savedName;
+        const modeSel = $('#onboarding-ws-mode');
+        if (modeSel && !modeSel.value)
+            modeSel.value = 'local';
+        const srvRow = $('#onboarding-server-url-row');
+        if (srvRow)
+            srvRow.hidden = (modeSel?.value || 'local') !== 'server';
+        requestAnimationFrame(() => wsInp?.select());
+    }
+    else if (mode === 'invite') {
+        const codeInp = $('#onboarding-invite-code');
+        const accInp = $('#onboarding-invite-account');
+        if (codeInp && prefillInviteCode)
+            codeInp.value = prefillInviteCode;
+        if (accInp && !accInp.value.trim() && savedName)
+            accInp.value = savedName;
+        requestAnimationFrame(() => (codeInp && !codeInp.value ? codeInp : accInp)?.focus());
+    }
+}
+function completeOnboardingCreateWorkspace(rawName, ownerNameRaw, modeRaw = 'local', serverUrlRaw) {
+    const name = String(rawName || '').trim() || 'My Workspace';
+    const savedName = readClientPrefs().displayName || '';
+    const ownerName = String(ownerNameRaw || savedName || '').trim() || 'Owner';
+    const mode = modeRaw === 'cloud-sync' || modeRaw === 'server' ? modeRaw : 'local';
+    let cleanServer;
+    if (mode === 'server' && serverUrlRaw?.trim()) {
+        cleanServer = ArchitectBackend.safeHttpUrl(serverUrlRaw.trim()) || undefined;
+    }
+    saveClientPrefs(ownerName, state?.userPreferences);
+    setLoggedInAccountName(ownerName);
+    setActiveStoreKey(STORE);
+    state = freshWorkspace(name, undefined, { coordinationMode: mode, ownerName, serverUrl: cleanServer });
+    needsWorkspaceOnboarding = false;
+    try {
+        localStorage.setItem(RESET_MARKER, 'done');
+    }
+    catch { }
+    ensureTabs();
+    pageHistory = [state.activePageId];
+    historyIndex = 0;
+    persistAllStorage(JSON.stringify(state), true);
+    syncPageUrl(state.activePageId);
+    ArchitectToolbar?.applyAppearanceStyles?.();
+    setAppMode('notion', { skipRender: true });
+    render();
+    updateSidebarModeBadge();
+    updateHistoryControls();
+    scheduleAutoSync();
+    toast(`Created “${name}”`);
+}
+function bindOnboardingEvents() {
+    $('#onboarding-invite-btn')?.addEventListener('click', () => showOnboardingView('invite'));
+    $('#onboarding-create-btn')?.addEventListener('click', () => showOnboardingView('create'));
+    document.querySelectorAll('[data-onboarding-back]').forEach(btn => {
+        btn.addEventListener('click', () => showOnboardingView('choices'));
+    });
+    $('#onboarding-ws-mode')?.addEventListener('change', e => {
+        const val = e.target.value;
+        const srvRow = $('#onboarding-server-url-row');
+        if (srvRow)
+            srvRow.hidden = val !== 'server';
+    });
+    $('#onboarding-create-panel')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const wsName = $('#onboarding-ws-name')?.value.trim() || '';
+        const ownerName = $('#onboarding-owner-name')?.value.trim() || '';
+        const mode = ($('#onboarding-ws-mode')?.value || 'local');
+        const srvRaw = $('#onboarding-ws-server-url')?.value.trim() || '';
+        const errEl = $('#onboarding-create-error');
+        if (!wsName) {
+            if (errEl) {
+                errEl.textContent = 'Enter a workspace name.';
+                errEl.hidden = false;
+            }
+            return;
+        }
+        if (mode === 'server') {
+            if (!srvRaw || !ArchitectBackend.safeHttpUrl(srvRaw)) {
+                if (errEl) {
+                    errEl.textContent = 'Enter a valid https:// or http:// team server URL.';
+                    errEl.hidden = false;
+                }
+                return;
+            }
+        }
+        completeOnboardingCreateWorkspace(wsName, ownerName, mode, srvRaw);
+    });
+    $('#onboarding-invite-panel')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = extractInviteCodeInput($('#onboarding-invite-code')?.value || '');
+        const account = $('#onboarding-invite-account')?.value.trim() || '';
+        const serverRaw = $('#onboarding-invite-server')?.value.trim() || '';
+        const errEl = $('#onboarding-invite-error');
+        if (!code) {
+            if (errEl) {
+                errEl.textContent = 'Enter an invite code.';
+                errEl.hidden = false;
+            }
+            return;
+        }
+        if (!account) {
+            if (errEl) {
+                errEl.textContent = 'Enter your display name.';
+                errEl.hidden = false;
+            }
+            return;
+        }
+        if (!serverRaw) {
+            if (errEl) {
+                errEl.textContent = 'No local workspace matches that invite code yet. Enter your team server URL above, or go back to create an offline workspace.';
+                errEl.hidden = false;
+            }
+            return;
+        }
+        const cleanServer = ArchitectBackend.safeHttpUrl(serverRaw);
+        if (!cleanServer) {
+            if (errEl) {
+                errEl.textContent = 'Team server URL must use https:// or http://.';
+                errEl.hidden = false;
+            }
+            return;
+        }
+        try {
+            const resp = await fetch(`${cleanServer.replace(/\/+$/, '')}/api/invites/redeem`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, account })
+            });
+            if (!resp.ok)
+                throw new Error(`Server returned HTTP ${resp.status}`);
+            const data = await resp.json();
+            const wsName = String(data?.workspaceName || 'Team Workspace').trim() || 'Team Workspace';
+            completeOnboardingCreateWorkspace(wsName, account, 'server', cleanServer);
+        }
+        catch (err) {
+            if (errEl) {
+                errEl.textContent = `Could not reach team server (${err instanceof Error ? err.message : 'connection failed'}).`;
+                errEl.hidden = false;
+            }
+        }
+    });
+    const syncDraftDisplayName = (val) => {
+        saveClientPrefs(val, state?.userPreferences);
+        if (!needsWorkspaceOnboarding)
+            return;
+        const clean = val.trim() || 'Owner';
+        if (state.users?.[0]) {
+            state.users[0].name = clean;
+            state.users[0].linkedAccount = clean;
+        }
+        const ownerInp = $('#onboarding-owner-name');
+        if (ownerInp && val.trim())
+            ownerInp.value = val.trim();
+        const invAccInp = $('#onboarding-invite-account');
+        if (invAccInp && val.trim())
+            invAccInp.value = val.trim();
+    };
+    $('#user-display-name-input')?.addEventListener('input', e => syncDraftDisplayName(e.target.value));
+    $('#user-display-name-input')?.addEventListener('change', e => syncDraftDisplayName(e.target.value));
+}
+bindOnboardingEvents();
 function handleInviteHash(inviteCode) {
     if (!inviteCode)
         return;
     requestAnimationFrame(() => {
+        if (needsWorkspaceOnboarding) {
+            showOnboardingView('invite', inviteCode);
+            return;
+        }
         openFullMemberManagerDialog();
         const codeInp = $('#mm-redeem-code');
         if (codeInp) {
@@ -22381,49 +22842,72 @@ else if (pageId && pageId !== window.__architectFormOpenMode)
     catch { } }); if (inviteCode)
     handleInviteHash(inviteCode); });
 render();
-if (current()?.published)
-    recordPublishedPageView(current());
+if (!needsWorkspaceOnboarding) {
+    if (current()?.published)
+        recordPublishedPageView(current());
+    if (initialBlockId) {
+        try {
+            history.replaceState(null, '', pageHref(state.activePageId, initialBlockId));
+        }
+        catch { }
+        requestAnimationFrame(() => focusLinkedBlock(initialBlockId));
+    }
+    else
+        syncPageUrl(state.activePageId);
+}
 flushScheduledNotifications(state, true, true);
 checkDueReminders(state, true);
-setInterval(() => { flushScheduledNotifications(state, true, true); checkDueReminders(state, true); }, 5000);
+setInterval(() => {
+    if (needsWorkspaceOnboarding)
+        return;
+    flushScheduledNotifications(state, true, true);
+    checkDueReminders(state, true);
+}, 5000);
 if (initialInviteCode)
     handleInviteHash(initialInviteCode);
-if (initialBlockId) {
-    try {
-        history.replaceState(null, '', pageHref(state.activePageId, initialBlockId));
-    }
-    catch { }
-    requestAnimationFrame(() => focusLinkedBlock(initialBlockId));
-}
-else
-    syncPageUrl(state.activePageId);
 scheduleAutoSync();
-if (state.coordinationMode === 'cloud-sync')
+if (!needsWorkspaceOnboarding && state.coordinationMode === 'cloud-sync')
     runSyncPull(false);
 checkForAppUpdates();
 if (ArchitectBackend.host()) {
+    ArchitectBackend.host().onMenuAction?.(action => {
+        if (action === 'user-settings') {
+            ArchitectToolbar?.openUserSettings?.();
+        }
+        else if (action === 'check-updates') {
+            checkForAppUpdates(undefined, true);
+        }
+        else if (action === 'new-workspace') {
+            if (needsWorkspaceOnboarding)
+                showOnboardingView('create');
+            else
+                openCreateWorkspaceDialog();
+        }
+    });
     Promise.all([
         ArchitectBackend.host().readWorkspace().then(raw => ({ ok: true, raw }), () => ({ ok: false, raw: null })),
         ArchitectBackend.hydrateAssetsFromHost().catch(() => false)
     ]).then(([diskRes, assetsHydrated]) => {
         let changed = !!assetsHydrated;
         let pulledDiskState = false;
-        const localIsRich = isRichWorkspace(state);
+        const localIsRich = !needsWorkspaceOnboarding && isRichWorkspace(state);
         if (diskRes.ok && diskRes.raw) {
             try {
                 const parsedDisk = JSON.parse(diskRes.raw);
-                const wasMigrated = !parsedDisk._migratedRaphaelV1;
                 const diskState = ensureWorkspaceDefaults(parsedDisk);
                 if (diskState.version === 2 && Array.isArray(diskState.pages) && diskState.pages.length) {
                     const diskIsRich = isRichWorkspace(diskState);
-                    if (diskIsRich || !localIsRich) {
+                    if (needsWorkspaceOnboarding || diskIsRich || !localIsRich) {
+                        needsWorkspaceOnboarding = false;
                         state = diskState;
                         ArchitectBackend.setPreviewPolicy(state.assetPreviewPolicy);
                         localStorage.setItem(STORE, JSON.stringify(state));
                         if (diskIsRich)
                             localStorage.setItem(LAST_RICH_BACKUP, JSON.stringify(state));
-                        if (wasMigrated)
-                            ArchitectBackend.host().writeWorkspace(JSON.stringify(state)).catch(() => { });
+                        ensureTabs();
+                        pageHistory = [state.activePageId];
+                        historyIndex = 0;
+                        syncPageUrl(state.activePageId);
                         scheduleAutoSync();
                         changed = true;
                         pulledDiskState = true;
@@ -22436,7 +22920,7 @@ if (ArchitectBackend.host()) {
             }
             catch { }
         }
-        else if (diskRes.ok && diskRes.raw === null) {
+        else if (diskRes.ok && diskRes.raw === null && !needsWorkspaceOnboarding) {
             ArchitectBackend.host().writeWorkspace(JSON.stringify(state)).catch(() => { });
         }
         hostWorkspaceHydrated = true;

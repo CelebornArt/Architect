@@ -305,8 +305,8 @@ const ArchitectBackend = (() => {
                     name: item.name,
                     fileType,
                     category,
-                    creator: typeof item.creator === 'string' && item.creator ? item.creator : 'Raphael',
-                    uploadedBy: typeof item.uploadedBy === 'string' && item.uploadedBy ? item.uploadedBy : 'Raphael',
+                    creator: typeof item.creator === 'string' && item.creator ? item.creator : 'Owner',
+                    uploadedBy: typeof item.uploadedBy === 'string' && item.uploadedBy ? item.uploadedBy : 'Owner',
                     tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
                     metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : {},
                     storageMode: item.storageMode || 'local',
@@ -467,7 +467,7 @@ const ArchitectBackend = (() => {
         const assetId = crypto.randomUUID();
         const mime = file.type || 'application/octet-stream';
         const category = opts.category || inferCategory(file.name, mime);
-        const creator = (opts.creator || 'Raphael').trim() || 'Raphael';
+        const creator = (opts.creator || 'Owner').trim() || 'Owner';
         const tags = (opts.tags || []).map(t => t.trim()).filter(Boolean);
         const now = Date.now();
         const meta = { ...(opts.metadata || {}), sizeBytes: file.size };
@@ -600,8 +600,8 @@ const ArchitectBackend = (() => {
             name: input.name.trim(),
             fileType: resolvedType,
             category: resolvedCategory,
-            creator: input.creator.trim() || 'Raphael',
-            uploadedBy: input.creator.trim() || 'Raphael',
+            creator: input.creator.trim() || 'Owner',
+            uploadedBy: input.creator.trim() || 'Owner',
             tags: (input.tags || []).map(t => t.trim()).filter(Boolean),
             metadata: input.metadata || {},
             storageMode: 'drive-reference',
@@ -1029,7 +1029,7 @@ const ArchitectBackend = (() => {
         const id = crypto.randomUUID();
         const mime = file.type || 'application/octet-stream';
         const folder = (opts.folder || 'form-uploads').trim().replace(/[^a-zA-Z0-9._-]+/g, '-') || 'form-uploads';
-        const creator = (opts.creator || 'Raphael').trim() || 'Raphael';
+        const creator = (opts.creator || 'Owner').trim() || 'Owner';
         const now = Date.now();
         const desktop = host();
         let fileName;

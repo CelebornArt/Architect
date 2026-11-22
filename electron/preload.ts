@@ -12,8 +12,49 @@ export type ElectronAssetSavePayload = {
 contextBridge.exposeInMainWorld('architectHost', {
   isDesktop: true,
   info: (): Promise<{ dataDir: string; platform: string; version?: string }> => ipcRenderer.invoke('architect:info'),
-  checkUpdate: (feedUrl?: string): Promise<{ currentVersion: string; latestVersion?: string; downloadUrl?: string; notes?: string; updateAvailable: boolean; error?: string }> =>
-    ipcRenderer.invoke('architect:check-update', feedUrl),
+  checkUpdate: (feedUrl?: string): Promise<{
+    currentVersion: string;
+    latestVersion?: string;
+    version?: string;
+    downloadUrl?: string;
+    installerUrl?: string;
+    installerApiUrl?: string;
+    assetName?: string;
+    assetSize?: number;
+    assetSha256?: string;
+    latestYmlUrl?: string;
+    latestYmlApiUrl?: string;
+    installKind?: string;
+    notes?: string;
+    updateAvailable: boolean;
+    requiresAuth?: boolean;
+    error?: string;
+  }> => ipcRenderer.invoke('architect:check-update', feedUrl),
+  installUpdate: (payload: {
+    url: string;
+    apiUrl?: string;
+    assetName: string;
+    expectedSize?: number;
+    sha256?: string;
+    latestYmlUrl?: string;
+    latestYmlApiUrl?: string;
+    installKind?: string;
+  }): Promise<{ ok: boolean; mode?: string; filePath?: string; error?: string }> =>
+    ipcRenderer.invoke('architect:install-update', payload),
+  onUpdateProgress: (cb: (progress: { phase: string; percent?: number; downloadedBytes?: number; totalBytes?: number; message?: string }) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: { phase: string; percent?: number; downloadedBytes?: number; totalBytes?: number; message?: string }) => cb(progress);
+    ipcRenderer.on('architect:update-progress', listener);
+    return () => ipcRenderer.removeListener('architect:update-progress', listener);
+  },
+  getUpdateConfig: (): Promise<{ defaultFeedUrl: string; hasToken: boolean; autoCheck: boolean }> =>
+    ipcRenderer.invoke('architect:get-update-config'),
+  setUpdateConfig: (cfg: { token?: string; clearToken?: boolean; autoCheck?: boolean }): Promise<{ ok: boolean; hasToken: boolean; autoCheck: boolean }> =>
+    ipcRenderer.invoke('architect:set-update-config', cfg),
+  onMenuAction: (cb: (action: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, action: string) => cb(action);
+    ipcRenderer.on('architect:menu-action', listener);
+    return () => ipcRenderer.removeListener('architect:menu-action', listener);
+  },
   relaunch: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('architect:relaunch'),
   readWorkspace: (): Promise<string | null> => ipcRenderer.invoke('architect:read-workspace'),
   writeWorkspace: (json: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('architect:write-workspace', json),

@@ -297,7 +297,7 @@ const ArchitectToolbar = (() => {
             if (typeof ArchitectBackend !== 'undefined') {
                 const state = host?.getState?.();
                 const rec = await ArchitectBackend.ingestLocalFile(file, {
-                    creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Raphael',
+                    creator: host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Owner',
                     category: 'other',
                     storageMode: state?.assetStorageMode || 'local',
                     previewPolicy: state?.assetPreviewPolicy
@@ -1241,7 +1241,7 @@ const ArchitectToolbar = (() => {
         applyAppearanceStyles();
         const nameInput = document.getElementById('user-display-name-input');
         if (nameInput)
-            nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || 'Raphael';
+            nameInput.value = host?.getCurrentUser?.() || state?.users?.[0]?.name || '';
         syncTimeZoneSelect(prefs.timeZone || 'auto');
         const themeSel = document.getElementById('user-appearance-theme');
         if (themeSel)

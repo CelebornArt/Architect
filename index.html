@@ -92,6 +92,53 @@
     <aside class="comments-drawer" id="comments-drawer" aria-label="Page comments" hidden></aside>
     <aside class="assets-sidebar" id="assets-sidebar" aria-label="Assets library sidebar" hidden></aside>
     <aside class="form-design-sidebar" id="form-design-sidebar" aria-label="Form Design &amp; Settings" hidden></aside>
+    <section id="workspace-onboarding" class="workspace-onboarding" aria-label="Workspace onboarding" hidden>
+      <div class="onboarding-shell">
+        <div id="onboarding-choices" class="onboarding-choices">
+          <button type="button" id="onboarding-invite-btn" class="onboarding-choice-btn">
+            <span class="onboarding-choice-title">Input an invite code</span>
+            <span class="onboarding-choice-sub">Join an existing workspace using an invite code</span>
+          </button>
+          <button type="button" id="onboarding-create-btn" class="onboarding-choice-btn is-primary">
+            <span class="onboarding-choice-title">Create your first workspace</span>
+            <span class="onboarding-choice-sub">Starts as an offline local workspace on this device</span>
+          </button>
+        </div>
+        <form id="onboarding-create-panel" class="onboarding-panel" hidden>
+          <div class="onboarding-panel-head">
+            <button type="button" class="secondary-button" data-onboarding-back>← Back</button>
+            <h2>Create your first workspace</h2>
+          </div>
+          <label class="settings-field" for="onboarding-ws-name">Workspace name<input id="onboarding-ws-name" maxlength="80" value="My Workspace" placeholder="My Workspace" autocomplete="off" required></label>
+          <label class="settings-field" for="onboarding-owner-name">Your display name<input id="onboarding-owner-name" maxlength="60" placeholder="Owner" autocomplete="off"></label>
+          <label class="settings-field" for="onboarding-ws-mode">Workspace mode
+            <select id="onboarding-ws-mode">
+              <option value="local" selected>Offline (Local on this device — default)</option>
+              <option value="cloud-sync">Cloud-drive file sync</option>
+              <option value="server">Team collaboration server</option>
+            </select>
+          </label>
+          <label id="onboarding-server-url-row" class="settings-field" for="onboarding-ws-server-url" hidden>Team server URL<input id="onboarding-ws-server-url" type="url" placeholder="https://architect.yourteam.com" autocomplete="off"></label>
+          <div id="onboarding-create-error" class="onboarding-error" role="alert" hidden></div>
+          <div class="onboarding-panel-actions">
+            <button type="submit" id="onboarding-submit-create" class="share-button onboarding-submit-btn">Create workspace</button>
+          </div>
+        </form>
+        <form id="onboarding-invite-panel" class="onboarding-panel" hidden>
+          <div class="onboarding-panel-head">
+            <button type="button" class="secondary-button" data-onboarding-back>← Back</button>
+            <h2>Input an invite code</h2>
+          </div>
+          <label class="settings-field" for="onboarding-invite-code">Invite code<input id="onboarding-invite-code" placeholder="INV-XXXXXX or invite URL" autocomplete="off" required></label>
+          <label class="settings-field" for="onboarding-invite-account">Your display name<input id="onboarding-invite-account" maxlength="60" placeholder="Your name" autocomplete="off" required></label>
+          <label class="settings-field" for="onboarding-invite-server">Team server URL (if connecting remotely)<input id="onboarding-invite-server" type="url" placeholder="https://architect.yourteam.com" autocomplete="off"></label>
+          <div id="onboarding-invite-error" class="onboarding-error" role="alert" hidden></div>
+          <div class="onboarding-panel-actions">
+            <button type="submit" id="onboarding-submit-invite" class="share-button onboarding-submit-btn">Join workspace</button>
+          </div>
+        </form>
+      </div>
+    </section>
   </div>
   <div id="docs-notif-popover" class="docs-notif-popover" role="dialog" aria-label="Notifications" hidden></div>
   <div id="app-update-banner" class="app-update-banner" role="status" aria-live="polite" hidden></div>
@@ -126,8 +173,17 @@
   <dialog id="search-dialog" aria-label="Search workspace"><div class="search-box"><span>⌕</span><input id="search-input" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false" placeholder="Search pages, blocks, and assets…" autocomplete="off"/><kbd>ESC</kbd></div><div class="search-results" id="search-results" role="listbox" aria-label="Search results"></div></dialog>
   <dialog id="settings-dialog" class="settings-dialog workspace-settings-dialog obsidian-settings-dialog" aria-labelledby="settings-title"><form method="dialog" class="obs-settings-shell"><header class="obs-settings-titlebar"><h2 id="settings-title">Workspace settings</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close settings">×</button></header><div class="obs-settings-body"><nav class="obs-settings-nav" id="ws-settings-tabs" role="tablist" aria-label="Workspace settings categories"><div class="obs-nav-search-wrap"><input id="ws-settings-search" type="search" placeholder="Search settings…" autocomplete="off" aria-label="Search workspace settings"></div><div class="obs-nav-group-label">Workspace</div><button type="button" class="obs-nav-item is-active" data-ws-tab="general" role="tab" aria-selected="true">General</button><button type="button" class="obs-nav-item" data-ws-tab="coordination" role="tab" aria-selected="false">Coordination &amp; Sync</button><button type="button" class="obs-nav-item" data-ws-tab="assets" role="tab" aria-selected="false">Asset Storage</button><button type="button" class="obs-nav-item" data-ws-tab="backup" role="tab" aria-selected="false">Backups &amp; Import</button><div class="obs-nav-group-label">Style &amp; Extensions</div><button type="button" class="obs-nav-item" data-ws-tab="customization" role="tab" aria-selected="false">Customization</button><button type="button" class="obs-nav-item" data-ws-tab="plugins" role="tab" aria-selected="false">Plugin Browser</button></nav><div class="obs-settings-pane" id="ws-settings-pane">
     <section class="obs-settings-panel" data-ws-panel="general">
-      <header class="obs-panel-head"><h3>General</h3><p>Manage workspace identity and general configuration.</p></header>
+      <header class="obs-panel-head"><h3>General</h3><p>Manage workspace identity, general configuration, and GitHub release updates.</p></header>
       <div class="obs-setting-item" data-ws-keywords="workspace name identity title rename"><div class="obs-setting-copy"><strong>Workspace name</strong><small>Shown in the explorer sidebar switcher, page chrome, and exported backups.</small></div><div class="obs-setting-control"><input id="settings-workspace-name" maxlength="80" autocomplete="off"><button class="share-button" id="save-workspace-name" type="button">Save</button></div></div>
+      <div class="obs-setting-item" data-ws-keywords="app updates version github automatic check release"><div class="obs-setting-copy"><strong>Automatic GitHub updates</strong><small id="ws-app-version-label">Current version v0.2.1 — checks GitHub Releases on startup and shows the in-app update banner.</small><small class="settings-feedback" id="settings-update-status" role="status" aria-live="polite"></small></div><div class="obs-setting-control"><label class="settings-checkbox" style="margin:0"><input id="ws-auto-update-enabled" type="checkbox" checked> Auto-check</label><button class="secondary-button" id="ws-check-updates-now" type="button">↑ Check now</button></div></div>
+      <div class="obs-setting-item is-stacked" data-ws-keywords="update feed url github releases custom endpoint">
+        <div class="obs-setting-copy"><strong>Release feed URL (optional override)</strong><small>Defaults to <code>https://api.github.com/repos/CelebornArt/Architect/releases/latest</code> when left blank.</small></div>
+        <div class="settings-inline-row"><input id="ws-update-feed-url" type="url" placeholder="https://api.github.com/repos/CelebornArt/Architect/releases/latest" autocomplete="off"><button class="secondary-button" id="ws-save-update-feed" type="button">Save URL</button></div>
+      </div>
+      <div class="obs-setting-item is-stacked" id="ws-update-token-row" hidden data-ws-keywords="github token private repository update auth desktop">
+        <div class="obs-setting-copy"><strong>GitHub token (desktop, optional for private repos)</strong><small id="ws-update-token-status">Stored locally on this machine only — never included in workspace backups.</small></div>
+        <div class="settings-inline-row"><input id="ws-update-token-input" type="password" placeholder="ghp_... or github_pat_..." autocomplete="off"><button class="secondary-button" id="ws-save-update-token" type="button">Save token</button><button class="secondary-button" id="ws-clear-update-token" type="button">Clear</button></div>
+      </div>
     </section>
     <section class="obs-settings-panel" data-ws-panel="coordination" hidden>
       <header class="obs-panel-head"><h3>Coordination &amp; Sync</h3><p>Choose between offline local mode, solo cloud-drive sync, or a team collaboration server.</p></header>

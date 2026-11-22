@@ -496,7 +496,7 @@ const ArchitectDatabase = (() => {
   }
 
   function actorName() {
-    return host?.getCurrentUser?.() || getState()?.users?.[0]?.name || 'Raphael';
+    return host?.getCurrentUser?.() || getState()?.users?.[0]?.name || 'Owner';
   }
 
   function isHostReadOnly(page?: any) {
@@ -1219,14 +1219,7 @@ const ArchitectDatabase = (() => {
   }
 
   function questProjectOptions(): DbSelectOption[] {
-    return [
-      { id: uid(), name: 'Grimhald', color: 'purple' },
-      { id: uid(), name: 'Trials of Akash', color: 'orange' },
-      { id: uid(), name: 'Edany EP', color: 'pink' },
-      { id: uid(), name: 'Anomaly', color: 'blue' },
-      { id: uid(), name: 'Leilani', color: 'green' },
-      { id: uid(), name: 'Soul Atlas', color: 'yellow' }
-    ];
+    return [];
   }
 
   function questHealthOptions(): DbSelectOption[] {
@@ -1274,7 +1267,7 @@ const ArchitectDatabase = (() => {
     ];
   }
 
-  function configureQuestboardDatabase(dbPage: any, seedSampleQuests = true) {
+  function configureQuestboardDatabase(dbPage: any, seedSampleQuests = false) {
     const dbPageId = dbPage.id;
     const titleProp: DbSchemaProperty = { id: 'prop_title', name: 'Task', type: 'title', width: 270 };
     const keyProp: DbSchemaProperty = { id: uid(), name: 'Issue Key', type: 'unique_id', idPrefix: 'QUEST', idNext: 1, width: 96 };
@@ -1337,145 +1330,7 @@ const ArchitectDatabase = (() => {
       isOfficialTaskboard: true,
       showTitle: true
     };
-
-    if (seedSampleQuests && !getDatabaseRows(dbPageId).length) {
-      const s = getState();
-      const users = (s?.users || []).filter(Boolean);
-      const actor = actorName().toLowerCase();
-      const u0 = users.find((u: any) => u.name.toLowerCase() === actor || (u.linkedAccount || '').toLowerCase() === actor) || users[0];
-      const u1 = users.find((u: any) => u0 && u.id !== u0.id) || u0;
-      const u2 = users.find((u: any) => u0 && u1 && u.id !== u0.id && u.id !== u1.id) || u1;
-      const optId = (prop: DbSchemaProperty, name: string) => prop.options?.find(o => o.name === name)?.id || '';
-      const idOrEmpty = (u: any) => (u?.id ? [u.id] : []);
-
-      const q1 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'Super High'),
-        [timeProp.id]: { start: isoOffsetDate(-3), end: isoOffsetDate(-1) },
-        [phaseProp.id]: optId(phaseProp, 'In progress'),
-        [respProp.id]: idOrEmpty(u0),
-        [acctProp.id]: idOrEmpty(u1),
-        [consProp.id]: idOrEmpty(u2),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Grimhald')],
-        [healthProp.id]: optId(healthProp, 'Delayed'),
-        [deptProp.id]: [optId(deptProp, 'Art'), optId(deptProp, 'Production')],
-        [typeProp.id]: [optId(typeProp, 'Concept Art'), optId(typeProp, 'Art Direction')]
-      }, [{ id: uid(), type: 'text', text: 'Finalize silhouette pass and lighting key for the Grimhald citadel sequence.' }], '🔥', { skipAutomations: true });
-      q1.title = 'Grimhald Key Art Lock';
-
-      const q2 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'High'),
-        [timeProp.id]: { start: isoOffsetDate(-1), end: isoOffsetDate(2) },
-        [phaseProp.id]: optId(phaseProp, 'Briefed'),
-        [respProp.id]: idOrEmpty(u0),
-        [acctProp.id]: idOrEmpty(u1),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Trials of Akash')],
-        [healthProp.id]: optId(healthProp, 'At Risk'),
-        [deptProp.id]: [optId(deptProp, 'Animation')],
-        [typeProp.id]: [optId(typeProp, '2D Animation'), optId(typeProp, 'Layout')]
-      }, [{ id: uid(), type: 'text', text: 'Complete animatic layout blocking for Episode 2 reveal.' }], '🎬', { skipAutomations: true });
-      q2.title = 'Akash Ep.2 Layout Pass';
-
-      const q3 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'High'),
-        [timeProp.id]: { start: isoOffsetDate(0), end: isoOffsetDate(1) },
-        [phaseProp.id]: optId(phaseProp, 'In progress'),
-        [respProp.id]: idOrEmpty(u1),
-        [acctProp.id]: idOrEmpty(u0),
-        [consProp.id]: idOrEmpty(u2),
-        [scopeProp.id]: optId(scopeProp, 'Check-in / Review'),
-        [projProp.id]: [optId(projProp, 'Anomaly')],
-        [healthProp.id]: optId(healthProp, 'At Risk'),
-        [deptProp.id]: [optId(deptProp, 'Documentary'), optId(deptProp, 'Editing')],
-        [typeProp.id]: [optId(typeProp, 'Production'), optId(typeProp, 'Coordination')]
-      }, [{ id: uid(), type: 'text', text: 'Review rough documentary cut and confirm B-roll interview pacing.' }], '🧐', { skipAutomations: true });
-      q3.title = 'Review Documentary Cut v3';
-
-      const q4 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'Medium'),
-        [timeProp.id]: { start: isoOffsetDate(1), end: isoOffsetDate(5) },
-        [phaseProp.id]: optId(phaseProp, 'Assigned'),
-        [respProp.id]: idOrEmpty(u2),
-        [consProp.id]: idOrEmpty(u0),
-        [acctProp.id]: idOrEmpty(u1),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Leilani')],
-        [healthProp.id]: optId(healthProp, 'On Track'),
-        [deptProp.id]: [optId(deptProp, 'Fashion'), optId(deptProp, 'Comics')],
-        [typeProp.id]: [optId(typeProp, 'Graphic Design')]
-      }, [{ id: uid(), type: 'text', text: 'Consult on costume color scripting and cover emblem variations.' }], '🪡', { skipAutomations: true });
-      q4.title = 'Leilani Costume Palette Consult';
-
-      const q5 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'Medium'),
-        [timeProp.id]: { start: isoOffsetDate(3), end: isoOffsetDate(9) },
-        [phaseProp.id]: optId(phaseProp, 'R&D + Ideation'),
-        [respProp.id]: idOrEmpty(u0),
-        [consProp.id]: idOrEmpty(u1),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Anomaly')],
-        [healthProp.id]: optId(healthProp, 'On Track'),
-        [deptProp.id]: [optId(deptProp, 'Community'), optId(deptProp, 'Content Creation')],
-        [typeProp.id]: [optId(typeProp, 'Marketing Sustain'), optId(typeProp, 'SMM Support - Community')]
-      }, [{ id: uid(), type: 'text', text: 'Draft lore teaser carousel for community release window.' }], '✨', { skipAutomations: true });
-      q5.title = 'Anomaly Launch Beat Sheet';
-
-      const q6 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'Low'),
-        [timeProp.id]: { start: isoOffsetDate(-7), end: isoOffsetDate(-4) },
-        [phaseProp.id]: optId(phaseProp, 'Complete'),
-        [respProp.id]: idOrEmpty(u0),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Soul Atlas')],
-        [healthProp.id]: optId(healthProp, 'On Track'),
-        [deptProp.id]: [optId(deptProp, 'Featurettes')],
-        [typeProp.id]: [optId(typeProp, 'Marketing Featurettes')]
-      }, [], '✅', { skipAutomations: true });
-      q6.title = 'Soul Atlas Teaser Export';
-
-      // Jira-ready Subtasks linked under parent quests via Parent task relation
-      const st1 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'High'),
-        [timeProp.id]: { start: isoOffsetDate(-3), end: isoOffsetDate(-2) },
-        [phaseProp.id]: optId(phaseProp, 'Complete'),
-        [respProp.id]: idOrEmpty(u0),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Grimhald')],
-        [healthProp.id]: optId(healthProp, 'On Track'),
-        [deptProp.id]: [optId(deptProp, 'Art')],
-        [parentProp.id]: [q1.id]
-      }, [], '↳', { skipAutomations: true });
-      st1.title = 'Silhouette thumbnails batch A';
-
-      const st2 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'Super High'),
-        [timeProp.id]: { start: isoOffsetDate(-2), end: isoOffsetDate(-1) },
-        [phaseProp.id]: optId(phaseProp, 'In progress'),
-        [respProp.id]: idOrEmpty(u0),
-        [consProp.id]: idOrEmpty(u1),
-        [scopeProp.id]: optId(scopeProp, 'Project / Task'),
-        [projProp.id]: [optId(projProp, 'Grimhald')],
-        [healthProp.id]: optId(healthProp, 'At Risk'),
-        [deptProp.id]: [optId(deptProp, 'Art')],
-        [parentProp.id]: [q1.id]
-      }, [], '↳', { skipAutomations: true });
-      st2.title = 'Rim-light mood paint-over';
-
-      const st3 = createDatabaseRow(dbPage, {
-        [prioProp.id]: optId(prioProp, 'Medium'),
-        [timeProp.id]: { start: isoOffsetDate(0), end: isoOffsetDate(2) },
-        [phaseProp.id]: optId(phaseProp, 'Assigned'),
-        [respProp.id]: idOrEmpty(u1),
-        [acctProp.id]: idOrEmpty(u0),
-        [scopeProp.id]: optId(scopeProp, 'Check-in / Review'),
-        [projProp.id]: [optId(projProp, 'Trials of Akash')],
-        [healthProp.id]: optId(healthProp, 'On Track'),
-        [deptProp.id]: [optId(deptProp, 'Animation')],
-        [parentProp.id]: [q2.id]
-      }, [], '↳', { skipAutomations: true });
-      st3.title = 'Camera timing check-in';
-    }
+    void seedSampleQuests;
     assignUniqueIds(dbPage);
     return dbPage;
   }
@@ -1492,7 +1347,7 @@ const ArchitectDatabase = (() => {
     );
   }
 
-  function createQuestboardPage(parentId?: string, title = 'Master Questboard | OS', seedSampleQuests = true, hiddenFromDocs = false) {
+  function createQuestboardPage(parentId?: string, title = 'Master Questboard | OS', seedSampleQuests = false, hiddenFromDocs = false) {
     const s = getState();
     const now = Date.now();
     const dbPage: any = {
@@ -1556,7 +1411,7 @@ const ArchitectDatabase = (() => {
       }
       return existing;
     }
-    const created = createQuestboardPage(undefined, 'Master Questboard | OS', true, true);
+    const created = createQuestboardPage(undefined, 'Master Questboard | OS', false, true);
     persist(false);
     return created;
   }

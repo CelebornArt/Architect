@@ -45,9 +45,52 @@ interface AssetRecord {
   updatedAt: number;
 }
 
+interface ArchitectUpdateCheckResult {
+  currentVersion: string;
+  latestVersion?: string;
+  version?: string;
+  downloadUrl?: string;
+  installerUrl?: string;
+  installerApiUrl?: string;
+  assetName?: string;
+  assetSize?: number;
+  assetSha256?: string;
+  latestYmlUrl?: string;
+  latestYmlApiUrl?: string;
+  installKind?: 'nsis' | 'portable' | 'exe' | 'mac' | 'unknown';
+  notes?: string;
+  updateAvailable: boolean;
+  requiresAuth?: boolean;
+  error?: string;
+}
+
+interface ArchitectUpdateProgress {
+  phase: 'downloading' | 'verifying' | 'installing' | 'error';
+  percent?: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  message?: string;
+}
+
 interface ArchitectHostBridge {
   isDesktop?: boolean;
-  info(): Promise<{ dataDir: string; platform: string }>;
+  info(): Promise<{ dataDir: string; platform: string; version?: string }>;
+  checkUpdate?(feedUrl?: string): Promise<ArchitectUpdateCheckResult>;
+  installUpdate?(payload: {
+    url: string;
+    apiUrl?: string;
+    assetName: string;
+    expectedSize?: number;
+    sha256?: string;
+    latestYmlUrl?: string;
+    latestYmlApiUrl?: string;
+    installKind?: string;
+  }): Promise<{ ok: boolean; mode?: string; filePath?: string; error?: string }>;
+  onUpdateProgress?(cb: (progress: ArchitectUpdateProgress) => void): () => void;
+  getUpdateConfig?(): Promise<{ defaultFeedUrl: string; hasToken: boolean; autoCheck: boolean }>;
+  setUpdateConfig?(cfg: { token?: string; clearToken?: boolean; autoCheck?: boolean }): Promise<{ ok: boolean; hasToken: boolean; autoCheck: boolean }>;
+  onMenuAction?(cb: (action: string) => void): () => void;
+  relaunch?(): Promise<{ ok: boolean }>;
   readWorkspace(): Promise<string | null>;
   writeWorkspace(json: string): Promise<{ ok: boolean }>;
   readAssets(): Promise<string | null>;
@@ -395,8 +438,8 @@ const ArchitectBackend = (() => {
             name: item.name,
             fileType,
             category,
-            creator: typeof item.creator === 'string' && item.creator ? item.creator : 'Raphael',
-            uploadedBy: typeof item.uploadedBy === 'string' && item.uploadedBy ? item.uploadedBy : 'Raphael',
+            creator: typeof item.creator === 'string' && item.creator ? item.creator : 'Owner',
+            uploadedBy: typeof item.uploadedBy === 'string' && item.uploadedBy ? item.uploadedBy : 'Owner',
             tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
             metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : {},
             storageMode: item.storageMode || 'local',
@@ -552,7 +595,7 @@ const ArchitectBackend = (() => {
     const assetId = crypto.randomUUID();
     const mime = file.type || 'application/octet-stream';
     const category = opts.category || inferCategory(file.name, mime);
-    const creator = (opts.creator || 'Raphael').trim() || 'Raphael';
+    const creator = (opts.creator || 'Owner').trim() || 'Owner';
     const tags = (opts.tags || []).map(t => t.trim()).filter(Boolean);
     const now = Date.now();
     const meta: Record<string, string | number> = { ...(opts.metadata || {}), sizeBytes: file.size };
@@ -690,8 +733,8 @@ const ArchitectBackend = (() => {
       name: input.name.trim(),
       fileType: resolvedType,
       category: resolvedCategory,
-      creator: input.creator.trim() || 'Raphael',
-      uploadedBy: input.creator.trim() || 'Raphael',
+      creator: input.creator.trim() || 'Owner',
+      uploadedBy: input.creator.trim() || 'Owner',
       tags: (input.tags || []).map(t => t.trim()).filter(Boolean),
       metadata: input.metadata || {},
       storageMode: 'drive-reference',
@@ -1136,7 +1179,7 @@ const ArchitectBackend = (() => {
     const id = crypto.randomUUID();
     const mime = file.type || 'application/octet-stream';
     const folder = (opts.folder || 'form-uploads').trim().replace(/[^a-zA-Z0-9._-]+/g, '-') || 'form-uploads';
-    const creator = (opts.creator || 'Raphael').trim() || 'Raphael';
+    const creator = (opts.creator || 'Owner').trim() || 'Owner';
     const now = Date.now();
     const desktop = host();
     let fileName: string | undefined;
