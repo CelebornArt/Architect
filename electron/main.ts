@@ -15,6 +15,7 @@ protocol.registerSchemesAsPrivileged([
       standard: true,
       secure: true,
       supportFetchAPI: true,
+      corsEnabled: true,
       stream: true
     }
   }
@@ -432,19 +433,6 @@ function registerStorageIpc(): void {
     }
   });
 }
-
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'architect-asset',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true
-    }
-  }
-]);
 
 app.whenReady().then(async () => {
   await ensureStorageDirs();
